@@ -2,30 +2,31 @@
  * Modern Multi-Step Registration Screen - Dark blue header with wave pattern
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createInputStyle, createShadow } from '@/app/utils/platform-styles';
+import { useToast } from '@/app/utils/useToast';
+import { signUp } from '@/lib/auth';
+import { checkEmailAvailability, checkUsernameAvailability } from '@/lib/database';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Animated,
-  ActivityIndicator,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { signUp } from '@/lib/auth';
-import { checkUsernameAvailability } from '@/lib/database';
-import { createInputStyle, createShadow } from '@/app/utils/platform-styles';
 import Svg, { Path } from 'react-native-svg';
 
 // Beautiful Wave pattern component with elegant curves
@@ -52,27 +53,38 @@ const WavePattern = ({ color }: { color: string }) => (
   </Svg>
 );
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 export default function RegisterScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { showToast, ToastComponent } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   
-  // Step 1: Email & Password
+  // Step 1: Email, Password & Student Number
   const [email, setEmail] = useState('');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const emailCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [studentNumber, setStudentNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Step 2: Username
   const [username, setUsername] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
-  const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
+  const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Step 3: Terms
+  // Step 3: Contact Information
+  const [phone, setPhone] = useState('');
+  const [emergencyContactName, setEmergencyContactName] = useState('');
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
+  const [location, setLocation] = useState('');
+  const [preferredContactMethod, setPreferredContactMethod] = useState<'phone' | 'sms' | 'email' | 'in-person' | ''>('');
+  
+  // Step 4: Terms
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   const [loading, setLoading] = useState(false);
@@ -96,6 +108,45 @@ export default function RegisterScreen() {
     ]).start();
   }, []);
 
+  // Real-time email availability check
+  useEffect(() => {
+    if (emailCheckTimeout.current) {
+      clearTimeout(emailCheckTimeout.current);
+    }
+
+    if (!email || !email.trim()) {
+      setEmailStatus('idle');
+      return;
+    }
+
+    // Validate email format
+    const normalizedEmail = email.toLowerCase().trim();
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      setEmailStatus('invalid');
+      return;
+    }
+
+    setEmailStatus('checking');
+    emailCheckTimeout.current = setTimeout(async () => {
+      try {
+        const isAvailable = await checkEmailAvailability(normalizedEmail);
+        console.log('Email check result:', normalizedEmail, 'available:', isAvailable);
+        setEmailStatus(isAvailable ? 'available' : 'taken');
+      } catch (error) {
+        console.error('Error checking email availability:', error);
+        // On error, set to taken to prevent proceeding with potentially invalid email
+        setEmailStatus('taken');
+      }
+    }, 500);
+
+    return () => {
+      if (emailCheckTimeout.current) {
+        clearTimeout(emailCheckTimeout.current);
+      }
+    };
+  }, [email]);
+
   // Real-time username availability check
   useEffect(() => {
     if (usernameCheckTimeout.current) {
@@ -118,9 +169,12 @@ export default function RegisterScreen() {
     usernameCheckTimeout.current = setTimeout(async () => {
       try {
         const isAvailable = await checkUsernameAvailability(normalizedUsername);
+        console.log('Username check result:', normalizedUsername, 'available:', isAvailable);
         setUsernameStatus(isAvailable ? 'available' : 'taken');
       } catch (error) {
-        setUsernameStatus('idle');
+        console.error('Error checking username availability:', error);
+        // On error, set to taken to prevent proceeding with potentially invalid username
+        setUsernameStatus('taken');
       }
     }, 500);
 
@@ -135,28 +189,141 @@ export default function RegisterScreen() {
     if (pwd.length === 0) return { strength: 0, label: '', color: '#FFFFFF' };
     if (pwd.length < 6) return { strength: 1, label: 'Weak', color: '#EF4444' };
     if (pwd.length < 8) return { strength: 2, label: 'Fair', color: '#F59E0B' };
-    if (pwd.length < 12 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+    
+    // Check for required characters
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasNumber = /[0-9]/.test(pwd);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+    
+    const requirementsMet = [hasUpper, hasLower, hasNumber].filter(Boolean).length;
+    
+    if (pwd.length < 12 || requirementsMet < 3) {
       return { strength: 3, label: 'Good', color: '#3B82F6' };
+    }
+    if (hasSpecial && pwd.length >= 12) {
+      return { strength: 4, label: 'Strong', color: '#10B981' };
     }
     return { strength: 4, label: 'Strong', color: '#10B981' };
   };
 
   const passwordStrength = getPasswordStrength(password);
 
+  // Validate CUT student number format: Letter + 8 digits + Letter
+  // Example: C23155538O
+  const isValidStudentNumber = (num: string): boolean => {
+    const normalized = num.trim().toUpperCase();
+    // Must start with a letter, have 8 digits, and end with a letter
+    return /^[A-Z]\d{8}[A-Z]$/.test(normalized);
+  };
+
   const canProceedToStep2 = () => {
-    return email.trim() && password.trim() && confirmPassword.trim() && 
-           password === confirmPassword && password.length >= 6;
+    return email.trim() && 
+           emailStatus === 'available' &&
+           password.trim() && 
+           confirmPassword.trim() && 
+           password === confirmPassword && 
+           password.length >= 8 &&
+           passwordStrength.strength >= 3 &&
+           studentNumber.trim() &&
+           isValidStudentNumber(studentNumber);
   };
 
   const canProceedToStep3 = () => {
     return username.trim().length >= 3 && usernameStatus === 'available';
   };
 
+  const canProceedToStep4 = () => {
+    return phone.trim() && 
+           emergencyContactName.trim() && 
+           emergencyContactPhone.trim();
+  };
+
   const handleNext = () => {
-    if (currentStep === 1 && canProceedToStep2()) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && canProceedToStep3()) {
-      setCurrentStep(3);
+    if (currentStep === 1) {
+      if (!email.trim()) {
+        showToast('Please enter your email address', 'warning');
+        return;
+      }
+      if (emailStatus === 'invalid') {
+        showToast('Please enter a valid email address', 'error');
+        return;
+      }
+      if (emailStatus === 'checking') {
+        showToast('Please wait while we check email availability', 'info');
+        return;
+      }
+      if (emailStatus === 'taken') {
+        showToast('This email is already registered. Please use a different email or try signing in.', 'error');
+        return;
+      }
+      if (emailStatus !== 'available') {
+        showToast('Please wait for email validation to complete', 'warning');
+        return;
+      }
+      if (!password.trim()) {
+        showToast('Please enter a password', 'warning');
+        return;
+      }
+      if (password.length < 8) {
+        showToast('Password must be at least 8 characters long', 'warning');
+        return;
+      }
+      if (passwordStrength.strength < 3) {
+        showToast('Password is too weak. Please use a stronger password with uppercase, lowercase, and numbers.', 'warning');
+        return;
+      }
+      if (password !== confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+      }
+      if (!studentNumber.trim()) {
+        showToast('Please enter your CUT student number', 'warning');
+        return;
+      }
+      if (!isValidStudentNumber(studentNumber)) {
+        showToast('Invalid student number format. Must start with a letter, have 8 digits, and end with a letter (e.g., C23155538O)', 'error');
+        return;
+      }
+      if (canProceedToStep2()) {
+        setCurrentStep(2);
+      }
+    } else if (currentStep === 2) {
+      if (!username.trim()) {
+        showToast('Please enter a username', 'warning');
+        return;
+      }
+      if (usernameStatus === 'taken') {
+        showToast('This username is already taken. Please choose another.', 'error');
+        return;
+      }
+      if (usernameStatus === 'invalid') {
+        showToast('Username must be 3-20 characters, alphanumeric, underscore, or hyphen only', 'error');
+        return;
+      }
+      if (usernameStatus !== 'available') {
+        showToast('Please wait for username availability check to complete', 'info');
+        return;
+      }
+      if (canProceedToStep3()) {
+        setCurrentStep(3);
+      }
+    } else if (currentStep === 3) {
+      if (!phone.trim()) {
+        showToast('Please enter your phone number', 'warning');
+        return;
+      }
+      if (!emergencyContactName.trim()) {
+        showToast('Please enter emergency contact name', 'warning');
+        return;
+      }
+      if (!emergencyContactPhone.trim()) {
+        showToast('Please enter emergency contact phone number', 'warning');
+        return;
+      }
+      if (canProceedToStep4()) {
+        setCurrentStep(4);
+      }
     }
   };
 
@@ -169,40 +336,150 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
+    console.log('handleRegister called');
+    console.log('acceptedTerms:', acceptedTerms);
+    console.log('Form data:', {
+      email: email.trim(),
+      username: username.trim(),
+      studentNumber: studentNumber.trim(),
+      phone: phone.trim(),
+      emergencyContactName: emergencyContactName.trim(),
+      emergencyContactPhone: emergencyContactPhone.trim(),
+    });
+
     if (!acceptedTerms) {
-      Alert.alert('Terms Required', 'Please accept the terms and conditions');
+      console.log('Terms not accepted');
+      showToast('Please accept the terms and conditions to continue', 'warning');
+      // Fallback alert in case toast doesn't show
+      Alert.alert('Terms Required', 'Please accept the terms and conditions to continue');
+      return;
+    }
+
+    // Validate all required fields
+    if (!email.trim()) {
+      showToast('Please enter your email address', 'warning');
+      return;
+    }
+    if (emailStatus === 'invalid') {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+    if (emailStatus === 'checking') {
+      showToast('Please wait while we check email availability', 'info');
+      return;
+    }
+    if (emailStatus === 'taken') {
+      showToast('This email is already registered. Please use a different email or try signing in.', 'error');
+      return;
+    }
+    if (emailStatus !== 'available') {
+      showToast('Please wait for email validation to complete', 'warning');
+      return;
+    }
+    if (!password.trim()) {
+      showToast('Please enter a password', 'warning');
+      return;
+    }
+    if (password.length < 8) {
+      showToast('Password must be at least 8 characters long', 'warning');
+      return;
+    }
+    // Check password requirements
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasUpper || !hasLower || !hasNumber) {
+      showToast('Password must contain at least one uppercase letter, one lowercase letter, and one number', 'warning');
+      return;
+    }
+    if (passwordStrength.strength < 3) {
+      showToast('Password is too weak. Please use a stronger password.', 'warning');
+      return;
+    }
+    if (password !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+    if (!username.trim()) {
+      showToast('Please enter a username', 'warning');
+      return;
+    }
+    if (!studentNumber.trim()) {
+      showToast('Please enter your CUT student number', 'warning');
+      return;
+    }
+    if (!phone.trim()) {
+      showToast('Please enter your phone number', 'warning');
+      return;
+    }
+    if (!emergencyContactName.trim()) {
+      showToast('Please enter emergency contact name', 'warning');
+      return;
+    }
+    if (!emergencyContactPhone.trim()) {
+      showToast('Please enter emergency contact phone number', 'warning');
       return;
     }
 
     setLoading(true);
+    console.log('Loading set to true, starting registration...');
+    
     try {
+      // Normalize student number to uppercase
+      const normalizedStudentNumber = studentNumber.trim().toUpperCase();
+      
+      console.log('Calling signUp...');
       const { user, error } = await signUp({
         email: email.trim(),
         password,
         username: username.trim().toLowerCase(),
+        studentNumber: normalizedStudentNumber,
+        phone: phone.trim(),
+        emergencyContactName: emergencyContactName.trim(),
+        emergencyContactPhone: emergencyContactPhone.trim(),
+        location: location.trim() || undefined,
+        preferredContactMethod: preferredContactMethod || undefined,
         role: 'student',
       });
 
+      console.log('signUp response:', { user: !!user, error });
+
       if (error) {
-        Alert.alert('Registration Failed', error.message || 'An error occurred. Please try again.');
+        console.error('SignUp error:', error);
+        const errorMsg = error.message || 'Registration failed. Please try again.';
+        showToast(errorMsg, 'error', 5000);
+        // Fallback alert
+        Alert.alert('Registration Failed', errorMsg);
+        setLoading(false);
         return;
       }
 
-      if (user) {
-        Alert.alert(
-          'Account Created!',
-          'Your account has been created successfully. You can now sign in.',
-          [
-            {
-              text: 'Sign In',
-              onPress: () => router.replace('/auth/login'),
-            },
-          ]
-        );
+      if (!user) {
+        console.error('No user returned from signUp');
+        const errorMsg = 'Registration failed. Please try again.';
+        showToast(errorMsg, 'error', 5000);
+        // Fallback alert
+        Alert.alert('Registration Failed', errorMsg);
+        setLoading(false);
+        return;
       }
+
+      console.log('User created successfully!');
+      showToast('Account created! Check your email for the verification code.', 'success', 3000);
+      
+      // Supabase automatically sends the OTP token via email when signUp is called
+      // (if configured to use tokens in Supabase dashboard)
+      // Redirect to verification screen
+      console.log('Registration successful, redirecting to verification...');
+      setTimeout(() => {
+        router.replace({
+          pathname: '/auth/verify-email',
+          params: { email: email.trim() },
+        });
+      }, 2000);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An error occurred. Please try again.');
-    } finally {
+      console.error('Registration exception:', error);
+      showToast(error?.message || 'An error occurred. Please try again.', 'error', 5000);
       setLoading(false);
     }
   };
@@ -252,7 +529,7 @@ export default function RegisterScreen() {
               <View style={styles.mainContent}>
                 {/* Progress Indicator */}
                 <View style={styles.progressContainer}>
-                  {[1, 2, 3].map((step) => (
+                  {[1, 2, 3, 4].map((step) => (
                     <View key={step} style={styles.progressStep}>
                       <View
                         style={[
@@ -262,7 +539,7 @@ export default function RegisterScreen() {
                           },
                         ]}
                       />
-                      {step < 3 && (
+                      {step < 4 && (
                         <View
                           style={[
                             styles.progressLine,
@@ -289,15 +566,24 @@ export default function RegisterScreen() {
                           styles.inputWrapper,
                           {
                             backgroundColor: '#2A2A3E',
-                            borderColor: focusedInput === 'email' ? '#8B5CF6' : '#FFFFFF20',
-                            borderWidth: 1,
+                            borderColor: 
+                              emailStatus === 'taken' ? '#EF4444' :
+                              emailStatus === 'available' ? '#10B981' :
+                              emailStatus === 'invalid' ? '#EF4444' :
+                              focusedInput === 'email' ? '#8B5CF6' : '#FFFFFF20',
+                            borderWidth: focusedInput === 'email' || emailStatus !== 'idle' ? 2 : 1,
                           },
                         ]}
                       >
                         <Ionicons 
                           name="mail-outline" 
                           size={20} 
-                          color="#FFFFFF" 
+                          color={
+                            emailStatus === 'taken' ? '#EF4444' :
+                            emailStatus === 'available' ? '#10B981' :
+                            emailStatus === 'invalid' ? '#EF4444' :
+                            '#FFFFFF'
+                          }
                           style={styles.inputIcon} 
                         />
                         <TextInput
@@ -313,7 +599,34 @@ export default function RegisterScreen() {
                           onFocus={() => setFocusedInput('email')}
                           onBlur={() => setFocusedInput(null)}
                         />
+                        {emailStatus === 'checking' && (
+                          <ActivityIndicator size="small" color="#3B82F6" style={{ marginRight: 10 }} />
+                        )}
+                        {emailStatus === 'available' && (
+                          <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 10 }} />
+                        )}
+                        {emailStatus === 'taken' && (
+                          <Ionicons name="close-circle" size={20} color="#EF4444" style={{ marginRight: 10 }} />
+                        )}
+                        {emailStatus === 'invalid' && email.length > 0 && (
+                          <Ionicons name="alert-circle" size={20} color="#EF4444" style={{ marginRight: 10 }} />
+                        )}
                       </View>
+                      {emailStatus === 'taken' && (
+                        <ThemedText type="small" style={{ color: '#EF4444', marginTop: 5, marginLeft: 5 }}>
+                          This email is already registered. Please use a different email or try signing in.
+                        </ThemedText>
+                      )}
+                      {emailStatus === 'invalid' && email.length > 0 && (
+                        <ThemedText type="small" style={{ color: '#EF4444', marginTop: 5, marginLeft: 5 }}>
+                          Please enter a valid email address.
+                        </ThemedText>
+                      )}
+                      {emailStatus === 'available' && (
+                        <ThemedText type="small" style={{ color: '#10B981', marginTop: 5, marginLeft: 5 }}>
+                          Email is available ✓
+                        </ThemedText>
+                      )}
                     </View>
 
                     <View style={styles.inputContainer}>
@@ -342,9 +655,17 @@ export default function RegisterScreen() {
                           secureTextEntry={!showPassword}
                           autoCapitalize="none"
                           autoCorrect={false}
+                          autoComplete="off"
+                          textContentType="none"
+                          passwordRules="minlength: 8; required: lower; required: upper; required: digit;"
                           editable={!loading}
                           onFocus={() => setFocusedInput('password')}
                           onBlur={() => setFocusedInput(null)}
+                          onSelectionChange={() => {
+                            // Prevent clipboard access on password field
+                            // This is handled by secureTextEntry and textContentType
+                          }}
+                          contextMenuHidden={true}
                         />
                         <TouchableOpacity
                           onPress={() => setShowPassword(!showPassword)}
@@ -380,6 +701,51 @@ export default function RegisterScreen() {
                           </ThemedText>
                         </View>
                       )}
+                      {focusedInput === 'password' && (
+                        <View style={{ marginTop: 8, marginLeft: 5 }}>
+                          <ThemedText type="small" style={{ color: '#9CA3AF', marginBottom: 4 }}>
+                            Password must contain:
+                          </ThemedText>
+                          <View style={{ marginLeft: 10 }}>
+                            <ThemedText 
+                              type="small" 
+                              style={{ 
+                                color: password.length >= 8 ? '#10B981' : '#6B7280',
+                                marginBottom: 2 
+                              }}
+                            >
+                              {password.length >= 8 ? '✓' : '•'} At least 8 characters
+                            </ThemedText>
+                            <ThemedText 
+                              type="small" 
+                              style={{ 
+                                color: /[A-Z]/.test(password) ? '#10B981' : '#6B7280',
+                                marginBottom: 2 
+                              }}
+                            >
+                              {/[A-Z]/.test(password) ? '✓' : '•'} One uppercase letter
+                            </ThemedText>
+                            <ThemedText 
+                              type="small" 
+                              style={{ 
+                                color: /[a-z]/.test(password) ? '#10B981' : '#6B7280',
+                                marginBottom: 2 
+                              }}
+                            >
+                              {/[a-z]/.test(password) ? '✓' : '•'} One lowercase letter
+                            </ThemedText>
+                            <ThemedText 
+                              type="small" 
+                              style={{ 
+                                color: /[0-9]/.test(password) ? '#10B981' : '#6B7280',
+                                marginBottom: 2 
+                              }}
+                            >
+                              {/[0-9]/.test(password) ? '✓' : '•'} One number
+                            </ThemedText>
+                          </View>
+                        </View>
+                      )}
                     </View>
 
                     <View style={styles.inputContainer}>
@@ -413,7 +779,11 @@ export default function RegisterScreen() {
                           secureTextEntry={!showConfirmPassword}
                           autoCapitalize="none"
                           autoCorrect={false}
+                          autoComplete="off"
+                          textContentType="none"
+                          passwordRules="minlength: 8; required: lower; required: upper; required: digit;"
                           editable={!loading}
+                          contextMenuHidden={true}
                           onFocus={() => setFocusedInput('confirmPassword')}
                           onBlur={() => setFocusedInput(null)}
                         />
@@ -434,6 +804,61 @@ export default function RegisterScreen() {
                         </ThemedText>
                       )}
                     </View>
+
+                    <View style={styles.inputContainer}>
+                      <View
+                        style={[
+                          styles.inputWrapper,
+                          {
+                            backgroundColor: '#2A2A3E',
+                            borderColor:
+                              focusedInput === 'studentNumber'
+                                ? '#8B5CF6'
+                                : studentNumber.length > 0 && !isValidStudentNumber(studentNumber)
+                                ? '#EF4444'
+                                : isValidStudentNumber(studentNumber)
+                                ? '#10B981'
+                                : '#FFFFFF20',
+                            borderWidth: focusedInput === 'studentNumber' ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <Ionicons 
+                          name="school-outline" 
+                          size={20} 
+                          color="#FFFFFF" 
+                          style={styles.inputIcon} 
+                        />
+                        <TextInput
+                          style={[styles.input, styles.inputText, createInputStyle()]}
+                          placeholder="CUT Student Number (e.g., C23155538O)"
+                          placeholderTextColor="#FFFFFF80"
+                          value={studentNumber}
+                          onChangeText={(text) => setStudentNumber(text.toUpperCase())}
+                          autoCapitalize="characters"
+                          autoCorrect={false}
+                          editable={!loading}
+                          onFocus={() => setFocusedInput('studentNumber')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                        {isValidStudentNumber(studentNumber) && (
+                          <Ionicons name="checkmark-circle" size={24} color="#10B981" style={styles.statusIcon} />
+                        )}
+                        {studentNumber.length > 0 && !isValidStudentNumber(studentNumber) && (
+                          <Ionicons name="close-circle" size={24} color="#EF4444" style={styles.statusIcon} />
+                        )}
+                      </View>
+                      {studentNumber.length > 0 && !isValidStudentNumber(studentNumber) && (
+                        <ThemedText type="small" style={{ color: '#EF4444', marginTop: Spacing.xs }}>
+                          Format: Letter + 8 digits + Letter (e.g., C23155538O)
+                        </ThemedText>
+                      )}
+                      {isValidStudentNumber(studentNumber) && (
+                        <ThemedText type="small" style={{ color: '#10B981', marginTop: Spacing.xs }}>
+                          ✓ Valid CUT student number
+                        </ThemedText>
+                      )}
+                    </View>
                   </View>
                 )}
 
@@ -451,12 +876,12 @@ export default function RegisterScreen() {
                             backgroundColor: '#2A2A3E',
                             borderColor:
                               focusedInput === 'username'
-                                ? colors.primary
+                                ? '#8B5CF6'
                                 : usernameStatus === 'taken' || usernameStatus === 'invalid'
-                                ? colors.danger
+                                ? '#EF4444'
                                 : usernameStatus === 'available'
                                 ? '#10B981'
-                                : colors.border,
+                                : '#FFFFFF20',
                             borderWidth: focusedInput === 'username' ? 2 : 1,
                           },
                         ]}
@@ -483,50 +908,195 @@ export default function RegisterScreen() {
                           <ActivityIndicator size="small" color="#8B5CF6" style={styles.statusIcon} />
                         )}
                         {usernameStatus === 'available' && (
-                          <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.statusIcon} />
+                          <Ionicons name="checkmark-circle" size={24} color="#10B981" style={styles.statusIcon} />
                         )}
                         {usernameStatus === 'taken' && (
-                          <Ionicons name="close-circle" size={20} color="#EF4444" style={styles.statusIcon} />
+                          <Ionicons name="close-circle" size={24} color="#EF4444" style={styles.statusIcon} />
                         )}
                         {usernameStatus === 'invalid' && (
-                          <Ionicons name="alert-circle" size={20} color="#EF4444" style={styles.statusIcon} />
+                          <Ionicons name="close-circle" size={24} color="#EF4444" style={styles.statusIcon} />
                         )}
                       </View>
-                      {username.length > 0 && (
-                        <View style={styles.usernameHint}>
-                          {usernameStatus === 'checking' && (
-                            <ThemedText type="small" style={{ color: colors.icon }}>
+                      <View style={styles.usernameHint}>
+                        {username.length === 0 ? (
+                          <ThemedText type="small" style={{ color: '#FFFFFF80' }}>
+                            Enter a username to check availability
+                          </ThemedText>
+                        ) : username.length < 3 ? (
+                          <ThemedText type="small" style={{ color: '#FFFFFF80' }}>
+                            Minimum 3 characters
+                          </ThemedText>
+                        ) : usernameStatus === 'checking' ? (
+                          <View style={styles.hintRow}>
+                            <ActivityIndicator size="small" color="#8B5CF6" style={styles.hintIcon} />
+                            <ThemedText type="small" style={{ color: '#FFFFFF' }}>
                               Checking availability...
                             </ThemedText>
-                          )}
-                          {usernameStatus === 'available' && (
-                            <ThemedText type="small" style={{ color: '#10B981' }}>
+                          </View>
+                        ) : usernameStatus === 'available' ? (
+                          <View style={styles.hintRow}>
+                            <Ionicons name="checkmark-circle" size={18} color="#10B981" style={styles.hintIcon} />
+                            <ThemedText type="small" style={{ color: '#10B981', fontWeight: '600' }}>
                               ✓ Username is available!
                             </ThemedText>
-                          )}
-                          {usernameStatus === 'taken' && (
-                            <ThemedText type="small" style={{ color: '#EF4444' }}>
-                              ✗ Username is already taken
+                          </View>
+                        ) : usernameStatus === 'taken' ? (
+                          <View style={styles.hintRow}>
+                            <Ionicons name="close-circle" size={16} color="#EF4444" style={styles.hintIcon} />
+                            <ThemedText type="small" style={{ color: '#EF4444', fontWeight: '600' }}>
+                              ✗ Username is already taken. Please choose another.
                             </ThemedText>
-                          )}
-                          {usernameStatus === 'invalid' && (
-                            <ThemedText type="small" style={{ color: '#EF4444' }}>
-                              Username must be 3-20 characters, alphanumeric, underscore, or hyphen only
+                          </View>
+                        ) : usernameStatus === 'invalid' ? (
+                          <View style={styles.hintRow}>
+                            <Ionicons name="close-circle" size={16} color="#EF4444" style={styles.hintIcon} />
+                            <ThemedText type="small" style={{ color: '#EF4444', fontWeight: '600' }}>
+                              ✗ Username must be 3-20 characters, alphanumeric, underscore, or hyphen only
                             </ThemedText>
-                          )}
-                          {usernameStatus === 'idle' && username.length < 3 && (
-                            <ThemedText type="small" style={{ color: colors.icon }}>
-                              Minimum 3 characters
-                            </ThemedText>
-                          )}
-                        </View>
-                      )}
+                          </View>
+                        ) : (
+                          <ThemedText type="small" style={{ color: '#FFFFFF80' }}>
+                            Type a username to check availability
+                          </ThemedText>
+                        )}
+                      </View>
                     </View>
                   </View>
                 )}
 
-                {/* Step 3: Terms */}
+                {/* Step 3: Contact Information */}
                 {currentStep === 3 && (
+                  <View style={styles.stepContent}>
+                    <ThemedText type="body" style={styles.stepDescription}>
+                      Provide contact information for crisis intervention. This information is only accessible to authorized counselors and will only be used in emergency situations.
+                    </ThemedText>
+                    
+                    <View style={styles.inputContainer}>
+                      <View
+                        style={[
+                          styles.inputWrapper,
+                          {
+                            backgroundColor: '#2A2A3E',
+                            borderColor: focusedInput === 'phone' ? '#8B5CF6' : '#FFFFFF20',
+                            borderWidth: focusedInput === 'phone' ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <Ionicons 
+                          name="call-outline" 
+                          size={20} 
+                          color="#FFFFFF" 
+                          style={styles.inputIcon} 
+                        />
+                        <TextInput
+                          style={[styles.input, styles.inputText, createInputStyle()]}
+                          placeholder="Your Phone Number"
+                          placeholderTextColor="#FFFFFF80"
+                          value={phone}
+                          onChangeText={setPhone}
+                          keyboardType="phone-pad"
+                          editable={!loading}
+                          onFocus={() => setFocusedInput('phone')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <View
+                        style={[
+                          styles.inputWrapper,
+                          {
+                            backgroundColor: '#2A2A3E',
+                            borderColor: focusedInput === 'emergencyContactName' ? '#8B5CF6' : '#FFFFFF20',
+                            borderWidth: focusedInput === 'emergencyContactName' ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <Ionicons 
+                          name="person-outline" 
+                          size={20} 
+                          color="#FFFFFF" 
+                          style={styles.inputIcon} 
+                        />
+                        <TextInput
+                          style={[styles.input, styles.inputText, createInputStyle()]}
+                          placeholder="Emergency Contact Name"
+                          placeholderTextColor="#FFFFFF80"
+                          value={emergencyContactName}
+                          onChangeText={setEmergencyContactName}
+                          editable={!loading}
+                          onFocus={() => setFocusedInput('emergencyContactName')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <View
+                        style={[
+                          styles.inputWrapper,
+                          {
+                            backgroundColor: '#2A2A3E',
+                            borderColor: focusedInput === 'emergencyContactPhone' ? '#8B5CF6' : '#FFFFFF20',
+                            borderWidth: focusedInput === 'emergencyContactPhone' ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <Ionicons 
+                          name="call-outline" 
+                          size={20} 
+                          color="#FFFFFF" 
+                          style={styles.inputIcon} 
+                        />
+                        <TextInput
+                          style={[styles.input, styles.inputText, createInputStyle()]}
+                          placeholder="Emergency Contact Phone"
+                          placeholderTextColor="#FFFFFF80"
+                          value={emergencyContactPhone}
+                          onChangeText={setEmergencyContactPhone}
+                          keyboardType="phone-pad"
+                          editable={!loading}
+                          onFocus={() => setFocusedInput('emergencyContactPhone')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <View
+                        style={[
+                          styles.inputWrapper,
+                          {
+                            backgroundColor: '#2A2A3E',
+                            borderColor: focusedInput === 'location' ? '#8B5CF6' : '#FFFFFF20',
+                            borderWidth: focusedInput === 'location' ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <Ionicons 
+                          name="location-outline" 
+                          size={20} 
+                          color="#FFFFFF" 
+                          style={styles.inputIcon} 
+                        />
+                        <TextInput
+                          style={[styles.input, styles.inputText, createInputStyle()]}
+                          placeholder="Location (Optional - e.g., Dorm/Hostel, Room Number)"
+                          placeholderTextColor="#FFFFFF80"
+                          value={location}
+                          onChangeText={setLocation}
+                          editable={!loading}
+                          onFocus={() => setFocusedInput('location')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Step 4: Terms */}
+                {currentStep === 4 && (
                   <View style={styles.stepContent}>
                     <ThemedText type="body" style={styles.stepDescription}>
                       Review and accept the terms to complete your registration.
@@ -578,20 +1148,21 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                   )}
 
-                  {currentStep < 3 ? (
+                  {currentStep < 4 ? (
                     <TouchableOpacity
                       style={[
                         styles.nextButton,
                         { backgroundColor: '#8B5CF6' },
-                        (!canProceedToStep2() && currentStep === 1) || 
-                        (!canProceedToStep3() && currentStep === 2) && styles.buttonDisabled,
-                        createShadow(4, colors.primary, 0.3),
+                        ((currentStep === 1 && !canProceedToStep2()) || 
+                         (currentStep === 2 && !canProceedToStep3()) ||
+                         (currentStep === 3 && !canProceedToStep4())) && styles.buttonDisabled,
                       ]}
                       onPress={handleNext}
                       disabled={
                         loading ||
                         (currentStep === 1 && !canProceedToStep2()) ||
-                        (currentStep === 2 && !canProceedToStep3())
+                        (currentStep === 2 && !canProceedToStep3()) ||
+                        (currentStep === 3 && !canProceedToStep4())
                       }
                       activeOpacity={0.8}
                     >
@@ -608,16 +1179,40 @@ export default function RegisterScreen() {
                     <TouchableOpacity
                       style={[
                         styles.nextButton,
-                        { backgroundColor: '#8B5CF6' },
+                        { backgroundColor: loading ? '#6D28D9' : '#8B5CF6' },
                         (!acceptedTerms || loading) && styles.buttonDisabled,
                         createShadow(4, colors.primary, 0.3),
                       ]}
-                      onPress={handleRegister}
-                      disabled={loading || !acceptedTerms}
-                      activeOpacity={0.8}
+                      onPress={() => {
+                        // Haptic feedback
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        
+                        console.log('Sign up button pressed');
+                        console.log('acceptedTerms:', acceptedTerms);
+                        console.log('loading:', loading);
+                        
+                        if (!acceptedTerms) {
+                          showToast('Please accept the terms and conditions to continue', 'warning');
+                          return;
+                        }
+                        
+                        if (loading) {
+                          console.log('Already loading, ignoring press');
+                          return;
+                        }
+                        
+                        handleRegister();
+                      }}
+                      disabled={loading}
+                      activeOpacity={0.7}
                     >
                       {loading ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <ActivityIndicator color="#FFFFFF" size="small" />
+                          <ThemedText type="body" style={styles.buttonText}>
+                            Creating account...
+                          </ThemedText>
+                        </View>
                       ) : (
                         <>
                           <ThemedText type="body" style={styles.buttonText}>
@@ -648,6 +1243,7 @@ export default function RegisterScreen() {
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
+        <ToastComponent />
       </SafeAreaView>
     </ThemedView>
   );
@@ -797,7 +1393,15 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   usernameHint: {
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  hintIcon: {
+    marginRight: 0,
   },
   termsContainer: {
     flexDirection: 'row',

@@ -13,27 +13,43 @@ import { supabase } from './supabase';
 export interface CreateUserData {
   email: string;
   username?: string; // Anonymous username
-  student_number?: string;
+  student_number: string; // Required - CUT format: Letter + 8 digits + Letter (e.g., C23155538O)
+  phone: string; // Required for crisis contact
+  emergency_contact_name: string; // Required for crisis contact
+  emergency_contact_phone: string; // Required for crisis contact
+  location?: string; // Optional but recommended
+  preferred_contact_method?: 'phone' | 'sms' | 'email' | 'in-person'; // Optional
   role?: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
 
-export async function createUser(userData: CreateUserData): Promise<User> {
+export async function createUser(userData: CreateUserData, authUserId?: string): Promise<User> {
   // Get the current authenticated user's ID from Supabase Auth
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  // If authUserId is provided (from signUp), use it directly
+  let userId = authUserId;
   
-  if (!authUser) {
-    throw new Error('User must be authenticated to create user record');
+  if (!userId) {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      throw new Error('User must be authenticated to create user record');
+    }
+    userId = authUser.id;
   }
 
-  const { data, error } = await supabase
+  // Try direct insert first (uses INSERT policy)
+  let { data, error } = await supabase
     .from('users')
     .insert({
-      id: authUser.id, // Use the auth user's ID
+      id: userId, // Use the auth user's ID
       email: userData.email,
       username: userData.username || null, // Anonymous username
-      student_number: userData.student_number || null,
+      student_number: userData.student_number, // Required
+      phone: userData.phone, // Required for crisis contact
+      emergency_contact_name: userData.emergency_contact_name, // Required
+      emergency_contact_phone: userData.emergency_contact_phone, // Required
+      location: userData.location || null, // Optional
+      preferred_contact_method: userData.preferred_contact_method || null, // Optional
       role: userData.role || 'student',
       pseudonym: userData.pseudonym,
       is_anonymous: true,
@@ -42,6 +58,31 @@ export async function createUser(userData: CreateUserData): Promise<User> {
     })
     .select()
     .single();
+
+  // If direct insert fails due to RLS, use the SECURITY DEFINER function
+  if (error && (error.code === '42501' || error.message?.includes('row-level security'))) {
+    console.log('Direct insert failed due to RLS, using SECURITY DEFINER function');
+    const { data: functionData, error: functionError } = await supabase.rpc('create_user_profile', {
+      user_id: userId,
+      user_email: userData.email,
+      user_student_number: userData.student_number,
+      user_phone: userData.phone,
+      user_emergency_contact_name: userData.emergency_contact_name,
+      user_emergency_contact_phone: userData.emergency_contact_phone,
+      user_pseudonym: userData.pseudonym,
+      user_username: userData.username || null,
+      user_location: userData.location || null,
+      user_preferred_contact_method: userData.preferred_contact_method || null,
+      user_role_param: userData.role || 'student',
+      user_profile_data: userData.profile_data || {},
+    });
+
+    if (functionError) {
+      throw functionError;
+    }
+
+    return mapUserFromDB(functionData);
+  }
 
   if (error) throw error;
 
@@ -95,6 +136,7 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 
 /**
  * Check if username is available (real-time)
+ * Uses a database function to bypass RLS and avoid infinite recursion
  */
 export async function checkUsernameAvailability(username: string): Promise<boolean> {
   if (!username || username.trim().length < 3) {
@@ -108,18 +150,82 @@ export async function checkUsernameAvailability(username: string): Promise<boole
     return false;
   }
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('username', normalizedUsername)
-    .maybeSingle();
+  try {
+    // Use the database function to check availability (bypasses RLS)
+    const { data, error } = await supabase.rpc('check_username_available', {
+      check_username: normalizedUsername
+    });
 
-  if (error && error.code !== 'PGRST116') {
-    throw error;
+    if (error) {
+      // Fallback to direct query if function doesn't exist yet
+      console.warn('Function check_username_available not found, using direct query:', error);
+      const { data: queryData, error: queryError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', normalizedUsername)
+        .maybeSingle();
+
+      if (queryError && queryError.code !== 'PGRST116') {
+        throw queryError;
+      }
+
+      return !queryData;
+    }
+
+    return data === true;
+  } catch (error: any) {
+    console.error('Error checking username availability:', error);
+    // On error, assume taken to be safe
+    return false;
+  }
+}
+
+/**
+ * @author: Praise Masunga 
+ * Check if email is available (real-time)
+ * Uses a database function to check both users table and auth.users
+ */
+export async function checkEmailAvailability(email: string): Promise<boolean> {
+  if (!email || !email.trim()) {
+    return false;
   }
 
-  // Username is available if no user found
-  return !data;
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // Basic email format validation
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  if (!emailRegex.test(normalizedEmail)) {
+    return false;
+  }
+
+  try {
+    // Use the database function to check availability (bypasses RLS)
+    const { data, error } = await supabase.rpc('check_email_available', {
+      check_email: normalizedEmail
+    });
+
+    if (error) {
+      // Fallback to direct query if function doesn't exist yet
+      console.warn('Function check_email_available not found, using direct query:', error);
+      const { data: queryData, error: queryError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (queryError && queryError.code !== 'PGRST116') {
+        throw queryError;
+      }
+
+      return !queryData;
+    }
+
+    return data === true;
+  } catch (error: any) {
+    console.error('Error checking email availability:', error);
+    // On error, assume taken to be safe
+    return false;
+  }
 }
 
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {

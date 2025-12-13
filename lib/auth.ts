@@ -2,15 +2,20 @@
  * Authentication utilities for Supabase
  */
 
-import { supabase } from './supabase';
-import { createUser, getUserByEmail, getUserByUsername, getUser } from './database';
 import { generatePseudonym } from '@/app/utils/anonymization';
+import { createUser, getUser } from './database';
+import { supabase } from './supabase';
 
 export interface SignUpData {
   email: string;
   password: string;
   username?: string; // Anonymous username
-  studentNumber?: string;
+  studentNumber: string; // Required - CUT format: Letter + 8 digits + Letter (e.g., C23155538O)
+  phone: string; // Required for crisis contact
+  emergencyContactName: string; // Required for crisis contact
+  emergencyContactPhone: string; // Required for crisis contact
+  location?: string; // Optional but recommended
+  preferredContactMethod?: 'phone' | 'sms' | 'email' | 'in-person'; // Optional
   role?: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
   profileData?: Record<string, any>;
 }
@@ -25,6 +30,17 @@ export interface SignInData {
  */
 export async function signUp(userData: SignUpData): Promise<{ user: any; error: any }> {
   try {
+    // Check if email already exists before attempting signup
+    const { checkEmailAvailability } = await import('./database');
+    const emailAvailable = await checkEmailAvailability(userData.email);
+    
+    if (!emailAvailable) {
+      return { 
+        user: null, 
+        error: new Error('This email is already registered. Please use a different email or try signing in.') 
+      };
+    }
+
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email,
@@ -32,6 +48,15 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     });
 
     if (authError) {
+      // Check if error is due to email already existing
+      if (authError.message?.toLowerCase().includes('already registered') || 
+          authError.message?.toLowerCase().includes('already exists') ||
+          authError.message?.toLowerCase().includes('user already registered')) {
+        return { 
+          user: null, 
+          error: new Error('This email is already registered. Please use a different email or try signing in.') 
+        };
+      }
       return { user: null, error: authError };
     }
 
@@ -43,15 +68,21 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     const pseudonym = generatePseudonym();
 
     // Create user record in database
+    // Pass the auth user ID directly to avoid session timing issues
     // Note: Password is handled by Supabase Auth, not stored in users table
     const dbUser = await createUser({
       email: userData.email,
       username: userData.username ? userData.username.toLowerCase().trim() : undefined,
       student_number: userData.studentNumber,
+      phone: userData.phone,
+      emergency_contact_name: userData.emergencyContactName,
+      emergency_contact_phone: userData.emergencyContactPhone,
+      location: userData.location,
+      preferred_contact_method: userData.preferredContactMethod,
       role: userData.role || 'student',
       pseudonym,
       profile_data: userData.profileData || {},
-    });
+    }, authData.user.id); // Pass the auth user ID directly
 
     return { user: dbUser, error: null };
   } catch (error: any) {
@@ -150,6 +181,93 @@ export async function resetPassword(email: string): Promise<{ error: any }> {
     redirectTo: 'lunavo://reset-password',
   });
   return { error };
+}
+
+/**
+ * Verify OTP code using Supabase's built-in OTP verification
+ * Supabase automatically sends the OTP token when signUp is called (if configured to use tokens)
+ */
+export async function verifyOTP(email: string, token: string, type: 'email' | 'signup' = 'email'): Promise<{ verified: boolean; error: any; session?: any }> {
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.toLowerCase().trim(),
+      token: token.trim(),
+      type: type,
+    });
+
+    if (error) {
+      return { verified: false, error, session: null };
+    }
+
+    if (!data.session && !data.user) {
+      return { verified: false, error: new Error('Invalid or expired OTP code'), session: null };
+    }
+
+    // OTP verified successfully - user is now confirmed and authenticated
+    return { verified: true, error: null, session: data.session };
+  } catch (error: any) {
+    return { verified: false, error, session: null };
+  }
+}
+
+/**
+ * Resend OTP code using Supabase's resend method
+ * This will send a new OTP token to the email for signup confirmation
+ */
+export async function resendOTP(email: string): Promise<{ error: any }> {
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log('[resendOTP] Resending OTP to:', normalizedEmail);
+    
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      const error = new Error('Invalid email address');
+      console.error('[resendOTP] Invalid email:', normalizedEmail);
+      return { error };
+    }
+    
+    // Use Supabase's resend method to resend the signup confirmation OTP
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: normalizedEmail,
+    });
+
+    console.log('[resendOTP] Response:', { 
+      hasData: !!data, 
+      hasError: !!error,
+      errorMessage: error?.message,
+      errorCode: error?.status 
+    });
+
+    if (error) {
+      console.error('[resendOTP] Error details:', JSON.stringify(error, null, 2));
+      
+      // Provide more user-friendly error messages
+      let errorMessage = error.message || 'Failed to resend verification code';
+      
+      if (error.message?.toLowerCase().includes('rate limit') || 
+          error.message?.toLowerCase().includes('too many')) {
+        errorMessage = 'Too many requests. Please wait a few minutes before requesting another code.';
+      } else if (error.message?.toLowerCase().includes('not found') || 
+                 error.message?.toLowerCase().includes('does not exist') ||
+                 error.message?.toLowerCase().includes('user not found')) {
+        errorMessage = 'Email not found. Please check your email address or sign up again.';
+      } else if (error.message?.toLowerCase().includes('already confirmed') ||
+                 error.message?.toLowerCase().includes('already verified')) {
+        errorMessage = 'This email is already verified. You can sign in now.';
+      } else if (error.status === 429) {
+        errorMessage = 'Too many requests. Please wait before requesting another code.';
+      }
+      
+      return { error: { ...error, message: errorMessage } };
+    }
+
+    console.log('[resendOTP] Success - OTP email should be sent');
+    return { error: null };
+  } catch (error: any) {
+    console.error('[resendOTP] Exception:', error);
+    const errorMessage = error?.message || 'An unexpected error occurred while resending the code';
+    return { error: { message: errorMessage, originalError: error } };
+  }
 }
 
 /**
