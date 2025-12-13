@@ -25,7 +25,10 @@ interface Message {
   id: string;
   text: string;
   sender: 'user' | 'supporter';
-  time: string;
+  time: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  type?: 'text' | 'image' | 'voice' | 'system';
+  attachmentUrl?: string;
 }
 
 const initialMessages: Message[] = [
