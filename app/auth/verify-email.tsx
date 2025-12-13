@@ -201,7 +201,7 @@ export default function VerifyEmailScreen() {
       }
 
       console.log('[handleResend] Resend successful');
-      
+
       // Set countdown to 60 seconds
       setCountdown(60);
 

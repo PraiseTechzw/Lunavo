@@ -58,6 +58,29 @@ const EXECUTIVE_COMMITTEE = [
   },
 ];
 
+const COMMITTEE_MEMBERS = [
+  {
+    name: 'Anthony Manyadza',
+    image: require('@/assets/images/team/Committe Members/Anthony Manyadza.jpg')
+  },
+  {
+    name: 'Emily Chingwe',
+    image: require('@/assets/images/team/Committe Members/Emily-Chingwe.jpg')
+  },
+  {
+    name: 'Maita Muchenje',
+    image: require('@/assets/images/team/Committe Members/Maita Muchenje.jpg')
+  },
+  {
+    name: 'Moila Chiwota',
+    image: require('@/assets/images/team/Committe Members/Moila Chiwota.jpg')
+  },
+  {
+    name: 'Terrence Magura',
+    image: require('@/assets/images/team/Committe Members/Terrence Magura.jpg')
+  },
+];
+
 export default function ClubInfoScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
@@ -296,6 +319,31 @@ export default function ClubInfoScreen() {
             ))}
           </View>
 
+          {/* Committee Members */}
+          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Committee Members
+            </ThemedText>
+            <View style={styles.committeeGrid}>
+              {COMMITTEE_MEMBERS.map((member, index) => (
+                <View key={index} style={styles.committeeMemberCard}>
+                  <View style={styles.committeeMemberImageContainer}>
+                    <ExpoImage
+                      source={member.image}
+                      style={styles.memberImage}
+                      contentFit="cover"
+                      transition={200}
+                      cachePolicy="memory-disk"
+                    />
+                  </View>
+                  <ThemedText type="small" style={{ color: colors.text, marginTop: Spacing.xs, textAlign: 'center' }}>
+                    {member.name}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+
           {/* Meeting Schedule */}
           {nextMeeting && (
             <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
@@ -469,6 +517,26 @@ const styles = StyleSheet.create({
   },
   memberInfo: {
     flex: 1,
+  },
+  committeeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  committeeMemberCard: {
+    width: '30%',
+    alignItems: 'center',
+    padding: Spacing.sm,
+  },
+  committeeMemberImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   meetingInfo: {
     flexDirection: 'row',

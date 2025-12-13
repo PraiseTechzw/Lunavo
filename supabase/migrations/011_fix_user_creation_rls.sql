@@ -107,3 +107,4 @@ GRANT EXECUTE ON FUNCTION create_user_profile(
 -- - The SECURITY DEFINER function is a fallback that bypasses RLS
 -- - Both validate that the user ID matches the authenticated user
 -- - The function can be used if the policy doesn't work due to session timing issues
+
