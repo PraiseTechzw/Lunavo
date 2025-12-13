@@ -311,7 +311,7 @@ export default function ClubInfoScreen() {
               </View>
               <TouchableOpacity
                 style={styles.meetingInfo}
-                onPress={() => router.push('/meetings')}
+                onPress={() => router.push('/meetings' as any)}
                 activeOpacity={0.7}
               >
                 <MaterialIcons name="event" size={24} color={colors.primary} />
