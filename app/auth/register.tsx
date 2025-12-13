@@ -637,7 +637,7 @@ export default function RegisterScreen() {
                     style={styles.signInLinkContainer}
                   >
                     <ThemedText type="body" style={styles.signInLink}>
-                      Sign{'\n'}in
+                      Sign in
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -883,6 +883,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 18,
     textAlign: 'right',
-    lineHeight: 22,
   },
 });

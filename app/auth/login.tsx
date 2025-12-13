@@ -299,9 +299,9 @@ export default function LoginScreen() {
                     disabled={loading}
                     style={styles.signUpLinkContainer}
                   >
-                    <ThemedText type="body" style={styles.signUpLink}>
-                      Sign{'\n'}up
-                    </ThemedText>
+                     <ThemedText type="body" style={styles.signUpLink}>
+                       Sign up
+                     </ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>
