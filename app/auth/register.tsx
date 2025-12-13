@@ -228,6 +228,9 @@ export default function RegisterScreen() {
           </View>
         </View>
 
+        {/* Curved separator for visual effect */}
+        <View style={styles.curveSeparator} />
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}

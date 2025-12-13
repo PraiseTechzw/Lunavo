@@ -234,6 +234,13 @@ export default function RootLayout() {
           headerShown: false,
         }} 
       />
+      <Stack.Screen 
+        name="accessibility-settings" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
       </Stack>
       </View>
     </>

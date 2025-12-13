@@ -272,10 +272,32 @@ export default function ProfileScreen() {
             ]}
             onPress={() => router.push('/profile-settings')}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Profile Settings"
           >
             <Ionicons name="settings-outline" size={24} color={colors.primary} />
             <ThemedText type="body" style={styles.actionText}>
               Profile Settings
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionCard,
+              { backgroundColor: colors.card },
+              createShadow(2, '#000', 0.1),
+            ]}
+            onPress={() => router.push('/accessibility-settings')}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Accessibility Settings"
+          >
+            <MaterialIcons name="accessibility-new" size={24} color={colors.primary} />
+            <ThemedText type="body" style={styles.actionText}>
+              Accessibility
             </ThemedText>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </TouchableOpacity>
