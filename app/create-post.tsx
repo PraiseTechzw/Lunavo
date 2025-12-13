@@ -26,7 +26,14 @@ import { generatePseudonym, sanitizeContent, containsIdentifyingInfo } from '@/a
 import { addPost, getPseudonym, savePseudonym, getUser } from '@/app/utils/storage';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getContainerStyle } from '@/app/utils/platform-styles';
+import { createInputStyle, getContainerStyle, createShadow } from '@/app/utils/platform-styles';
+import { analyzePost, categorizePost } from '@/lib/ai-utils';
+import { createPost as createPostDB, getCurrentUser } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDebounce } from '@/app/hooks/use-debounce';
+
+const DRAFT_KEY = 'post_draft';
 
 export default function CreatePostScreen() {
   const router = useRouter();
@@ -34,14 +41,35 @@ export default function CreatePostScreen() {
   const colors = Colors[colorScheme];
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<PostCategory>('general');
+  const [selectedCategory, setSelectedCategory] = useState<PostCategory>('mental-health');
+  const [suggestedCategory, setSuggestedCategory] = useState<PostCategory | null>(null);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [pseudonym, setPseudonym] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [categoryConfidence, setCategoryConfidence] = useState(0);
+
+  const debouncedTitle = useDebounce(title, 500);
+  const debouncedContent = useDebounce(content, 500);
 
   useEffect(() => {
     loadPseudonym();
+    loadDraft();
   }, []);
+
+  useEffect(() => {
+    // Auto-save draft
+    saveDraft();
+  }, [title, content, selectedCategory, selectedTags]);
+
+  useEffect(() => {
+    // Analyze content for category and tag suggestions
+    if ((debouncedTitle.trim() || debouncedContent.trim()) && debouncedContent.trim().length > 10) {
+      analyzeContent();
+    }
+  }, [debouncedTitle, debouncedContent]);
 
   const loadPseudonym = async () => {
     let savedPseudonym = await getPseudonym();
@@ -50,6 +78,70 @@ export default function CreatePostScreen() {
       await savePseudonym(savedPseudonym);
     }
     setPseudonym(savedPseudonym);
+  };
+
+  const loadDraft = async () => {
+    try {
+      const draftJson = await AsyncStorage.getItem(DRAFT_KEY);
+      if (draftJson) {
+        const draft = JSON.parse(draftJson);
+        setTitle(draft.title || '');
+        setContent(draft.content || '');
+        setSelectedCategory(draft.category || 'mental-health');
+        setSelectedTags(draft.tags || []);
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+    }
+  };
+
+  const saveDraft = async () => {
+    try {
+      const draft = {
+        title,
+        content,
+        category: selectedCategory,
+        tags: selectedTags,
+        savedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
+  };
+
+  const clearDraft = async () => {
+    try {
+      await AsyncStorage.removeItem(DRAFT_KEY);
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+    }
+  };
+
+  const analyzeContent = async () => {
+    try {
+      if (!title.trim() && !content.trim()) return;
+
+      const analysis = analyzePost(title, content, selectedCategory);
+      
+      // Update suggested category if confidence is high
+      if (analysis.categorization.confidence > 0.6) {
+        setSuggestedCategory(analysis.categorization.category);
+        setCategoryConfidence(analysis.categorization.confidence);
+        
+        // Auto-select if confidence is very high
+        if (analysis.categorization.confidence > 0.8) {
+          setSelectedCategory(analysis.categorization.category);
+        }
+      }
+
+      // Update suggested tags
+      if (analysis.suggestedTags.length > 0) {
+        setSuggestedTags(analysis.suggestedTags.slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Error analyzing content:', error);
+    }
   };
 
   const handleSubmit = async () => {
@@ -76,45 +168,31 @@ export default function CreatePostScreen() {
   const submitPost = async () => {
     setIsSubmitting(true);
     try {
-      const user = await getUser();
-      if (!user && pseudonym) {
-        // Create a basic user record
-        const newUser = {
-          id: `user_${Date.now()}`,
-          pseudonym,
-          isAnonymous: true,
-          role: 'student' as const,
-          createdAt: new Date(),
-          lastActive: new Date(),
-        };
-        // In a real app, you'd save this user
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'Please log in to create a post.');
+        setIsSubmitting(false);
+        return;
       }
 
       // Check for escalation
       const escalation = checkEscalation(content, selectedCategory);
       const sanitizedContent = sanitizeContent(content);
 
-      const newPost: Post = {
-        id: `post_${Date.now()}`,
-        authorId: user?.id || `user_${Date.now()}`,
-        authorPseudonym: pseudonym || 'Anonymous',
+      // Create post using database function
+      await createPostDB({
+        authorId: user.id,
         category: selectedCategory,
         title: title.trim(),
         content: sanitizedContent,
-        status: escalation.level !== 'none' ? 'escalated' : 'active',
+        isAnonymous,
+        tags: selectedTags,
         escalationLevel: escalation.level,
         escalationReason: escalation.reason,
-        isAnonymous,
-        tags: [],
-        upvotes: 0,
-        replies: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        reportedCount: 0,
-        isFlagged: escalation.level !== 'none',
-      };
+      });
 
-      await addPost(newPost);
+      // Clear draft after successful post
+      await clearDraft();
 
       if (escalation.level !== 'none') {
         Alert.alert(
@@ -169,9 +247,23 @@ export default function CreatePostScreen() {
           </ThemedText>
 
           <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Category
-            </ThemedText>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="h3" style={styles.sectionTitle}>
+                Category
+              </ThemedText>
+              {suggestedCategory && suggestedCategory !== selectedCategory && (
+                <TouchableOpacity
+                  style={[styles.suggestionBadge, { backgroundColor: colors.primary + '20' }]}
+                  onPress={() => setSelectedCategory(suggestedCategory)}
+                >
+                  <MaterialIcons name="lightbulb" size={16} color={colors.primary} />
+                  <ThemedText type="small" style={{ color: colors.primary, marginLeft: Spacing.xs }}>
+                    Suggested: {CATEGORY_LIST.find(c => c.id === suggestedCategory)?.name}
+                    {categoryConfidence > 0 && ` (${Math.round(categoryConfidence * 100)}%)`}
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.categoryGrid}>
               {CATEGORY_LIST.map((category) => (
                 <TouchableOpacity
@@ -186,6 +278,7 @@ export default function CreatePostScreen() {
                           : colors.surface,
                       borderColor:
                         selectedCategory === category.id ? category.color : colors.border,
+                      borderWidth: suggestedCategory === category.id && selectedCategory !== category.id ? 2 : 1,
                     },
                   ]}
                 >
@@ -206,6 +299,49 @@ export default function CreatePostScreen() {
               ))}
             </View>
           </View>
+
+          {/* Tag Suggestions */}
+          {suggestedTags.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText type="h3" style={styles.sectionTitle}>
+                Suggested Tags
+              </ThemedText>
+              <View style={styles.tagsContainer}>
+                {suggestedTags.map((tag, index) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.tagChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surface,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedTags(selectedTags.filter(t => t !== tag));
+                        } else {
+                          setSelectedTags([...selectedTags, tag]);
+                        }
+                      }}
+                    >
+                      <ThemedText
+                        type="small"
+                        style={{
+                          color: isSelected ? '#FFFFFF' : colors.text,
+                          fontWeight: '600',
+                        }}
+                      >
+                        {tag}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           <View style={styles.section}>
             <ThemedText type="h3" style={styles.sectionTitle}>
@@ -281,24 +417,85 @@ export default function CreatePostScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: isSubmitting ? 0.6 : 1,
-              },
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            <ThemedText
-              type="body"
-              style={[styles.submitButtonText, { color: '#FFFFFF' }]}
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[
+                styles.previewButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setShowPreview(!showPreview)}
             >
-              {isSubmitting ? 'Posting...' : 'Post Request for Help'}
-            </ThemedText>
-          </TouchableOpacity>
+              <MaterialIcons name={showPreview ? 'edit' : 'preview'} size={20} color={colors.text} />
+              <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.xs, fontWeight: '600' }}>
+                {showPreview ? 'Edit' : 'Preview'}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: isSubmitting ? 0.6 : 1,
+                  flex: 1,
+                },
+              ]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              <ThemedText
+                type="body"
+                style={[styles.submitButtonText, { color: '#FFFFFF' }]}
+              >
+                {isSubmitting ? 'Posting...' : 'Post Request for Help'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {/* Preview Mode */}
+          {showPreview && (
+            <View style={[styles.previewContainer, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
+              <ThemedText type="h3" style={styles.previewTitle}>
+                Preview
+              </ThemedText>
+              <View style={styles.previewHeader}>
+                <View style={[styles.previewAvatar, { backgroundColor: colors.primary }]}>
+                  <ThemedText style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                    {pseudonym?.[0]?.toUpperCase() || 'A'}
+                  </ThemedText>
+                </View>
+                <View style={styles.previewUserInfo}>
+                  <ThemedText type="body" style={{ fontWeight: '600' }}>
+                    {isAnonymous ? pseudonym || 'Anonymous' : 'You'}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: colors.icon }}>
+                    {CATEGORY_LIST.find(c => c.id === selectedCategory)?.name}
+                  </ThemedText>
+                </View>
+              </View>
+              <ThemedText type="h3" style={styles.previewPostTitle}>
+                {title || 'Your post title will appear here'}
+              </ThemedText>
+              <ThemedText type="body" style={styles.previewContent}>
+                {content || 'Your post content will appear here'}
+              </ThemedText>
+              {selectedTags.length > 0 && (
+                <View style={styles.previewTags}>
+                  {selectedTags.map((tag, index) => (
+                    <View key={index} style={[styles.previewTag, { backgroundColor: colors.surface }]}>
+                      <ThemedText type="small" style={{ color: colors.text }}>
+                        #{tag}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
           <ThemedText type="small" style={styles.disclaimer}>
             By posting, you agree that this is a supportive community space. In case of
@@ -412,6 +609,86 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.6,
     marginTop: Spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  suggestionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  tagChip: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  previewContainer: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  previewTitle: {
+    marginBottom: Spacing.md,
+    fontWeight: '700',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  previewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  previewUserInfo: {
+    flex: 1,
+  },
+  previewPostTitle: {
+    marginBottom: Spacing.sm,
+    fontWeight: '700',
+  },
+  previewContent: {
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  previewTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  previewTag: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
 });
 

@@ -18,10 +18,12 @@ import { ThemedText } from '@/app/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getAnalytics } from '@/app/utils/storage';
+import { getAnalytics, getPosts, getEscalations, getUsers } from '@/lib/database';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { Analytics as AnalyticsType, PostCategory } from '@/app/types';
 import { CATEGORIES } from '@/app/constants/categories';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { Alert, Share } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -31,14 +33,85 @@ export default function AnalyticsScreen() {
   const colors = Colors[colorScheme];
   const [refreshing, setRefreshing] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsType | null>(null);
+  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all' | 'custom'>('30d');
+  const [customStartDate, setCustomStartDate] = useState<Date>(subDays(new Date(), 30));
+  const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     loadAnalytics();
-  }, []);
+  }, [dateRange, customStartDate, customEndDate]);
+
+  const getDateRangeDates = () => {
+    const now = new Date();
+    let start: Date;
+    let end: Date = endOfDay(now);
+
+    switch (dateRange) {
+      case '7d':
+        start = startOfDay(subDays(now, 7));
+        break;
+      case '30d':
+        start = startOfDay(subDays(now, 30));
+        break;
+      case '90d':
+        start = startOfDay(subDays(now, 90));
+        break;
+      case 'custom':
+        start = startOfDay(customStartDate);
+        end = endOfDay(customEndDate);
+        break;
+      default: // 'all'
+        start = new Date(0);
+        end = endOfDay(now);
+    }
+
+    return { start, end };
+  };
 
   const loadAnalytics = async () => {
-    const data = await getAnalytics();
-    setAnalytics(data);
+    try {
+      const { start, end } = getDateRangeDates();
+      const [posts, escalations, users] = await Promise.all([
+        getPosts(),
+        getEscalations(),
+        getUsers(),
+      ]);
+
+      // Filter by date range
+      const filteredPosts = posts.filter(p => {
+        const postDate = new Date(p.createdAt);
+        return postDate >= start && postDate <= end;
+      });
+
+      const filteredEscalations = escalations.filter(e => {
+        const escDate = new Date(e.createdAt);
+        return escDate >= start && escDate <= end;
+      });
+
+      // Calculate analytics
+      const postsByCategory: Record<string, number> = {};
+      filteredPosts.forEach(post => {
+        postsByCategory[post.category] = (postsByCategory[post.category] || 0) + 1;
+      });
+
+      const activeUsers = users.filter(u => {
+        const lastActive = u.lastActive ? new Date(u.lastActive) : new Date(0);
+        return lastActive >= start;
+      }).length;
+
+      const analyticsData: AnalyticsType = {
+        totalPosts: filteredPosts.length,
+        escalationCount: filteredEscalations.length,
+        activeUsers,
+        postsByCategory,
+        responseTime: 0, // Calculate from replies if needed
+      };
+
+      setAnalytics(analyticsData);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    }
   };
 
   const onRefresh = async () => {
@@ -53,6 +126,51 @@ export default function AnalyticsScreen() {
 
   const getCategoryColor = (category: PostCategory) => {
     return CATEGORIES[category]?.color || colors.primary;
+  };
+
+  const handleExport = async () => {
+    try {
+      if (!analytics) {
+        Alert.alert('Error', 'No data to export');
+        return;
+      }
+
+      // Generate CSV content
+      const csvRows: string[] = [];
+      csvRows.push('Analytics Report');
+      csvRows.push(`Date Range: ${dateRange === 'custom' ? `${format(customStartDate, 'yyyy-MM-dd')} to ${format(customEndDate, 'yyyy-MM-dd')}` : dateRange}`);
+      csvRows.push(`Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`);
+      csvRows.push('');
+      csvRows.push('Metric,Value');
+      csvRows.push(`Total Posts,${analytics.totalPosts}`);
+      csvRows.push(`Escalations,${analytics.escalationCount}`);
+      csvRows.push(`Active Users,${analytics.activeUsers}`);
+      csvRows.push('');
+      csvRows.push('Posts by Category');
+      Object.entries(analytics.postsByCategory).forEach(([category, count]) => {
+        csvRows.push(`${getCategoryName(category as PostCategory)},${count}`);
+      });
+
+      const csvContent = csvRows.join('\n');
+
+      // Share the CSV content
+      try {
+        await Share.share({
+          message: csvContent,
+          title: `Analytics Report - ${format(new Date(), 'yyyy-MM-dd')}`,
+        });
+      } catch (error) {
+        // Fallback: show content in alert
+        Alert.alert(
+          'Analytics Report',
+          csvContent.substring(0, 500) + (csvContent.length > 500 ? '...' : ''),
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error exporting analytics:', error);
+      Alert.alert('Error', 'Failed to export analytics');
+    }
   };
 
   const postsByCategory = analytics?.postsByCategory || {};
@@ -70,7 +188,9 @@ export default function AnalyticsScreen() {
           <ThemedText type="h2" style={styles.headerTitle}>
             Analytics & Trends
           </ThemedText>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={handleExport} style={getCursorStyle()}>
+            <MaterialIcons name="download" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -80,6 +200,60 @@ export default function AnalyticsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          {/* Date Range Selector */}
+          <View style={styles.dateRangeSection}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Date Range
+            </ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateRangeScroll}>
+              {(['7d', '30d', '90d', 'all', 'custom'] as const).map((range) => (
+                <TouchableOpacity
+                  key={range}
+                  style={[
+                    styles.dateRangeChip,
+                    {
+                      backgroundColor: dateRange === range ? colors.primary : colors.surface,
+                    },
+                  ]}
+                  onPress={() => {
+                    setDateRange(range);
+                    if (range === 'custom') {
+                      setShowDatePicker(true);
+                    }
+                  }}
+                >
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: dateRange === range ? '#FFFFFF' : colors.text,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '90 Days' : range === 'all' ? 'All Time' : 'Custom'}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {dateRange === 'custom' && (
+              <View style={styles.customDateInfo}>
+                <ThemedText type="small" style={{ color: colors.icon }}>
+                  {format(customStartDate, 'MMM dd, yyyy')} - {format(customEndDate, 'MMM dd, yyyy')}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          {/* Export Button */}
+          <TouchableOpacity
+            style={[styles.exportButton, { backgroundColor: colors.primary }, createShadow(2, '#000', 0.1)]}
+            onPress={handleExport}
+          >
+            <MaterialIcons name="file-download" size={20} color="#FFFFFF" />
+            <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+              Export Report (CSV)
+            </ThemedText>
+          </TouchableOpacity>
+
           {/* Overview Stats */}
           <View style={styles.overviewSection}>
             <View style={[styles.overviewCard, { backgroundColor: colors.card }, createShadow(3, '#000', 0.1)]}>
@@ -417,6 +591,30 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: Spacing.md,
+  },
+  dateRangeSection: {
+    marginBottom: Spacing.lg,
+  },
+  dateRangeScroll: {
+    marginTop: Spacing.sm,
+  },
+  dateRangeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    marginRight: Spacing.sm,
+  },
+  customDateInfo: {
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
   },
 });
 

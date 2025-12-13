@@ -7,6 +7,8 @@ import { useEffect, useState, useRef } from "react";
 import { onAuthStateChange, getSession } from "@/lib/auth";
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotifications, addNotificationResponseListener } from "@/lib/notifications";
+import { OfflineIndicator } from "@/app/components/offline-indicator";
+import { View } from "react-native";
 
 const ONBOARDING_KEY = "@lunavo:onboarding_complete";
 
@@ -101,14 +103,16 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: colors.background,
-          },
-        }}
-      >
+      <View style={{ flex: 1 }}>
+        <OfflineIndicator />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: colors.background,
+            },
+          }}
+        >
       {!isOnboardingComplete && (
         <Stack.Screen 
           name="onboarding" 
@@ -231,6 +235,7 @@ export default function RootLayout() {
         }} 
       />
       </Stack>
+      </View>
     </>
   );
 }

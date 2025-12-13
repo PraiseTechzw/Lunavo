@@ -10,14 +10,17 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
 import { PostCard } from '@/app/components/post-card';
+import { PostSkeleton } from '@/app/components/loading-skeleton';
 import { Post, PostCategory } from '@/app/types';
-import { getPosts } from '@/app/utils/storage';
+import { getPosts } from '@/lib/database';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -25,14 +28,22 @@ import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { CATEGORIES } from '@/app/constants/categories';
 import { subscribeToPosts, subscribeToPostChanges, unsubscribe, RealtimeChannel } from '@/lib/realtime';
 
+const POSTS_PER_PAGE = 20;
+
 export default function ForumScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [posts, setPosts] = useState<Post[]>([]);
+  const [displayedPosts, setDisplayedPosts] = useState<Post[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<PostCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const postsChannelRef = useRef<RealtimeChannel | null>(null);
+  const currentPageRef = useRef(1);
 
   useEffect(() => {
     loadPosts();
@@ -46,19 +57,76 @@ export default function ForumScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    // Reset pagination when filters change
+    currentPageRef.current = 1;
+    filterAndPaginatePosts();
+  }, [selectedCategory, searchQuery, posts]);
+
   const loadPosts = async () => {
     try {
+      setLoading(true);
       const allPosts = await getPosts();
-      setPosts(allPosts);
+      // Sort by most recent first
+      const sortedPosts = allPosts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setPosts(sortedPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const filterAndPaginatePosts = () => {
+    const filtered = posts.filter((post) => {
+      const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
+      const matchesSearch =
+        searchQuery === '' ||
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.content.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+
+    // Paginate
+    const page = currentPageRef.current;
+    const startIndex = 0;
+    const endIndex = page * POSTS_PER_PAGE;
+    setDisplayedPosts(filtered.slice(startIndex, endIndex));
+    setHasMore(endIndex < filtered.length);
+  };
+
+  const loadMorePosts = () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    currentPageRef.current += 1;
+    
+    // Simulate slight delay for better UX
+    setTimeout(() => {
+      filterAndPaginatePosts();
+      setLoadingMore(false);
+    }, 300);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    currentPageRef.current = 1;
+    await loadPosts();
+    setRefreshing(false);
   };
 
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new posts
     const newPostsChannel = subscribeToPosts((newPost) => {
-      setPosts((prevPosts) => [newPost, ...prevPosts]);
+      setPosts((prevPosts) => {
+        // Check if post already exists (avoid duplicates)
+        const exists = prevPosts.some((p) => p.id === newPost.id);
+        if (exists) return prevPosts;
+        // Add new post at the beginning (most recent first)
+        return [newPost, ...prevPosts];
+      });
     });
 
     // Subscribe to post updates (upvotes, status changes, etc.)
@@ -77,6 +145,8 @@ export default function ForumScreen() {
             return [post, ...prevPosts];
           } else if (eventType === 'UPDATE') {
             return prevPosts.map((p) => (p.id === post.id ? post : p));
+          } else if (eventType === 'DELETE') {
+            return prevPosts.filter((p) => p.id !== post.id);
           }
           return prevPosts;
         });
@@ -85,15 +155,6 @@ export default function ForumScreen() {
 
     postsChannelRef.current = newPostsChannel;
   };
-
-  const filteredPosts = posts.filter((post) => {
-    const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
-    const matchesSearch =
-      searchQuery === '' ||
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   // Category filters matching the design
   const categories: Array<{ id: PostCategory | 'all'; label: string }> = [
@@ -171,19 +232,39 @@ export default function ForumScreen() {
       </View>
 
       {/* Posts List */}
-      <FlatList
-        data={filteredPosts}
-        renderItem={renderPost}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.postsContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <ThemedText type="body" style={styles.emptyText}>
-              No posts found. Be the first to share!
-            </ThemedText>
-          </View>
-        }
-      />
+      {loading ? (
+        <PostSkeleton count={3} />
+      ) : (
+        <FlatList
+          data={displayedPosts}
+          renderItem={renderPost}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.postsContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          onEndReached={loadMorePosts}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <ThemedText type="small" style={[styles.loadingText, { color: colors.icon }]}>
+                  Loading more posts...
+                </ThemedText>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="forum" size={48} color={colors.icon} />
+              <ThemedText type="body" style={styles.emptyText}>
+                No posts found. Be the first to share!
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
 
       {/* Floating Action Button */}
       <TouchableOpacity
@@ -264,6 +345,17 @@ const styles = StyleSheet.create({
   emptyText: {
     opacity: 0.7,
     textAlign: 'center',
+    marginTop: Spacing.md,
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    marginLeft: Spacing.xs,
   },
   fab: {
     position: 'absolute',

@@ -12,6 +12,7 @@ import { supabase } from './supabase';
 
 export interface CreateUserData {
   email: string;
+  username?: string; // Anonymous username
   student_number?: string;
   role?: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
   pseudonym: string;
@@ -31,6 +32,7 @@ export async function createUser(userData: CreateUserData): Promise<User> {
     .insert({
       id: authUser.id, // Use the auth user's ID
       email: userData.email,
+      username: userData.username || null, // Anonymous username
       student_number: userData.student_number || null,
       role: userData.role || 'student',
       pseudonym: userData.pseudonym,
@@ -76,6 +78,50 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return mapUserFromDB(data);
 }
 
+export async function getUserByUsername(username: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('username', username.toLowerCase().trim())
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return mapUserFromDB(data);
+}
+
+/**
+ * Check if username is available (real-time)
+ */
+export async function checkUsernameAvailability(username: string): Promise<boolean> {
+  if (!username || username.trim().length < 3) {
+    return false;
+  }
+
+  const normalizedUsername = username.toLowerCase().trim();
+  
+  // Check username format (alphanumeric, underscore, hyphen, 3-20 chars)
+  if (!/^[a-z0-9_-]{3,20}$/.test(normalizedUsername)) {
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', normalizedUsername)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+
+  // Username is available if no user found
+  return !data;
+}
+
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {
   const { data, error } = await supabase
     .from('users')
@@ -99,6 +145,23 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!user) return null;
 
   return getUser(user.id);
+}
+
+export async function getUsers(limit?: number): Promise<User[]> {
+  let query = supabase
+    .from('users')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return (data || []).map(mapUserFromDB);
 }
 
 // ============================================
@@ -952,7 +1015,27 @@ export async function createOrUpdateAttendance(attendanceData: CreateAttendanceD
 
   if (error) throw error;
 
-  return mapAttendanceFromDB(data);
+  const result = mapAttendanceFromDB(data);
+
+  // Update engagement streak and award points if attending
+  if (attendanceData.attended) {
+    try {
+      const meeting = await getMeeting(attendanceData.meetingId);
+      if (meeting) {
+        // Update engagement streak from meeting attendance
+        const { updateEngagementStreakFromMeeting } = await import('./gamification');
+        await updateEngagementStreakFromMeeting(attendanceData.userId, meeting.scheduledDate);
+        
+        // Award points for meeting attendance
+        const { awardMeetingAttendancePoints } = await import('./points-system');
+        await awardMeetingAttendancePoints(attendanceData.userId);
+      }
+    } catch (error) {
+      console.error('Error updating streak/points from meeting attendance:', error);
+    }
+  }
+
+  return result;
 }
 
 export async function getMeetingAttendance(meetingId: string): Promise<MeetingAttendance[]> {
@@ -979,6 +1062,315 @@ export async function getUserAttendance(userId: string): Promise<MeetingAttendan
 }
 
 // ============================================
+// RESOURCE OPERATIONS
+// ============================================
+
+export interface CreateResourceData {
+  title: string;
+  description?: string;
+  category: PostCategory;
+  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  url?: string;
+  filePath?: string;
+  tags?: string[];
+  createdBy: string;
+}
+
+export async function createResource(resourceData: CreateResourceData): Promise<any> {
+  const { data, error } = await supabase
+    .from('resources')
+    .insert({
+      title: resourceData.title,
+      description: resourceData.description || null,
+      category: resourceData.category,
+      resource_type: resourceData.resourceType,
+      url: resourceData.url || null,
+      file_path: resourceData.filePath || null,
+      tags: resourceData.tags || [],
+      created_by: resourceData.createdBy,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function getResources(filters?: {
+  category?: PostCategory;
+  resourceType?: 'article' | 'video' | 'pdf' | 'link' | 'training';
+}): Promise<any[]> {
+  let query = supabase
+    .from('resources')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (filters?.category) {
+    query = query.eq('category', filters.category);
+  }
+
+  if (filters?.resourceType) {
+    query = query.eq('resource_type', filters.resourceType);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+export async function getResource(resourceId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('resources')
+    .select('*')
+    .eq('id', resourceId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateResource(resourceId: string, updates: Partial<CreateResourceData>): Promise<any> {
+  const updateData: any = {};
+
+  if (updates.title) updateData.title = updates.title;
+  if (updates.description !== undefined) updateData.description = updates.description || null;
+  if (updates.category) updateData.category = updates.category;
+  if (updates.resourceType) updateData.resource_type = updates.resourceType;
+  if (updates.url !== undefined) updateData.url = updates.url || null;
+  if (updates.filePath !== undefined) updateData.file_path = updates.filePath || null;
+  if (updates.tags) updateData.tags = updates.tags;
+
+  const { data, error } = await supabase
+    .from('resources')
+    .update(updateData)
+    .eq('id', resourceId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function deleteResource(resourceId: string): Promise<void> {
+  const { error } = await supabase
+    .from('resources')
+    .delete()
+    .eq('id', resourceId);
+
+  if (error) throw error;
+}
+
+// ============================================
+// BADGE OPERATIONS
+// ============================================
+
+export interface CreateBadgeData {
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  category: 'check-in' | 'helping' | 'engagement' | 'achievement';
+  criteria: any;
+}
+
+export async function createBadge(badgeData: CreateBadgeData): Promise<any> {
+  const { data, error } = await supabase
+    .from('badges')
+    .insert({
+      name: badgeData.name,
+      description: badgeData.description,
+      icon: badgeData.icon,
+      color: badgeData.color,
+      category: badgeData.category,
+      criteria: badgeData.criteria,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function getBadges(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('badges')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+export async function getBadge(badgeId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('badges')
+    .select('*')
+    .eq('id', badgeId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUserBadges(userId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('user_badges')
+    .select('*, badges(*)')
+    .eq('user_id', userId)
+    .order('earned_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((ub: any) => ({
+    id: ub.id,
+    userId: ub.user_id,
+    badgeId: ub.badge_id,
+    earnedAt: new Date(ub.earned_at),
+    badge: ub.badges ? {
+      id: ub.badges.id,
+      name: ub.badges.name,
+      description: ub.badges.description,
+      icon: ub.badges.icon,
+      color: ub.badges.color,
+      category: ub.badges.category,
+    } : null,
+  }));
+}
+
+export async function createUserBadge(userBadgeData: { userId: string; badgeId: string }): Promise<any> {
+  const { data, error } = await supabase
+    .from('user_badges')
+    .insert({
+      user_id: userBadgeData.userId,
+      badge_id: userBadgeData.badgeId,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+// ============================================
+// STREAK OPERATIONS
+// ============================================
+
+export interface CreateStreakData {
+  userId: string;
+  streakType: 'check-in' | 'helping' | 'engagement';
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: Date;
+}
+
+export async function createStreak(streakData: CreateStreakData): Promise<any> {
+  const { data, error } = await supabase
+    .from('streaks')
+    .insert({
+      user_id: streakData.userId,
+      streak_type: streakData.streakType,
+      current_streak: streakData.currentStreak,
+      longest_streak: streakData.longestStreak,
+      last_activity_date: streakData.lastActivityDate.toISOString().split('T')[0],
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function getStreak(userId: string, streakType: 'check-in' | 'helping' | 'engagement'): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('streaks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('streak_type', streakType)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    streakType: data.streak_type,
+    currentStreak: data.current_streak,
+    longestStreak: data.longest_streak,
+    lastActivityDate: new Date(data.last_activity_date),
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+export async function getUserStreaks(userId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('streaks')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+
+  return (data || []).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id,
+    streakType: s.streak_type,
+    currentStreak: s.current_streak,
+    longestStreak: s.longest_streak,
+    lastActivityDate: new Date(s.last_activity_date),
+    updatedAt: new Date(s.updated_at),
+  }));
+}
+
+export async function updateStreak(streakId: string, updates: {
+  currentStreak?: number;
+  longestStreak?: number;
+  lastActivityDate?: Date;
+}): Promise<any> {
+  const updateData: any = {};
+
+  if (updates.currentStreak !== undefined) updateData.current_streak = updates.currentStreak;
+  if (updates.longestStreak !== undefined) updateData.longest_streak = updates.longestStreak;
+  if (updates.lastActivityDate) updateData.last_activity_date = updates.lastActivityDate.toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('streaks')
+    .update(updateData)
+    .eq('id', streakId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    streakType: data.streak_type,
+    currentStreak: data.current_streak,
+    longestStreak: data.longest_streak,
+    lastActivityDate: new Date(data.last_activity_date),
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+// ============================================
 // MAPPING FUNCTIONS (DB -> App Types)
 // ============================================
 
@@ -986,6 +1378,7 @@ function mapUserFromDB(data: any): User {
   return {
     id: data.id,
     pseudonym: data.pseudonym,
+    username: data.username || undefined,
     isAnonymous: data.is_anonymous,
     role: data.role as User['role'],
     createdAt: new Date(data.created_at),

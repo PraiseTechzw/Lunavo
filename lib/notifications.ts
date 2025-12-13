@@ -61,7 +61,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const token = tokenData.data;
 
     // Save token to Supabase
-    const { user } = await getCurrentUser();
+    const user = await getCurrentUser();
     if (user) {
       await supabase
         .from('users')
@@ -201,4 +201,5 @@ export function addNotificationResponseListener(
 ): Notifications.Subscription {
   return Notifications.addNotificationResponseReceivedListener(listener);
 }
+
 

@@ -3,19 +3,20 @@
  */
 
 import { supabase } from './supabase';
-import { createUser, getUserByEmail, getUser } from './database';
+import { createUser, getUserByEmail, getUserByUsername, getUser } from './database';
 import { generatePseudonym } from '@/app/utils/anonymization';
 
 export interface SignUpData {
   email: string;
   password: string;
+  username?: string; // Anonymous username
   studentNumber?: string;
   role?: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
   profileData?: Record<string, any>;
 }
 
 export interface SignInData {
-  email: string;
+  emailOrUsername: string; // Can be email or username
   password: string;
 }
 
@@ -45,6 +46,7 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     // Note: Password is handled by Supabase Auth, not stored in users table
     const dbUser = await createUser({
       email: userData.email,
+      username: userData.username ? userData.username.toLowerCase().trim() : undefined,
       student_number: userData.studentNumber,
       role: userData.role || 'student',
       pseudonym,
@@ -58,12 +60,30 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
 }
 
 /**
- * Sign in an existing user
+ * Sign in an existing user (supports email or username)
  */
 export async function signIn(credentials: SignInData): Promise<{ user: any; error: any }> {
   try {
+    // Determine if input is email or username
+    const isEmail = credentials.emailOrUsername.includes('@');
+    let email = credentials.emailOrUsername;
+
+    // If username, find the user's email from database
+    if (!isEmail) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('username', credentials.emailOrUsername.toLowerCase().trim())
+        .single();
+
+      if (userError || !userData) {
+        return { user: null, error: new Error('Invalid username or password') };
+      }
+      email = userData.email;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
+      email: email,
       password: credentials.password,
     });
 

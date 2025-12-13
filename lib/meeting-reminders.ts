@@ -3,9 +3,8 @@
  * Handles scheduling and sending meeting reminders
  */
 
-import { getMeetings, getMeetingAttendance } from './database';
+import { getMeetingAttendance, getMeetings } from './database';
 import { scheduleMeetingReminder, scheduleMeetingReminder24h } from './notification-triggers';
-import { Meeting } from '@/app/types';
 
 /**
  * Schedule reminders for all upcoming meetings
@@ -14,9 +13,8 @@ import { Meeting } from '@/app/types';
 export async function scheduleUpcomingMeetingReminders() {
   try {
     const allMeetings = await getMeetings();
-    const now = new Date();
+    const now = new Date(); // Current time for filtering upcoming meetings
     const meetings = allMeetings.filter((m) => new Date(m.scheduledDate) >= now);
-    const now = new Date();
 
     for (const meeting of meetings) {
       const meetingDate = new Date(meeting.scheduledDate);
@@ -68,7 +66,7 @@ export async function scheduleRemindersForNewRSVP(
     if (!meeting) return;
 
     const meetingDate = new Date(meeting.scheduledDate);
-    const now = new Date();
+    const now = new Date(); // Current time for calculating time until meeting
     const timeUntilMeeting = meetingDate.getTime() - now.getTime();
 
     // Schedule 24h reminder if meeting is more than 24 hours away

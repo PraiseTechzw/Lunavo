@@ -2,7 +2,7 @@
  * Resource Library Screen
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { getResources } from '@/lib/database';
+import { Resource } from '@/app/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FAVORITES_KEY = 'resource_favorites';
 
 const categories = ['All', 'Articles', 'Videos', 'Coping Skills', 'Academic', 'Mental Health'];
 
@@ -90,30 +95,147 @@ export default function ResourcesScreen() {
   const colors = Colors[colorScheme];
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const renderResourceCard = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[
-        styles.resourceCard,
-        { backgroundColor: colors.card },
-        createShadow(2, '#000', 0.1),
-      ]}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.resourceImage, { backgroundColor: item.gradient?.[0] + '20' }]}>
-        <Ionicons name={item.iconName as any} size={40} color={item.gradient?.[0] || colors.primary} />
-      </View>
-      <ThemedText type="body" style={styles.resourceTitle}>
-        {item.title}
-      </ThemedText>
-      <ThemedText type="small" style={styles.resourceMeta}>
-        {item.duration || item.type}
-      </ThemedText>
-      <TouchableOpacity style={styles.bookmarkButton}>
-        <Ionicons name="bookmark-outline" size={20} color={colors.icon} />
+  useEffect(() => {
+    loadResources();
+    loadFavorites();
+  }, []);
+
+  useEffect(() => {
+    filterResources();
+  }, [resources, selectedCategory, searchQuery, showFavoritesOnly, favorites]);
+
+  const loadResources = async () => {
+    try {
+      setLoading(true);
+      const allResources = await getResources();
+      setResources(allResources);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const favoritesJson = await AsyncStorage.getItem(FAVORITES_KEY);
+      if (favoritesJson) {
+        setFavorites(new Set(JSON.parse(favoritesJson)));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  const filterResources = () => {
+    let filtered = resources;
+
+    // Filter by category
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter((r) => {
+        const categoryMap: Record<string, string> = {
+          'Articles': 'article',
+          'Videos': 'video',
+          'Coping Skills': 'mental-health',
+          'Academic': 'academic',
+          'Mental Health': 'mental-health',
+        };
+        return r.resourceType === categoryMap[selectedCategory] || r.category === categoryMap[selectedCategory];
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (r) =>
+          r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (r.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by favorites
+    if (showFavoritesOnly) {
+      filtered = filtered.filter((r) => favorites.has(r.id));
+    }
+
+    setFilteredResources(filtered);
+  };
+
+  const toggleFavorite = async (resourceId: string) => {
+    try {
+      const newFavorites = new Set(favorites);
+      if (newFavorites.has(resourceId)) {
+        newFavorites.delete(resourceId);
+      } else {
+        newFavorites.add(resourceId);
+      }
+      setFavorites(newFavorites);
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(newFavorites)));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const renderResourceCard = ({ item }: { item: Resource }) => {
+    const isFavorite = favorites.has(item.id);
+    const getResourceIcon = () => {
+      switch (item.resourceType) {
+        case 'article':
+          return 'library-outline';
+        case 'video':
+          return 'videocam-outline';
+        case 'pdf':
+          return 'document-text-outline';
+        case 'link':
+          return 'link-outline';
+        default:
+          return 'document-outline';
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.resourceCard,
+          { backgroundColor: colors.card },
+          createShadow(2, '#000', 0.1),
+        ]}
+        activeOpacity={0.8}
+        onPress={() => router.push(`/resource/${item.id}`)}
+      >
+        <View style={[styles.resourceImage, { backgroundColor: colors.primary + '20' }]}>
+          <Ionicons name={getResourceIcon() as any} size={40} color={colors.primary} />
+        </View>
+        <View style={styles.resourceContent}>
+          <ThemedText type="body" style={styles.resourceTitle} numberOfLines={2}>
+            {item.title}
+          </ThemedText>
+          <ThemedText type="small" style={styles.resourceMeta}>
+            {item.category} • {item.resourceType}
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          style={styles.bookmarkButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            toggleFavorite(item.id);
+          }}
+        >
+          <Ionicons
+            name={isFavorite ? 'bookmark' : 'bookmark-outline'}
+            size={20}
+            color={isFavorite ? colors.primary : colors.icon}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderCopingCard = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -161,6 +283,34 @@ export default function ResourcesScreen() {
           />
         </View>
 
+        {/* Favorites Toggle */}
+        <TouchableOpacity
+          style={[
+            styles.favoritesToggle,
+            {
+              backgroundColor: showFavoritesOnly ? colors.primary : colors.surface,
+            },
+            createShadow(1, '#000', 0.05),
+          ]}
+          onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        >
+          <MaterialIcons
+            name={showFavoritesOnly ? 'favorite' : 'favorite-border'}
+            size={20}
+            color={showFavoritesOnly ? '#FFFFFF' : colors.text}
+          />
+          <ThemedText
+            type="body"
+            style={{
+              color: showFavoritesOnly ? '#FFFFFF' : colors.text,
+              marginLeft: Spacing.sm,
+              fontWeight: '600',
+            }}
+          >
+            {showFavoritesOnly ? 'Show All' : 'Show Favorites'}
+          </ThemedText>
+        </TouchableOpacity>
+
         {/* Category Filters */}
         <View style={styles.filtersContainer}>
           <FlatList
@@ -195,19 +345,33 @@ export default function ResourcesScreen() {
           />
         </View>
 
-        {/* Featured Section */}
+        {/* Resources List */}
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            Featured
+            {showFavoritesOnly ? 'Favorite Resources' : 'All Resources'} ({filteredResources.length})
           </ThemedText>
-          <FlatList
-            horizontal
-            data={featuredResources}
-            renderItem={renderResourceCard}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ThemedText>Loading resources...</ThemedText>
+            </View>
+          ) : filteredResources.length > 0 ? (
+            <FlatList
+              data={filteredResources}
+              renderItem={renderResourceCard}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              numColumns={2}
+              columnWrapperStyle={styles.row}
+              contentContainerStyle={styles.gridList}
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="inbox" size={48} color={colors.icon} />
+              <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                {showFavoritesOnly ? 'No favorite resources yet' : 'No resources found'}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {/* Coping Strategies */}
