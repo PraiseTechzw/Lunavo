@@ -206,6 +206,18 @@ export default function RootLayout() {
           presentation: 'card',
         }} 
       />
+      <Stack.Screen 
+        name="counselor" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="student-affairs" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
       </Stack>
     </>
   );
