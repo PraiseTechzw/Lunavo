@@ -93,7 +93,7 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
 /**
  * Sign in an existing user (supports email or username)
  */
-export async function signIn(credentials: SignInData): Promise<{ user: any; error: any }> {
+export async function signIn(credentials: SignInData): Promise<{ user: any; error: any; needsVerification?: boolean; email?: string }> {
   try {
     // Determine if input is email or username
     const isEmail = credentials.emailOrUsername.includes('@');
@@ -119,11 +119,43 @@ export async function signIn(credentials: SignInData): Promise<{ user: any; erro
     });
 
     if (error) {
+      console.log('[signIn] Supabase error:', error.message, 'Status:', error.status);
+      
+      // Check if error is due to email not being confirmed
+      const errorMessage = error.message?.toLowerCase() || '';
+      if (errorMessage.includes('email not confirmed') || 
+          errorMessage.includes('email not verified') ||
+          errorMessage.includes('not confirmed') ||
+          error.status === 400) {
+        console.log('[signIn] Email not confirmed, redirecting to verification');
+        return { 
+          user: null, 
+          error: new Error('Please verify your email address before signing in.'), 
+          needsVerification: true,
+          email: email 
+        };
+      }
       return { user: null, error };
     }
 
     if (!data.user) {
       return { user: null, error: new Error('Sign in failed') };
+    }
+
+    // Check if email is confirmed (even if sign-in succeeded, we want to ensure email is verified)
+    const emailConfirmed = data.user.email_confirmed_at || data.user.confirmed_at;
+    if (!emailConfirmed) {
+      console.log('[signIn] User signed in but email not confirmed, redirecting to verification');
+      // Sign out the user since email is not confirmed
+      await supabase.auth.signOut();
+      
+      // Email not confirmed - redirect to verification
+      return { 
+        user: null, 
+        error: new Error('Please verify your email address before signing in.'), 
+        needsVerification: true,
+        email: data.user.email || email 
+      };
     }
 
     // Get user from database

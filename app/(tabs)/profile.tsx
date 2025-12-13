@@ -2,27 +2,27 @@
  * Profile Tab - Navigates to Profile Settings
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
+import { StreakDisplay } from '@/app/components/streak-display';
 import { ThemedText } from '@/app/components/themed-text';
-import { getPseudonym } from '@/app/utils/storage';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { getCursorStyle, createShadow } from '@/app/utils/platform-styles';
-import { getUserBadges, getCurrentUser, getPosts, getReplies } from '@/lib/database';
+import { createShadow } from '@/app/utils/platform-styles';
+import { getPseudonym } from '@/app/utils/storage';
+import { getCurrentUser, getPosts, getReplies, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
 import { getUserPoints } from '@/lib/points-system';
-import { StreakDisplay } from '@/app/components/streak-display';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -426,6 +426,22 @@ export default function ProfileScreen() {
             <Ionicons name="gift-outline" size={24} color={colors.primary} />
             <ThemedText type="body" style={styles.actionText}>
               Rewards
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionCard,
+              { backgroundColor: colors.card },
+              createShadow(2, '#000', 0.1),
+            ]}
+            onPress={() => router.push('/peer-educator/club-info')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="people-outline" size={24} color={colors.primary} />
+            <ThemedText type="body" style={styles.actionText}>
+              Peer Educator Club
             </ThemedText>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </TouchableOpacity>

@@ -6,6 +6,9 @@ import { Post, Reply } from '@/app/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
+// Re-export for use in components
+export type { RealtimeChannel };
+
 /**
  * Subscribe to new posts
  */

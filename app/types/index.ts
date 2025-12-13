@@ -186,6 +186,14 @@ export interface Announcement {
   isPublished: boolean;
 }
 
+export interface TopicStats {
+  category: PostCategory;
+  postCount: number;
+  memberCount: number;
+  onlineCount: number; // Estimated based on recent activity
+  recentPostCount: number; // Posts in last 24 hours
+}
+
 
 
 

@@ -2,29 +2,29 @@
  * Modern Login Screen - Dark blue header with wave pattern design
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createInputStyle } from '@/app/utils/platform-styles';
+import { useToast } from '@/app/utils/useToast';
+import { signIn } from '@/lib/auth';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Animated,
-  ActivityIndicator,
+    ActivityIndicator,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { signIn } from '@/lib/auth';
-import { createInputStyle, createShadow } from '@/app/utils/platform-styles';
 import Svg, { Path } from 'react-native-svg';
 
 // Beautiful Wave pattern component with elegant curves
@@ -55,6 +55,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { showToast, ToastComponent } = useToast();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,9 @@ export default function LoginScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  const REMEMBER_ME_KEY = '@lunavo:remember_me';
+  const SAVED_EMAIL_KEY = '@lunavo:saved_email';
 
   useEffect(() => {
     Animated.parallel([
@@ -78,31 +82,88 @@ export default function LoginScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+    
+    // Load saved credentials if remember me was checked
+    loadSavedCredentials();
   }, []);
+
+  const loadSavedCredentials = async () => {
+    try {
+      const savedRememberMe = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+      if (savedRememberMe === 'true') {
+        const savedEmail = await AsyncStorage.getItem(SAVED_EMAIL_KEY);
+        if (savedEmail) {
+          setEmailOrUsername(savedEmail);
+          setRememberMe(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    }
+  };
+
+  const saveCredentials = async (email: string, shouldRemember: boolean) => {
+    try {
+      if (shouldRemember) {
+        await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
+        await AsyncStorage.setItem(SAVED_EMAIL_KEY, email);
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+        await AsyncStorage.removeItem(SAVED_EMAIL_KEY);
+      }
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+    }
+  };
 
   const handleLogin = async () => {
     if (!emailOrUsername.trim() || !password.trim()) {
-      Alert.alert('Missing Information', 'Please enter your email/username and password');
+      showToast('Please enter your email/username and password', 'warning', 3000);
       return;
     }
 
     setLoading(true);
     try {
-      const { user, error } = await signIn({ 
+      // Determine if input is email for saving
+      const isEmail = emailOrUsername.includes('@');
+      
+      const { user, error, needsVerification, email } = await signIn({ 
         emailOrUsername: emailOrUsername.trim(), 
         password 
       });
 
       if (error) {
-        Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');
+        // Check if user needs to verify their email
+        if (needsVerification && email) {
+          showToast('Please verify your email address to continue', 'warning', 3000);
+          // Redirect to verification screen with the email
+          setTimeout(() => {
+            router.replace({
+              pathname: '/auth/verify-email',
+              params: { email: email },
+            });
+          }, 1500);
+          return;
+        }
+        
+        // Other errors
+        showToast(error.message || 'Invalid credentials. Please try again.', 'error', 4000);
         return;
       }
 
       if (user) {
-        router.replace('/(tabs)');
+        // Save credentials if remember me is checked
+        // Use the resolved email from signIn, or fallback to the input
+        const emailToSave = email || emailOrUsername.trim();
+        await saveCredentials(emailToSave, rememberMe);
+        
+        showToast('Login successful!', 'success', 2000);
+        setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 1000);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An error occurred. Please try again.');
+      showToast(error?.message || 'An error occurred. Please try again.', 'error', 4000);
     } finally {
       setLoading(false);
     }
@@ -242,7 +303,14 @@ export default function LoginScreen() {
                 <View style={styles.optionsRow}>
                   <TouchableOpacity
                     style={styles.rememberMeContainer}
-                    onPress={() => setRememberMe(!rememberMe)}
+                    onPress={async () => {
+                      const newRememberMe = !rememberMe;
+                      setRememberMe(newRememberMe);
+                      // If unchecking, clear saved credentials
+                      if (!newRememberMe && emailOrUsername) {
+                        await saveCredentials('', false);
+                      }
+                    }}
                     disabled={loading}
                     activeOpacity={0.7}
                   >
@@ -311,6 +379,7 @@ export default function LoginScreen() {
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
+        <ToastComponent />
       </SafeAreaView>
     </ThemedView>
   );

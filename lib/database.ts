@@ -1598,3 +1598,202 @@ function mapAttendanceFromDB(data: any): MeetingAttendance {
   };
 }
 
+// ============================================
+// TOPIC/STATISTICS OPERATIONS
+// ============================================
+
+export interface TopicStats {
+  category: PostCategory;
+  postCount: number;
+  memberCount: number;
+  onlineCount: number; // Estimated based on recent activity
+  recentPostCount: number; // Posts in last 24 hours
+}
+
+/**
+ * Get statistics for all topics/categories
+ */
+export async function getTopicStats(): Promise<TopicStats[]> {
+  try {
+    // Get post counts per category
+    const { data: postCounts, error: postError } = await supabase
+      .from('posts')
+      .select('category, author_id, created_at')
+      .eq('status', 'active');
+
+    if (postError) throw postError;
+
+    // Get unique authors per category (member count)
+    const { data: allPosts, error: allPostsError } = await supabase
+      .from('posts')
+      .select('category, author_id, created_at')
+      .eq('status', 'active');
+
+    if (allPostsError) throw allPostsError;
+
+    // Calculate stats per category
+    const statsMap = new Map<PostCategory, {
+      postCount: number;
+      members: Set<string>;
+      recentPosts: number;
+      recentMembers: Set<string>;
+    }>();
+
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+    (allPosts || []).forEach((post: any) => {
+      const category = post.category as PostCategory;
+      if (!statsMap.has(category)) {
+        statsMap.set(category, {
+          postCount: 0,
+          members: new Set(),
+          recentPosts: 0,
+          recentMembers: new Set(),
+        });
+      }
+
+      const stats = statsMap.get(category)!;
+      stats.postCount++;
+      stats.members.add(post.author_id);
+
+      const postDate = new Date(post.created_at);
+      if (postDate >= oneDayAgo) {
+        stats.recentPosts++;
+      }
+      if (postDate >= oneHourAgo) {
+        stats.recentMembers.add(post.author_id);
+      }
+    });
+
+    // Convert to array format
+    const stats: TopicStats[] = Array.from(statsMap.entries()).map(([category, data]) => ({
+      category,
+      postCount: data.postCount,
+      memberCount: data.members.size,
+      onlineCount: data.recentMembers.size, // Users active in last hour
+      recentPostCount: data.recentPosts,
+    }));
+
+    // Add categories with zero posts
+    const allCategories: PostCategory[] = [
+      'mental-health', 'crisis', 'substance-abuse', 'sexual-health',
+      'stis-hiv', 'family-home', 'academic', 'social', 'relationships',
+      'campus', 'general'
+    ];
+
+    allCategories.forEach(category => {
+      if (!stats.find(s => s.category === category)) {
+        stats.push({
+          category,
+          postCount: 0,
+          memberCount: 0,
+          onlineCount: 0,
+          recentPostCount: 0,
+        });
+      }
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting topic stats:', error);
+    return [];
+  }
+}
+
+/**
+ * Get trending posts based on engagement (upvotes, replies, recency)
+ */
+export async function getTrendingPosts(category?: PostCategory, limit: number = 20): Promise<Post[]> {
+  try {
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        users!posts_author_id_fkey(pseudonym)
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data, error } = await query.limit(limit * 2); // Get more to calculate trending
+
+    if (error) throw error;
+
+    // Get replies for each post to calculate engagement
+    const postsWithReplies = await Promise.all(
+      (data || []).map(async (post: any) => {
+        const authorPseudonym = post.users?.pseudonym || 'Anonymous';
+        const mappedPost = await mapPostFromDB(post, authorPseudonym);
+        const replies = await getReplies(mappedPost.id);
+        return { ...mappedPost, replies };
+      })
+    );
+
+    // Calculate trending score: (upvotes * 2 + replies * 3) / hours_since_creation
+    const now = new Date();
+    const trendingPosts = postsWithReplies
+      .map(post => {
+        const hoursSinceCreation = (now.getTime() - new Date(post.createdAt).getTime()) / (1000 * 60 * 60);
+        const engagementScore = (post.upvotes * 2 + post.replies.length * 3) / Math.max(hoursSinceCreation, 1);
+        return { ...post, trendingScore: engagementScore };
+      })
+      .sort((a, b) => b.trendingScore - a.trendingScore)
+      .slice(0, limit)
+      .map(({ trendingScore, ...post }) => post);
+
+    return trendingPosts;
+  } catch (error) {
+    console.error('Error getting trending posts:', error);
+    return [];
+  }
+}
+
+/**
+ * Get unanswered posts (posts with no replies)
+ */
+export async function getUnansweredPosts(category?: PostCategory, limit: number = 20): Promise<Post[]> {
+  try {
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        users!posts_author_id_fkey(pseudonym)
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data, error } = await query.limit(limit * 3); // Get more to filter
+
+    if (error) throw error;
+
+    // Filter posts with no replies
+    const postsWithReplies = await Promise.all(
+      (data || []).map(async (post: any) => {
+        const authorPseudonym = post.users?.pseudonym || 'Anonymous';
+        const mappedPost = await mapPostFromDB(post, authorPseudonym);
+        const replies = await getReplies(mappedPost.id);
+        return { ...mappedPost, replies };
+      })
+    );
+
+    const unanswered = postsWithReplies
+      .filter(post => post.replies.length === 0)
+      .slice(0, limit);
+
+    return unanswered;
+  } catch (error) {
+    console.error('Error getting unanswered posts:', error);
+    return [];
+  }
+}
+

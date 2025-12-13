@@ -56,7 +56,7 @@ export default function VerifyEmailScreen() {
   const colors = Colors[colorScheme];
   const { showToast, ToastComponent } = useToast();
   
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']); // Support 8 digits
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -118,10 +118,11 @@ export default function VerifyEmailScreen() {
   };
 
   const handleVerify = async (code?: string) => {
-    const otpCode = code || otp.join('');
+    const otpCode = code || otp.filter(d => d !== '').join('');
     
-    if (otpCode.length !== 6) {
-      showToast('Please enter the complete 6-digit code', 'warning', 2000);
+    // Accept both 6 and 8 digit codes
+    if (otpCode.length !== 6 && otpCode.length !== 8) {
+      showToast('Please enter the complete verification code (6 or 8 digits)', 'warning', 2000);
       return;
     }
 
@@ -210,7 +211,7 @@ export default function VerifyEmailScreen() {
       showToast(successMessage, 'success', 5000);
 
       // Clear OTP inputs
-      setOtp(['', '', '', '', '', '']);
+      setOtp(['', '', '', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (error: any) {
       console.error('[handleResend] Exception caught:', error);
@@ -267,7 +268,7 @@ export default function VerifyEmailScreen() {
             >
               <View style={styles.mainContent}>
                 <ThemedText type="body" style={styles.description}>
-                  We've sent a 6-digit verification code to your email. Please enter it below to verify your account.
+                  We've sent a verification code to your email. Please enter it below to verify your account.
                 </ThemedText>
 
                 {/* OTP Input Fields */}
@@ -326,11 +327,11 @@ export default function VerifyEmailScreen() {
                   style={[
                     styles.verifyButton,
                     { backgroundColor: '#8B5CF6' },
-                    (otp.some(d => !d) || loading) && styles.buttonDisabled,
+                    (loading) && styles.buttonDisabled,
                     createShadow(4, colors.primary, 0.3),
                   ]}
                   onPress={() => handleVerify()}
-                  disabled={otp.some(d => !d) || loading}
+                  disabled={loading}
                   activeOpacity={0.8}
                 >
                   {loading ? (

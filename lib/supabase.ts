@@ -5,6 +5,7 @@
  * Make sure to set your Supabase URL and anon key in your .env file.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 
@@ -33,6 +34,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    // Use AsyncStorage for session persistence
+    storage: AsyncStorage,
     // Automatically refresh the session
     autoRefreshToken: true,
     // Persist the session in AsyncStorage

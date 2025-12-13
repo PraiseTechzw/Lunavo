@@ -1,13 +1,13 @@
+import { OfflineIndicator } from "@/app/components/offline-indicator";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { getSession, onAuthStateChange } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/database";
+import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState, useRef } from "react";
-import { onAuthStateChange, getSession } from "@/lib/auth";
-import * as Notifications from 'expo-notifications';
-import { registerForPushNotifications, addNotificationResponseListener } from "@/lib/notifications";
-import { OfflineIndicator } from "@/app/components/offline-indicator";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 const ONBOARDING_KEY = "@lunavo:onboarding_complete";
@@ -20,6 +20,7 @@ export default function RootLayout() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     initializeAuth();
@@ -37,11 +38,11 @@ export default function RootLayout() {
         
         // Navigate based on notification data
         if (data?.postId) {
-          router.push(`/post/${data.postId}`);
+          router.push(`/post/${data.postId}` as any);
         } else if (data?.meetingId) {
-          router.push(`/meetings/${data.meetingId}`);
-        } else if (data?.screen) {
-          router.push(data.screen);
+          router.push(`/meetings/${data.meetingId}` as any);
+        } else if (data?.screen && typeof data.screen === 'string') {
+          router.push(data.screen as any);
         }
       });
 
@@ -68,19 +69,76 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, segments, isInitialized]);
 
+  // Role-based navigation protection
+  useEffect(() => {
+    if (!isAuthenticated || !isInitialized) return;
+
+    const checkRoleAccess = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) return;
+
+        const role = currentUser.role;
+        setUserRole(role);
+        const currentRoute = segments[0];
+
+        // Redirect students away from role-specific screens
+        if (role === 'student') {
+          const restrictedRoutes = ['admin', 'peer-educator', 'counselor', 'student-affairs', 'volunteer'];
+          if (restrictedRoutes.includes(currentRoute)) {
+            router.replace('/(tabs)');
+          }
+        }
+        // Add similar checks for other roles if needed
+      } catch (error) {
+        console.error('Error checking role access:', error);
+      }
+    };
+
+    checkRoleAccess();
+  }, [isAuthenticated, segments, isInitialized]);
+
   const initializeAuth = async () => {
     try {
       // Check onboarding status
       const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
       setIsOnboardingComplete(onboardingValue === 'true');
 
-      // Check authentication status
+      // Check authentication status - getSession() will retrieve from AsyncStorage
       const session = await getSession();
+      console.log('[initializeAuth] Session check:', session ? 'Session found' : 'No session');
       setIsAuthenticated(!!session);
+      
+      // Load user role if authenticated
+      if (session) {
+        try {
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUserRole(currentUser.role);
+            console.log('[initializeAuth] User role loaded:', currentUser.role);
+          }
+        } catch (userError) {
+          console.error('[initializeAuth] Error loading user:', userError);
+          // If user can't be loaded, session might be invalid
+          setIsAuthenticated(false);
+        }
+      }
 
       // Listen to auth state changes
       const { data: { subscription } } = onAuthStateChange((event, session) => {
+        console.log('[initializeAuth] Auth state changed:', event, session ? 'Session present' : 'No session');
         setIsAuthenticated(!!session);
+        
+        // Update user role when session changes
+        if (session) {
+          getCurrentUser().then(user => {
+            if (user) {
+              setUserRole(user.role);
+            }
+          }).catch(err => console.error('Error loading user on auth change:', err));
+        } else {
+          setUserRole(null);
+        }
       });
 
       setIsInitialized(true);
@@ -89,7 +147,7 @@ export default function RootLayout() {
         subscription.unsubscribe();
       };
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error('[initializeAuth] Error initializing auth:', error);
       setIsAuthenticated(false);
       setIsOnboardingComplete(false);
       setIsInitialized(true);
@@ -129,6 +187,13 @@ export default function RootLayout() {
       />
       <Stack.Screen 
         name="post/[id]" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="topic/[category]" 
         options={{ 
           headerShown: false,
           presentation: 'card',
@@ -236,6 +301,41 @@ export default function RootLayout() {
       />
       <Stack.Screen 
         name="accessibility-settings" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="badges" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="rewards" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="leaderboard" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="search" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="resource/[id]" 
         options={{ 
           headerShown: false,
           presentation: 'card',

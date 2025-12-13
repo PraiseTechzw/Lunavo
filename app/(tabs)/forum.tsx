@@ -1,56 +1,102 @@
 /**
- * Peer Support Forum - Main feed screen
+ * Peer Support Forum - Level 1: Find Support (Topic Cards View)
+ * Shows all support topics/categories as cards with stats
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { PostCategory } from '@/app/types';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getTopicStats, TopicStats } from '@/lib/database';
+import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  RefreshControl,
   ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { PostCard } from '@/app/components/post-card';
-import { PostSkeleton } from '@/app/components/loading-skeleton';
-import { Post, PostCategory } from '@/app/types';
-import { getPosts } from '@/lib/database';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { CATEGORIES } from '@/app/constants/categories';
-import { subscribeToPosts, subscribeToPostChanges, unsubscribe, RealtimeChannel } from '@/lib/realtime';
 
-const POSTS_PER_PAGE = 20;
+// Icon mapping for categories (matching the design)
+const getCategoryIcon = (category: PostCategory): string => {
+  const iconMap: Record<PostCategory, string> = {
+    'mental-health': 'sentiment-dissatisfied', // Purple brain/head icon
+    'crisis': 'warning',
+    'substance-abuse': 'medkit',
+    'sexual-health': 'heart',
+    'stis-hiv': 'heart-circle',
+    'family-home': 'home',
+    'academic': 'library-books',
+    'social': 'people',
+    'relationships': 'people-outline',
+    'campus': 'school',
+    'general': 'chatbubbles',
+  };
+  return iconMap[category] || 'help-circle';
+};
+
+// Get display name for category
+const getCategoryDisplayName = (category: PostCategory): string => {
+  const nameMap: Record<PostCategory, string> = {
+    'mental-health': 'Depression & Anxiety',
+    'crisis': 'Crisis Support',
+    'substance-abuse': 'Addiction',
+    'sexual-health': 'Sexual Health',
+    'stis-hiv': 'STIs/HIV',
+    'family-home': 'Family & Home',
+    'academic': 'Academic Support',
+    'social': 'Social & Personal',
+    'relationships': 'Relationship Advice',
+    'campus': 'Campus Life',
+    'general': 'General Support',
+  };
+  return nameMap[category] || category;
+};
+
+// Get short description for category
+const getCategoryDescription = (category: PostCategory): string => {
+  const descMap: Record<PostCategory, string> = {
+    'mental-health': 'A safe space to share coping strategies and experiences.',
+    'crisis': 'Immediate support for urgent situations.',
+    'substance-abuse': 'Support for recovery and healthy choices.',
+    'sexual-health': 'Safe space for sexual and reproductive health questions.',
+    'stis-hiv': 'Education and support for STI/HIV prevention.',
+    'family-home': 'Navigating family dynamics and home challenges.',
+    'academic': 'Study stress, exam anxiety, and academic performance.',
+    'social': 'Friendship, social anxiety, and personal growth.',
+    'relationships': 'Navigating complex dynamics in family and partnerships.',
+    'campus': 'Campus resources and student life support.',
+    'general': 'Other concerns and questions.',
+  };
+  return descMap[category] || 'Connect with others who understand.';
+};
 
 export default function ForumScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [displayedPosts, setDisplayedPosts] = useState<Post[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<PostCategory | 'all'>('all');
+  const [topicStats, setTopicStats] = useState<TopicStats[]>([]);
+  const [displayedTopics, setDisplayedTopics] = useState<TopicStats[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'trending'>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const postsChannelRef = useRef<RealtimeChannel | null>(null);
-  const currentPageRef = useRef(1);
 
   useEffect(() => {
-    loadPosts();
+    loadTopicStats();
     setupRealtimeSubscriptions();
 
     return () => {
-      // Cleanup subscriptions on unmount
       if (postsChannelRef.current) {
         unsubscribe(postsChannelRef.current);
       }
@@ -58,226 +104,233 @@ export default function ForumScreen() {
   }, []);
 
   useEffect(() => {
-    // Reset pagination when filters change
-    currentPageRef.current = 1;
-    filterAndPaginatePosts();
-  }, [selectedCategory, searchQuery, posts]);
+    filterTopics();
+  }, [searchQuery, selectedFilter, topicStats]);
 
-  const loadPosts = async () => {
+  const loadTopicStats = async () => {
     try {
       setLoading(true);
-      const allPosts = await getPosts();
-      // Sort by most recent first
-      const sortedPosts = allPosts.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setPosts(sortedPosts);
+      const stats = await getTopicStats();
+      
+      // Sort by trending (recent posts) or member count
+      const sorted = selectedFilter === 'trending'
+        ? [...stats].sort((a, b) => b.recentPostCount - a.recentPostCount)
+        : [...stats].sort((a, b) => b.memberCount - a.memberCount);
+      
+      setTopicStats(sorted);
     } catch (error) {
-      console.error('Error loading posts:', error);
+      console.error('Error loading topic stats:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterAndPaginatePosts = () => {
-    const filtered = posts.filter((post) => {
-      const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
-      const matchesSearch =
-        searchQuery === '' ||
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
+  const filterTopics = () => {
+    let filtered = [...topicStats];
 
-    // Paginate
-    const page = currentPageRef.current;
-    const startIndex = 0;
-    const endIndex = page * POSTS_PER_PAGE;
-    setDisplayedPosts(filtered.slice(startIndex, endIndex));
-    setHasMore(endIndex < filtered.length);
-  };
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(stat => {
+        const category = CATEGORIES[stat.category as PostCategory];
+        const name = getCategoryDisplayName(stat.category);
+        const desc = getCategoryDescription(stat.category);
+        const searchLower = searchQuery.toLowerCase();
+        return (
+          name.toLowerCase().includes(searchLower) ||
+          desc.toLowerCase().includes(searchLower) ||
+          category.name.toLowerCase().includes(searchLower)
+        );
+      });
+    }
 
-  const loadMorePosts = () => {
-    if (loadingMore || !hasMore) return;
-    
-    setLoadingMore(true);
-    currentPageRef.current += 1;
-    
-    // Simulate slight delay for better UX
-    setTimeout(() => {
-      filterAndPaginatePosts();
-      setLoadingMore(false);
-    }, 300);
+    // Sort by filter
+    if (selectedFilter === 'trending') {
+      filtered.sort((a, b) => b.recentPostCount - a.recentPostCount);
+    } else {
+      filtered.sort((a, b) => b.memberCount - a.memberCount);
+    }
+
+    setDisplayedTopics(filtered);
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    currentPageRef.current = 1;
-    await loadPosts();
+    await loadTopicStats();
     setRefreshing(false);
   };
 
   const setupRealtimeSubscriptions = () => {
-    // Subscribe to new posts
-    const newPostsChannel = subscribeToPosts((newPost) => {
-      setPosts((prevPosts) => {
-        // Check if post already exists (avoid duplicates)
-        const exists = prevPosts.some((p) => p.id === newPost.id);
-        if (exists) return prevPosts;
-        // Add new post at the beginning (most recent first)
-        return [newPost, ...prevPosts];
-      });
-    });
-
-    // Subscribe to post updates (upvotes, status changes, etc.)
-    const postChangesChannel = subscribeToPostChanges(({ eventType, post }) => {
-      if (eventType === 'DELETE' && post === null) {
-        // Handle post deletion if needed
-        return;
-      }
-
-      if (post) {
-        setPosts((prevPosts) => {
-          if (eventType === 'INSERT') {
-            // Check if post already exists (avoid duplicates)
-            const exists = prevPosts.some((p) => p.id === post.id);
-            if (exists) return prevPosts;
-            return [post, ...prevPosts];
-          } else if (eventType === 'UPDATE') {
-            return prevPosts.map((p) => (p.id === post.id ? post : p));
-          } else if (eventType === 'DELETE') {
-            return prevPosts.filter((p) => p.id !== post.id);
-          }
-          return prevPosts;
-        });
-      }
+    // Subscribe to new posts to update stats in real-time
+    const newPostsChannel = subscribeToPosts(() => {
+      // Refresh stats when new posts are created
+      loadTopicStats();
     });
 
     postsChannelRef.current = newPostsChannel;
   };
 
-  // Category filters matching the design
-  const categories: Array<{ id: PostCategory | 'all'; label: string }> = [
-    { id: 'all', label: 'All' },
-    { id: 'mental-health', label: 'Stress' },
-    { id: 'relationships', label: 'Relationships' },
-    { id: 'academic', label: 'Academics' },
-  ];
-
-  const handlePostPress = (post: Post) => {
-    router.push(`/post/${post.id}`);
+  const formatMemberCount = (count: number): string => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
   };
 
-  const renderPost = ({ item }: { item: Post }) => (
-    <PostCard post={item} onPress={() => handlePostPress(item)} />
-  );
+  const handleTopicPress = (category: PostCategory) => {
+    router.push(`/topic/${category}` as any);
+  };
+
+  const renderTopicCard = ({ item }: { item: TopicStats }) => {
+    const category = CATEGORIES[item.category as PostCategory];
+    const iconName = getCategoryIcon(item.category);
+    const displayName = getCategoryDisplayName(item.category);
+    const description = getCategoryDescription(item.category);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.topicCard,
+          { backgroundColor: colors.card },
+          createShadow(2, '#000', 0.1),
+        ]}
+        onPress={() => handleTopicPress(item.category)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.topicCardContent}>
+          {/* Icon */}
+          <View style={[styles.topicIcon, { backgroundColor: category.color + '20' }]}>
+            <Ionicons name={iconName as any} size={32} color={category.color} />
+          </View>
+
+          {/* Content */}
+          <View style={styles.topicInfo}>
+            <ThemedText type="h3" style={[styles.topicTitle, { color: colors.text }]}>
+              {displayName}
+            </ThemedText>
+            <ThemedText type="small" style={[styles.topicDescription, { color: colors.icon }]} numberOfLines={2}>
+              {description}
+            </ThemedText>
+
+            {/* Stats */}
+            <View style={styles.topicStats}>
+              <View style={styles.statItem}>
+                <Ionicons name="people-outline" size={16} color={colors.icon} />
+                <ThemedText type="small" style={[styles.statText, { color: colors.icon }]}>
+                  {formatMemberCount(item.memberCount)}
+                </ThemedText>
+              </View>
+              <View style={[styles.statItem, styles.onlineStat]}>
+                <View style={[styles.onlineDot, { backgroundColor: '#10B981' }]} />
+                <ThemedText type="small" style={[styles.statText, { color: '#10B981' }]}>
+                  {item.onlineCount} Online
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+
+          {/* Arrow */}
+          <MaterialIcons name="arrow-forward-ios" size={20} color={colors.icon} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const filterOptions = [
+    { id: 'all' as const, label: 'All' },
+    { id: 'trending' as const, label: 'Trending' },
+  ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <ThemedText type="h2" style={styles.headerTitle}>
-          Peer Support Forum
-        </ThemedText>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={getCursorStyle()}>
-            <MaterialIcons name="search" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[getCursorStyle(), { marginLeft: Spacing.md, position: 'relative' }]}>
-            <MaterialIcons name="notifications-none" size={24} color={colors.text} />
-            <View style={[styles.badge, { backgroundColor: colors.primary, borderColor: colors.background }]}>
-              <Text style={styles.badgeText}>2</Text>
-            </View>
+          <ThemedText type="h2" style={styles.headerTitle}>
+            Find Support
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.createButton, getCursorStyle()]}
+            onPress={() => router.push('/create-post')}
+          >
+            <MaterialIcons name="edit" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Category Filters */}
-      <View style={styles.filtersContainer}>
-        <FlatList
-          horizontal
-          data={categories}
-          renderItem={({ item }) => {
-            const isSelected = selectedCategory === item.id;
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: isSelected
-                      ? '#A2D2FF'
-                      : colors.surface,
-                  },
-                ]}
-                onPress={() => setSelectedCategory(item.id)}
-                activeOpacity={0.7}
-              >
-                <ThemedText
-                  type="small"
-                  style={{
-                    color: isSelected ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
-                  }}
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search for topics..."
+            placeholderTextColor={colors.icon}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        {/* Filter Tabs */}
+        <View style={styles.filtersContainer}>
+          <FlatList
+            horizontal
+            data={filterOptions}
+            renderItem={({ item }) => {
+              const isSelected = selectedFilter === item.id;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isSelected ? colors.primary : colors.surface,
+                    },
+                  ]}
+                  onPress={() => setSelectedFilter(item.id)}
+                  activeOpacity={0.7}
                 >
-                  {item.label}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          }}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersContent}
-        />
-      </View>
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: isSelected ? '#FFFFFF' : colors.text,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {item.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            }}
+            keyExtractor={(item) => item.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersContent}
+          />
+        </View>
 
-      {/* Posts List */}
-      {loading ? (
-        <PostSkeleton count={3} />
-      ) : (
-        <FlatList
-          data={displayedPosts}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.postsContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          onEndReached={loadMorePosts}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.loadingMore}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <ThemedText type="small" style={[styles.loadingText, { color: colors.icon }]}>
-                  Loading more posts...
+        {/* Topics List */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <ThemedText type="body" style={[styles.loadingText, { color: colors.icon }]}>
+              Loading topics...
+            </ThemedText>
+          </View>
+        ) : (
+          <FlatList
+            data={displayedTopics}
+            renderItem={renderTopicCard}
+            keyExtractor={(item) => item.category}
+            contentContainerStyle={styles.topicsContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="forum" size={48} color={colors.icon} />
+                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+                  No topics found. Try a different search.
                 </ThemedText>
               </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="forum" size={48} color={colors.icon} />
-              <ThemedText type="body" style={styles.emptyText}>
-                No posts found. Be the first to share!
-              </ThemedText>
-            </View>
-          }
-        />
-      )}
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          { backgroundColor: '#A2D2FF' },
-          createShadow(6, '#A2D2FF', 0.4),
-        ]}
-        onPress={() => router.push('/create-post')}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+            }
+          />
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -294,78 +347,126 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   headerTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 24,
   },
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  createButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderRadius: BorderRadius.md,
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: Spacing.xs,
   },
   filtersContainer: {
     marginBottom: Spacing.md,
   },
   filtersContent: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
   filterChip: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
   },
-  postsContent: {
-    padding: Spacing.md,
-    paddingBottom: 80,
+  topicsContent: {
+    padding: Spacing.lg,
+    paddingBottom: 100,
+  },
+  topicCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  topicCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  topicIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  topicInfo: {
+    flex: 1,
+  },
+  topicTitle: {
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: Spacing.xs,
+  },
+  topicDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
+  },
+  topicStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  onlineStat: {
+    marginLeft: Spacing.sm,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
   },
   emptyContainer: {
     alignItems: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.xxl,
   },
   emptyText: {
     opacity: 0.7,
     textAlign: 'center',
     marginTop: Spacing.md,
   },
-  loadingMore: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  loadingText: {
-    marginLeft: Spacing.xs,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 80,
-    right: Spacing.md,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });
-
