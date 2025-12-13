@@ -1,64 +1,37 @@
 /**
- * Chat List Screen - Enhanced with unread, online status, last message preview
+ * Chat List Screen
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { formatDistanceToNow, format } from 'date-fns';
 
-interface Chat {
-  id: string;
-  name: string;
-  lastMessage: string;
-  time: Date;
-  unread: number;
-  isOnline?: boolean;
-  lastMessageType?: 'text' | 'image' | 'voice' | 'system';
-  avatar?: string;
-}
-
-// Mock data - in production, this would come from database
-const mockChats: Chat[] = [
+const chats = [
   {
     id: '1',
     name: 'Peer Supporter',
     lastMessage: 'Take your time. There\'s no rush. I\'m here to listen whenever you\'re ready.',
-    time: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+    time: '10:42 AM',
     unread: 0,
-    isOnline: true,
-    lastMessageType: 'text',
   },
   {
     id: '2',
     name: 'Support Team',
     lastMessage: 'We received your message. How can we help?',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24), // Yesterday
+    time: 'Yesterday',
     unread: 2,
-    isOnline: false,
-    lastMessageType: 'text',
-  },
-  {
-    id: '3',
-    name: 'Counselor',
-    lastMessage: '📎 Attachment: resource.pdf',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    unread: 0,
-    isOnline: true,
-    lastMessageType: 'image',
   },
 ];
 
