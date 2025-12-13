@@ -2,29 +2,29 @@
  * Admin Dashboard - For Student Affairs and Moderators
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Analytics, Post, Report } from '@/app/types';
+import { createShadow, getContainerStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getAnalytics, getEscalations, getPosts, getReports, getUsers } from '@/lib/database';
+import { subscribeToEscalations, subscribeToPosts } from '@/lib/realtime';
+import { MaterialIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Platform,
   Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getPosts, getReports, getAnalytics, getUsers, getEscalations } from '@/lib/database';
-import { createShadow, getCursorStyle, getContainerStyle } from '@/app/utils/platform-styles';
-import { Post, Report, Analytics } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
-import { subscribeToPosts, subscribeToEscalations } from '@/lib/realtime';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -38,13 +38,7 @@ export default function AdminDashboardScreen() {
   // Role guard - only admins can access
   const { user, loading } = useRoleGuard(['admin'], '/(tabs)');
   
-  if (loading) {
-    return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ThemedText>Loading...</ThemedText>
-      </ThemedView>
-    );
-  }
+  // All hooks must be called before any conditional returns
   const [refreshing, setRefreshing] = useState(false);
   const [escalatedPosts, setEscalatedPosts] = useState<Post[]>([]);
   const [pendingReports, setPendingReports] = useState<Report[]>([]);
@@ -63,6 +57,15 @@ export default function AdminDashboardScreen() {
     pendingReports: 0,
     activeUsers: 0,
   });
+  
+  // Early return AFTER all hooks
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
+    );
+  }
 
   useEffect(() => {
     loadData();
