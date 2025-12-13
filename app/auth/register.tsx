@@ -228,32 +228,6 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
-          {[1, 2, 3].map((step) => (
-            <View key={step} style={styles.progressStep}>
-              <View
-                style={[
-                  styles.progressDot,
-                  {
-                    backgroundColor: step <= currentStep ? '#8B5CF6' : '#FFFFFF40',
-                  },
-                ]}
-              />
-              {step < 3 && (
-                <View
-                  style={[
-                    styles.progressLine,
-                    {
-                      backgroundColor: step < currentStep ? '#8B5CF6' : '#FFFFFF40',
-                    },
-                  ]}
-                />
-              )}
-            </View>
-          ))}
-        </View>
-
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -273,6 +247,32 @@ export default function RegisterScreen() {
               ]}
             >
               <View style={styles.mainContent}>
+                {/* Progress Indicator */}
+                <View style={styles.progressContainer}>
+                  {[1, 2, 3].map((step) => (
+                    <View key={step} style={styles.progressStep}>
+                      <View
+                        style={[
+                          styles.progressDot,
+                          {
+                            backgroundColor: step <= currentStep ? '#8B5CF6' : '#FFFFFF40',
+                          },
+                        ]}
+                      />
+                      {step < 3 && (
+                        <View
+                          style={[
+                            styles.progressLine,
+                            {
+                              backgroundColor: step < currentStep ? '#8B5CF6' : '#FFFFFF40',
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+
                 <ThemedText type="h1" style={styles.title}>
                   Sign up
                 </ThemedText>
@@ -592,10 +592,14 @@ export default function RegisterScreen() {
                       }
                       activeOpacity={0.8}
                     >
-                        <ThemedText type="body" style={styles.buttonText} numberOfLines={1}>
-                        Next
-                      </ThemedText>
-                      <Ionicons name="arrow-forward" size={20} color="#FFFFFF" style={{ marginLeft: Spacing.xs }} />
+                        <View style={styles.buttonTextContainer}>
+                          <ThemedText type="body" style={styles.buttonText}>
+                            Next
+                          </ThemedText>
+                          <ThemedText type="body" style={styles.buttonArrow}>
+                            →
+                          </ThemedText>
+                        </View>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -613,10 +617,9 @@ export default function RegisterScreen() {
                         <ActivityIndicator color="#FFFFFF" size="small" />
                       ) : (
                         <>
-                          <ThemedText type="body" style={styles.buttonText} numberOfLines={1}>
+                          <ThemedText type="body" style={styles.buttonText}>
                             Sign up
                           </ThemedText>
-                          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{ marginLeft: Spacing.xs }} />
                         </>
                       )}
                     </TouchableOpacity>
@@ -626,14 +629,15 @@ export default function RegisterScreen() {
                 {/* Sign In Link */}
                 <View style={styles.signInContainer}>
                   <ThemedText type="body" style={styles.signInText}>
-                    Already have an account?{' '}
+                    Already have an account?
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => router.push('/auth/login')}
                     disabled={loading}
+                    style={styles.signInLinkContainer}
                   >
                     <ThemedText type="body" style={styles.signInLink}>
-                      Sign in
+                      Sign{'\n'}in
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -687,13 +691,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: '#0F172A',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -32,
-    zIndex: 1,
+    marginBottom: Spacing.lg,
   },
   progressStep: {
     flexDirection: 'row',
@@ -835,27 +835,54 @@ const styles = StyleSheet.create({
     flex: 2,
     height: 56,
   },
+  buttonTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    fontStyle: 'italic',
+  },
+  buttonArrow: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 20,
+    marginLeft: Spacing.xs,
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    fontStyle: 'italic',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   signInContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginTop: Spacing.xl,
-    flexWrap: 'wrap',
+    paddingHorizontal: Spacing.sm,
   },
   signInText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    flex: 1,
+  },
+  signInLinkContainer: {
+    alignItems: 'flex-end',
   },
   signInLink: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 18,
+    textAlign: 'right',
+    lineHeight: 22,
   },
 });

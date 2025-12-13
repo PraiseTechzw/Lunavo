@@ -129,9 +129,6 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* White separator bar for curved effect */}
-        <View style={styles.curveSeparator} />
-
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -295,14 +292,15 @@ export default function LoginScreen() {
                 {/* Sign Up Link */}
                 <View style={styles.signUpContainer}>
                   <ThemedText type="body" style={styles.signUpText}>
-                    Don't have an account?{' '}
+                    Don't have an account?
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => router.push('/auth/register')}
                     disabled={loading}
+                    style={styles.signUpLinkContainer}
                   >
                     <ThemedText type="body" style={styles.signUpLink}>
-                      Sign up
+                      Sign{'\n'}up
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -351,14 +349,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 160,
-  },
-  curveSeparator: {
-    height: 32,
-    backgroundColor: '#0F172A',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -32,
-    zIndex: 2,
   },
   keyboardView: {
     flex: 1,
@@ -451,24 +441,36 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    fontStyle: 'italic',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   signUpContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginTop: Spacing.md,
-    flexWrap: 'wrap',
+    paddingHorizontal: Spacing.sm,
   },
   signUpText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    flex: 1,
+  },
+  signUpLinkContainer: {
+    alignItems: 'flex-end',
   },
   signUpLink: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 18,
+    textAlign: 'right',
+    lineHeight: 22,
   },
 });
