@@ -23,7 +23,7 @@ import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
 import {
   getEscalationById,
-  getPostById,
+  getPost,
   updateEscalation,
   getCurrentUser,
 } from '@/lib/database';
@@ -62,7 +62,7 @@ export default function EscalationDetailScreen() {
       setNotes(escalationData.notes || '');
 
       // Load the associated post
-      const postData = await getPostById(escalationData.postId);
+      const postData = await getPost(escalationData.postId);
       setPost(postData);
     } catch (error) {
       console.error('Error loading escalation:', error);

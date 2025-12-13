@@ -137,6 +137,30 @@ export interface Notification {
   createdAt: Date;
 }
 
+export type MeetingType = 'weekly' | 'special' | 'training' | 'orientation';
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDate: Date;
+  durationMinutes: number;
+  location?: string;
+  meetingType: MeetingType;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MeetingAttendance {
+  id: string;
+  meetingId: string;
+  userId: string;
+  attended: boolean;
+  attendedAt?: Date;
+  notes?: string;
+}
+
 
 
 

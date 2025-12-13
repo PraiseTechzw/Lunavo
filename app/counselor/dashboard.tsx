@@ -19,7 +19,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getEscalations, getPostById, updateEscalation, getCurrentUser } from '@/lib/database';
+import { getEscalations, getPost, updateEscalation, getCurrentUser } from '@/lib/database';
 import { subscribeToEscalations, unsubscribe, RealtimeChannel } from '@/lib/realtime';
 import { Escalation, EscalationLevel, Post } from '@/app/types';
 import { formatDistanceToNow } from 'date-fns';

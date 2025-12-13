@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CheckIn, Escalation, EscalationLevel, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
+import { CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
 import { supabase } from './supabase';
 
 // ============================================
@@ -117,6 +117,43 @@ export interface CreatePostData {
 }
 
 export async function createPost(postData: CreatePostData): Promise<Post> {
+  // Auto-detect escalation if not provided
+  let escalationLevel = postData.escalationLevel || 'none';
+  let escalationReason = postData.escalationReason;
+
+  if (!postData.escalationLevel || postData.escalationLevel === 'none') {
+    try {
+      const { detectEscalationLevel } = await import('./escalation-detection');
+      const tempPost: Post = {
+        id: 'temp',
+        authorId: postData.authorId,
+        authorPseudonym: 'temp',
+        category: postData.category,
+        title: postData.title,
+        content: postData.content,
+        status: 'active',
+        escalationLevel: 'none',
+        isAnonymous: postData.isAnonymous || false,
+        tags: postData.tags || [],
+        upvotes: 0,
+        replies: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        reportedCount: 0,
+        isFlagged: false,
+      };
+      
+      const escalation = detectEscalationLevel(tempPost);
+      if (escalation.level !== 'none' && escalation.confidence >= 0.5) {
+        escalationLevel = escalation.level;
+        escalationReason = escalation.reason;
+      }
+    } catch (error) {
+      console.error('Error detecting escalation:', error);
+      // Continue with post creation even if detection fails
+    }
+  }
+
   const { data, error } = await supabase
     .from('posts')
     .insert({
@@ -126,10 +163,10 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
       content: postData.content,
       is_anonymous: postData.isAnonymous,
       tags: postData.tags || [],
-      status: postData.escalationLevel && postData.escalationLevel !== 'none' ? 'escalated' : 'active',
-      escalation_level: postData.escalationLevel || 'none',
-      escalation_reason: postData.escalationReason || null,
-      is_flagged: postData.escalationLevel && postData.escalationLevel !== 'none',
+      status: escalationLevel !== 'none' ? 'escalated' : 'active',
+      escalation_level: escalationLevel,
+      escalation_reason: escalationReason || null,
+      is_flagged: escalationLevel !== 'none',
     })
     .select()
     .single();
@@ -140,13 +177,18 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
   const author = await getUser(postData.authorId);
   const post = await mapPostFromDB(data, author?.pseudonym || 'Anonymous');
 
-  // If escalated, create escalation record
-  if (postData.escalationLevel && postData.escalationLevel !== 'none') {
-    await createEscalation({
-      postId: post.id,
-      level: postData.escalationLevel,
-      reason: postData.escalationReason || 'Auto-detected',
-    });
+  // Create escalation record if needed
+  if (escalationLevel !== 'none') {
+    try {
+      await createEscalation({
+        postId: post.id,
+        level: escalationLevel,
+        reason: escalationReason || 'Auto-detected',
+      });
+    } catch (escalationError) {
+      console.error('Error creating escalation:', escalationError);
+      // Don't fail post creation if escalation fails
+    }
   }
 
   return post;
@@ -774,6 +816,169 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 }
 
 // ============================================
+// MEETING OPERATIONS
+// ============================================
+
+export interface CreateMeetingData {
+  title: string;
+  description?: string;
+  scheduledDate: Date;
+  durationMinutes?: number;
+  location?: string;
+  meetingType?: MeetingType;
+  createdBy: string;
+}
+
+export async function createMeeting(meetingData: CreateMeetingData): Promise<Meeting> {
+  const { data, error } = await supabase
+    .from('meetings')
+    .insert({
+      title: meetingData.title,
+      description: meetingData.description || null,
+      scheduled_date: meetingData.scheduledDate.toISOString(),
+      duration_minutes: meetingData.durationMinutes || 30,
+      location: meetingData.location || null,
+      meeting_type: meetingData.meetingType || 'weekly',
+      created_by: meetingData.createdBy,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapMeetingFromDB(data);
+}
+
+export async function getMeetings(filters?: {
+  meetingType?: MeetingType;
+  upcoming?: boolean;
+  past?: boolean;
+}): Promise<Meeting[]> {
+  let query = supabase
+    .from('meetings')
+    .select('*')
+    .order('scheduled_date', { ascending: true });
+
+  if (filters?.meetingType) {
+    query = query.eq('meeting_type', filters.meetingType);
+  }
+
+  if (filters?.upcoming) {
+    query = query.gte('scheduled_date', new Date().toISOString());
+  }
+
+  if (filters?.past) {
+    query = query.lt('scheduled_date', new Date().toISOString());
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return (data || []).map(mapMeetingFromDB);
+}
+
+export async function getMeeting(meetingId: string): Promise<Meeting | null> {
+  const { data, error } = await supabase
+    .from('meetings')
+    .select('*')
+    .eq('id', meetingId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return mapMeetingFromDB(data);
+}
+
+export async function updateMeeting(meetingId: string, updates: Partial<Meeting>): Promise<Meeting> {
+  const updateData: any = {};
+
+  if (updates.title) updateData.title = updates.title;
+  if (updates.description !== undefined) updateData.description = updates.description || null;
+  if (updates.scheduledDate) updateData.scheduled_date = updates.scheduledDate.toISOString();
+  if (updates.durationMinutes) updateData.duration_minutes = updates.durationMinutes;
+  if (updates.location !== undefined) updateData.location = updates.location || null;
+  if (updates.meetingType) updateData.meeting_type = updates.meetingType;
+
+  const { data, error } = await supabase
+    .from('meetings')
+    .update(updateData)
+    .eq('id', meetingId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapMeetingFromDB(data);
+}
+
+export async function deleteMeeting(meetingId: string): Promise<void> {
+  const { error } = await supabase
+    .from('meetings')
+    .delete()
+    .eq('id', meetingId);
+
+  if (error) throw error;
+}
+
+// ============================================
+// MEETING ATTENDANCE OPERATIONS
+// ============================================
+
+export interface CreateAttendanceData {
+  meetingId: string;
+  userId: string;
+  attended: boolean;
+  notes?: string;
+}
+
+export async function createOrUpdateAttendance(attendanceData: CreateAttendanceData): Promise<MeetingAttendance> {
+  const { data, error } = await supabase
+    .from('meeting_attendance')
+    .upsert({
+      meeting_id: attendanceData.meetingId,
+      user_id: attendanceData.userId,
+      attended: attendanceData.attended,
+      attended_at: attendanceData.attended ? new Date().toISOString() : null,
+      notes: attendanceData.notes || null,
+    }, {
+      onConflict: 'meeting_id,user_id',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapAttendanceFromDB(data);
+}
+
+export async function getMeetingAttendance(meetingId: string): Promise<MeetingAttendance[]> {
+  const { data, error } = await supabase
+    .from('meeting_attendance')
+    .select('*')
+    .eq('meeting_id', meetingId);
+
+  if (error) throw error;
+
+  return (data || []).map(mapAttendanceFromDB);
+}
+
+export async function getUserAttendance(userId: string): Promise<MeetingAttendance[]> {
+  const { data, error } = await supabase
+    .from('meeting_attendance')
+    .select('*')
+    .eq('user_id', userId)
+    .order('attended_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map(mapAttendanceFromDB);
+}
+
+// ============================================
 // MAPPING FUNCTIONS (DB -> App Types)
 // ============================================
 
@@ -864,6 +1069,32 @@ function mapEscalationFromDB(data: any): Escalation {
     assignedTo: data.assigned_to || undefined,
     status: data.status,
     resolvedAt: data.resolved_at ? new Date(data.resolved_at) : undefined,
+    notes: data.notes || undefined,
+  };
+}
+
+function mapMeetingFromDB(data: any): Meeting {
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description || undefined,
+    scheduledDate: new Date(data.scheduled_date),
+    durationMinutes: data.duration_minutes || 30,
+    location: data.location || undefined,
+    meetingType: data.meeting_type,
+    createdBy: data.created_by,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+function mapAttendanceFromDB(data: any): MeetingAttendance {
+  return {
+    id: data.id,
+    meetingId: data.meeting_id,
+    userId: data.user_id,
+    attended: data.attended,
+    attendedAt: data.attended_at ? new Date(data.attended_at) : undefined,
     notes: data.notes || undefined,
   };
 }

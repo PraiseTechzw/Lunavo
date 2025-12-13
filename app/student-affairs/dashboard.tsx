@@ -64,17 +64,19 @@ export default function StudentAffairsDashboardScreen() {
 
       setAnalytics(analyticsData);
 
-      // Calculate category breakdown (anonymized)
+      // Calculate category breakdown (anonymized - no user IDs)
       const breakdown: Record<string, number> = {};
       posts.forEach((post) => {
+        // Only use category data, no user identification
         breakdown[post.category] = (breakdown[post.category] || 0) + 1;
       });
-      setCategoryBreakdown(breakdown as any);
+      setCategoryBreakdown(sanitizeAnalyticsData(breakdown) as any);
 
-      // Calculate escalation stats (anonymized)
+      // Calculate escalation stats (anonymized - no user IDs or assignedTo)
       const resolved = escalations.filter((e) => e.status === 'resolved');
       const pending = escalations.filter((e) => e.status === 'pending' || e.status === 'in-progress');
       
+      // Calculate response times (anonymized - only time differences, no user IDs)
       let totalResponseTime = 0;
       let responseCount = 0;
       resolved.forEach((e) => {

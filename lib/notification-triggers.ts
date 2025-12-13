@@ -3,8 +3,7 @@
  * These functions create notifications for various events
  */
 
-import { createNotification } from './database';
-import { getPostById } from './database';
+import { createNotification, getPost } from './database';
 import { getCurrentUser } from './auth';
 import { scheduleNotification } from './notifications';
 import { NotificationType } from '@/app/types';
@@ -14,7 +13,7 @@ import { NotificationType } from '@/app/types';
  */
 export async function notifyNewReply(postId: string, replyAuthor: string) {
   try {
-    const post = await getPostById(postId);
+    const post = await getPost(postId);
     if (!post) return;
 
     // Don't notify if user replied to their own post
@@ -51,7 +50,7 @@ export async function notifyEscalationAssigned(
   escalationLevel: string
 ) {
   try {
-    const post = await getPostById(postId);
+    const post = await getPost(postId);
     if (!post) return;
 
     await createNotification({
@@ -108,6 +107,74 @@ export async function scheduleMeetingReminder(
     );
   } catch (error) {
     console.error('Error scheduling meeting reminder:', error);
+  }
+}
+
+/**
+ * Schedule meeting reminder (24 hours before)
+ */
+export async function scheduleMeetingReminder24h(
+  userId: string,
+  meetingId: string,
+  meetingTitle: string,
+  scheduledDate: Date
+) {
+  try {
+    const twentyFourHoursBefore = new Date(scheduledDate.getTime() - 24 * 60 * 60 * 1000);
+    const now = new Date();
+
+    // Only schedule if meeting is more than 24 hours away
+    if (twentyFourHoursBefore <= now) return;
+
+    // Create notification in database
+    await createNotification({
+      userId,
+      type: 'meeting',
+      title: 'Meeting Reminder',
+      message: `Peer Educator Club meeting tomorrow: "${meetingTitle}"`,
+      data: { meetingId, meetingTitle },
+      read: false,
+    });
+
+    // Schedule push notification
+    await scheduleNotification(
+      'Meeting Reminder',
+      `Peer Educator Club meeting tomorrow: "${meetingTitle}"`,
+      { meetingId, type: 'meeting' },
+      { date: twentyFourHoursBefore }
+    );
+  } catch (error) {
+    console.error('Error scheduling 24h meeting reminder:', error);
+  }
+}
+
+/**
+ * Schedule all meeting reminders for a meeting
+ */
+export async function scheduleAllMeetingReminders(
+  meetingId: string,
+  meetingTitle: string,
+  scheduledDate: Date
+) {
+  try {
+    // Get all peer educators from Supabase
+    const { supabase } = await import('./supabase');
+    const { data: peerEducators } = await supabase
+      .from('users')
+      .select('id')
+      .in('role', ['peer-educator', 'peer-educator-executive']);
+
+    if (!peerEducators) return;
+
+    // Schedule reminders for all members
+    await Promise.all(
+      peerEducators.map((member: any) => {
+        scheduleMeetingReminder24h(member.id, meetingId, meetingTitle, scheduledDate);
+        scheduleMeetingReminder(member.id, meetingId, meetingTitle, scheduledDate);
+      })
+    );
+  } catch (error) {
+    console.error('Error scheduling meeting reminders:', error);
   }
 }
 

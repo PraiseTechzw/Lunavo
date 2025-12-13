@@ -218,6 +218,18 @@ export default function RootLayout() {
           headerShown: false,
         }} 
       />
+      <Stack.Screen 
+        name="peer-educator" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="meetings" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
       </Stack>
     </>
   );

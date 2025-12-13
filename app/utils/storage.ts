@@ -62,6 +62,10 @@ export async function getPosts(): Promise<Post[]> {
 }
 
 export async function addPost(post: Post): Promise<void> {
+  // Auto-detect and escalate if needed
+  const { autoEscalatePost } = await import('@/lib/escalation-detection');
+  await autoEscalatePost(post);
+
   await createPostInDB({
     authorId: post.authorId,
     category: post.category,
