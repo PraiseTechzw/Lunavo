@@ -687,6 +687,14 @@ const styles = StyleSheet.create({
     right: 0,
     height: 160,
   },
+  curveSeparator: {
+    height: 32,
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    zIndex: 2,
+  },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',

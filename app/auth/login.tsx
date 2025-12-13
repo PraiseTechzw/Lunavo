@@ -129,6 +129,9 @@ export default function LoginScreen() {
           </View>
         </View>
 
+        {/* Curved separator for visual effect */}
+        <View style={styles.curveSeparator} />
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -349,6 +352,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 160,
+  },
+  curveSeparator: {
+    height: 32,
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    zIndex: 2,
   },
   keyboardView: {
     flex: 1,

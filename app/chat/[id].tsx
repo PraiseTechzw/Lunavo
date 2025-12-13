@@ -12,14 +12,16 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { format, isToday, isYesterday } from 'date-fns';
 
 interface Message {
   id: string;
@@ -36,25 +38,30 @@ const initialMessages: Message[] = [
     id: '1',
     text: 'You are now connected with a peer. Remember to be respectful.',
     sender: 'supporter',
-    time: '10:30 AM',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 2),
+    type: 'system',
   },
   {
     id: '2',
     text: "Hi, I'm struggling with my classes.",
     sender: 'user',
-    time: '10:35 AM',
+    time: new Date(Date.now() - 1000 * 60 * 30),
+    status: 'read',
+    type: 'text',
   },
   {
     id: '3',
     text: "I understand. Let's talk about it. What's on your mind?",
     sender: 'supporter',
-    time: '10:36 AM',
+    time: new Date(Date.now() - 1000 * 60 * 29),
+    type: 'text',
   },
   {
     id: '4',
     text: "Take your time. There's no rush. I'm here to listen whenever you're ready.",
     sender: 'supporter',
-    time: '10:42 AM',
+    time: new Date(Date.now() - 1000 * 60 * 25),
+    type: 'text',
   },
 ];
 
