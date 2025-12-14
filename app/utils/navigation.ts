@@ -328,6 +328,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/notifications',
       '/chat',
       '/resource',
+      '/create-resource',
       '/profile-settings',
       '/accessibility-settings',
     ],
@@ -348,6 +349,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/notifications',
       '/chat',
       '/resource',
+      '/create-resource',
       '/profile-settings',
       '/accessibility-settings',
     ],
@@ -434,3 +436,16 @@ export function getNavigationType(role: UserRole, platform: 'mobile' | 'web' = i
   
   return 'tabs';
 }
+
+/**
+ * Safe back navigation - checks if we can go back before navigating
+ * Falls back to a default route if we can't go back
+ */
+export function safeGoBack(router: any, fallbackRoute: string = '/(tabs)') {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.replace(fallbackRoute as any);
+  }
+}
+

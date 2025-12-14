@@ -1,6 +1,6 @@
 /**
  * Email Verification Screen - OTP Entry
- * Users enter the 6-digit code sent to their email
+ * Users enter the 8-digit code sent to their email
  */
 
 import { ThemedText } from '@/app/components/themed-text';
@@ -14,15 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -92,6 +92,7 @@ export default function VerifyEmailScreen() {
   }, [countdown]);
 
 
+
   const handleOtpChange = (value: string, index: number) => {
     // Only allow digits
     if (value && !/^\d$/.test(value)) return;
@@ -101,13 +102,58 @@ export default function VerifyEmailScreen() {
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value && index < 5) {
+    if (value && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-verify when all 6 digits are entered
-    if (newOtp.every(digit => digit !== '') && newOtp.length === 6) {
+    // Auto-verify when all 8 digits are entered
+    if (newOtp.every(digit => digit !== '') && newOtp.length === 8) {
       handleVerify(newOtp.join(''));
+    }
+  };
+
+  // Handle paste/auto-fill from SMS or clipboard
+  const handleOtpPaste = (text: string, index: number) => {
+    // Extract only digits from pasted text
+    const digits = text.replace(/\D/g, '');
+    
+    if (digits.length === 0) return;
+
+    // If we get 8 digits, fill all inputs
+    if (digits.length === 8) {
+      const newOtp = digits.split('').slice(0, 8);
+      setOtp(newOtp);
+      
+      // Focus the last input
+      inputRefs.current[7]?.focus();
+      
+      // Auto-verify
+      setTimeout(() => {
+        handleVerify(digits);
+      }, 100);
+      return;
+    }
+
+    // If we get fewer digits, fill from current index
+    const newOtp = [...otp];
+    for (let i = 0; i < digits.length && (index + i) < 8; i++) {
+      newOtp[index + i] = digits[i];
+    }
+    setOtp(newOtp);
+
+    // Focus next empty input or last input
+    const nextEmptyIndex = newOtp.findIndex((digit, idx) => idx > index && digit === '');
+    if (nextEmptyIndex !== -1) {
+      inputRefs.current[nextEmptyIndex]?.focus();
+    } else {
+      inputRefs.current[Math.min(index + digits.length, 7)]?.focus();
+    }
+
+    // Auto-verify if all 8 digits are filled
+    if (newOtp.every(digit => digit !== '') && newOtp.length === 8) {
+      setTimeout(() => {
+        handleVerify(newOtp.join(''));
+      }, 100);
     }
   };
 
@@ -120,9 +166,9 @@ export default function VerifyEmailScreen() {
   const handleVerify = async (code?: string) => {
     const otpCode = code || otp.filter(d => d !== '').join('');
     
-    // Accept both 6 and 8 digit codes
-    if (otpCode.length !== 6 && otpCode.length !== 8) {
-      showToast('Please enter the complete verification code (6 or 8 digits)', 'warning', 2000);
+    // Require 8 digit code
+    if (otpCode.length !== 8) {
+      showToast('Please enter the complete 8-digit verification code', 'warning', 2000);
       return;
     }
 
@@ -151,7 +197,7 @@ export default function VerifyEmailScreen() {
         console.log('[handleVerify] Showing error toast:', errorMessage);
         showToast(errorMessage, 'error', 5000);
         // Clear OTP on error
-        setOtp(['', '', '', '', '', '']);
+        setOtp(['', '', '', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
         setLoading(false);
         return;
@@ -236,7 +282,7 @@ export default function VerifyEmailScreen() {
               Verify Email
             </ThemedText>
             <ThemedText type="body" style={styles.headerSubtitle}>
-              Enter the 6-digit code sent to{'\n'}
+              Enter the 8-digit code sent to{'\n'}
               <ThemedText type="body" style={styles.emailText}>{email}</ThemedText>
             </ThemedText>
           </View>
@@ -271,12 +317,36 @@ export default function VerifyEmailScreen() {
                   We've sent a verification code to your email. Please enter it below to verify your account.
                 </ThemedText>
 
+                {/* Hidden input for native SMS auto-fill (iOS/Android) */}
+                {Platform.OS !== 'web' && (
+                  <TextInput
+                    style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
+                    value=""
+                    onChangeText={(value) => {
+                      // Native auto-fill will paste the full code here
+                      const digits = value.replace(/\D/g, '');
+                      if (digits.length === 8) {
+                        handleOtpPaste(digits, 0);
+                      }
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    textContentType={Platform.OS === 'ios' ? 'oneTimeCode' : undefined}
+                    autoComplete={Platform.OS === 'android' ? 'sms-otp' : undefined}
+                    autoFocus={false}
+                  />
+                )}
+
                 {/* OTP Input Fields */}
                 <View style={styles.otpContainer}>
                   {otp.map((digit, index) => (
                     <TextInput
                       key={index}
-                      ref={(ref) => (inputRefs.current[index] = ref)}
+                      ref={(ref) => {
+                        if (ref) {
+                          inputRefs.current[index] = ref;
+                        }
+                      }}
                       style={[
                         styles.otpInput,
                         {
@@ -286,12 +356,27 @@ export default function VerifyEmailScreen() {
                         },
                       ]}
                       value={digit}
-                      onChangeText={(value) => handleOtpChange(value, index)}
+                      onChangeText={(value) => {
+                        // Handle paste/auto-fill (when multiple characters are pasted)
+                        // This happens when user manually pastes or native auto-fill fills individual inputs
+                        if (value.length > 1) {
+                          handleOtpPaste(value, index);
+                        } else {
+                          handleOtpChange(value, index);
+                        }
+                      }}
                       onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
                       keyboardType="number-pad"
-                      maxLength={1}
+                      maxLength={8} // Allow paste of full code
                       selectTextOnFocus
                       editable={!loading}
+                      // Native SMS auto-fill support for individual inputs
+                      // iOS: Uses oneTimeCode to detect SMS codes automatically
+                      textContentType={Platform.OS === 'ios' && index === 0 ? 'oneTimeCode' : undefined}
+                      // Android: Uses sms-otp for SMS auto-fill
+                      autoComplete={Platform.OS === 'android' && index === 0 ? 'sms-otp' : undefined}
+                      // Enable auto-focus on first input
+                      autoFocus={index === 0}
                     />
                   ))}
                 </View>
@@ -311,6 +396,7 @@ export default function VerifyEmailScreen() {
                     ) : (
                       <ThemedText
                         type="body"
+                        numberOfLines={1}
                         style={[
                           styles.resendButtonText,
                           { color: countdown > 0 ? '#FFFFFF60' : colors.primary },
@@ -474,15 +560,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xl,
     gap: Spacing.xs,
+    flexWrap: 'nowrap',
   },
   resendText: {
     color: '#FFFFFF',
   },
   resendButton: {
     padding: Spacing.xs,
+    flexShrink: 0,
   },
   resendButtonText: {
     fontWeight: '600',
+    flexShrink: 0,
+    flexWrap: 'nowrap',
   },
   verifyButton: {
     flexDirection: 'row',

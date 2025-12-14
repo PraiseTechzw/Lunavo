@@ -2,6 +2,8 @@
  * Home Dashboard Screen - Enhanced Version
  */
 
+import { DrawerHeader } from '@/app/components/navigation/drawer-header';
+import { DrawerMenu } from '@/app/components/navigation/drawer-menu';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
@@ -15,8 +17,6 @@ import {
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';
-import { DrawerMenu } from '@/app/components/navigation/drawer-menu';
-import { DrawerHeader } from '@/app/components/navigation/drawer-header';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -29,7 +29,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -58,6 +58,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('Student');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [checkInStreak, setCheckInStreak] = useState(0);
@@ -69,6 +70,9 @@ export default function HomeScreen() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [user, setUser] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  
+  // Calculate FAB position: tab bar height (80) + spacing (8) + safe area bottom
+  const fabBottom = Platform.OS === 'web' ? 24 : 80 + 8 + insets.bottom;
 
   useEffect(() => {
     loadUserData();
@@ -107,23 +111,39 @@ export default function HomeScreen() {
       if (currentUser) {
         setUser(currentUser);
         setUserRole(currentUser.role as UserRole);
-        const savedPseudonym = await getPseudonym();
-        if (savedPseudonym) {
-          setUserName(savedPseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+        
+        // Priority: username (user input) > pseudonym > 'Student'
+        if (currentUser.username && currentUser.username.trim()) {
+          // Use the actual username the user input during registration
+          setUserName(currentUser.username.trim());
         } else {
-          setUserName(currentUser.pseudonym || 'Student');
+          // Fall back to pseudonym if username is not available
+          const savedPseudonym = await getPseudonym();
+          if (savedPseudonym) {
+            setUserName(savedPseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+          } else if (currentUser.pseudonym) {
+            setUserName(currentUser.pseudonym);
+          } else {
+            setUserName('Student');
+          }
         }
       } else {
+        // If no user found, try to get pseudonym from storage
         const pseudonym = await getPseudonym();
         if (pseudonym) {
           setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+        } else {
+          setUserName('Student');
         }
       }
     } catch (error) {
       console.error('Error loading user info:', error);
+      // Fallback: try to get pseudonym from storage
       const pseudonym = await getPseudonym();
       if (pseudonym) {
         setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+      } else {
+        setUserName('Student');
       }
     }
   };
@@ -173,40 +193,46 @@ export default function HomeScreen() {
 
   const currentTip = quickTips[currentTipIndex];
 
+  const isWeb = Platform.OS === 'web';
+  const isMobile = Platform.OS !== 'web';
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
         {/* Drawer Header - Mobile Only */}
-        <DrawerHeader
-          title={`${getGreeting()}, ${userName}`}
-          onMenuPress={() => setDrawerVisible(true)}
-          rightAction={{
-            icon: 'settings',
-            onPress: () => router.push('/profile-settings'),
-          }}
-        />
+        {isMobile && (
+          <DrawerHeader
+            title={`${getGreeting()}, ${userName}`}
+            onMenuPress={() => setDrawerVisible(true)}
+            rightAction={{
+              icon: 'settings',
+              onPress: () => router.push('/profile-settings'),
+            }}
+          />
+        )}
         
         {/* Fixed Header - Desktop/Web Only */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: '#A2D2FF' + '20' }]}>
-                <MaterialIcons name="support-agent" size={24} color="#A2D2FF" />
+        {isWeb && (
+          <View style={[styles.header, { backgroundColor: colors.background }]}>
+            <View style={styles.headerTop}>
+              <View style={styles.headerLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: '#A2D2FF' + '20' }]}>
+                  <MaterialIcons name="support-agent" size={24} color="#A2D2FF" />
+                </View>
+                <View>
+                  <ThemedText type="h2" style={styles.greeting}>
+                    {getGreeting()}, {userName}
+                  </ThemedText>
+                </View>
               </View>
-              <View>
-                <ThemedText type="h2" style={styles.greeting}>
-                  {getGreeting()}, {userName}
-                </ThemedText>
-              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/profile-settings')}
+                style={[styles.iconButton, getCursorStyle()]}
+              >
+                <MaterialIcons name="settings" size={22} color={colors.text} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/profile-settings')}
-              style={[styles.iconButton, getCursorStyle()]}
-            >
-              <MaterialIcons name="settings" size={22} color={colors.text} />
-            </TouchableOpacity>
           </View>
-        </View>
         )}
 
         <ScrollView
@@ -387,7 +413,10 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={[
             styles.fab,
-            { backgroundColor: colors.primary },
+            { 
+              backgroundColor: colors.primary,
+              bottom: fabBottom,
+            },
             createShadow(8, colors.primary, 0.3),
           ]}
           onPress={() => router.push('/peer-educator/posts' as any)}
@@ -402,7 +431,10 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={[
             styles.fab,
-            { backgroundColor: '#136dec' },
+            { 
+              backgroundColor: '#136dec',
+              bottom: fabBottom,
+            },
             createShadow(8, '#136dec', 0.3),
           ]}
           onPress={() => router.push('/create-post')}
@@ -703,7 +735,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 96,
     right: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -713,5 +744,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     height: 56,
     justifyContent: 'center',
+    zIndex: 1000,
   },
 });

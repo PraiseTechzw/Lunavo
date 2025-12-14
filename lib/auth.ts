@@ -75,6 +75,28 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       return { user: null, error: new Error('User creation failed') };
     }
 
+    // If signUp didn't create a session (e.g., email confirmation required),
+    // we need to sign in to establish a session for RLS policies
+    // Check if we have a session, if not, sign in
+    let session = authData.session;
+    if (!session) {
+      // Sign in to establish session for RLS
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password: userData.password,
+      });
+      
+      if (signInError) {
+        // If sign in fails, the user might need email confirmation
+        // But we still need to create the user record
+        // For now, we'll try to create it anyway - the RLS policy should work
+        // if the auth user exists, even without a session
+        console.warn('Could not establish session after signup:', signInError);
+      } else {
+        session = signInData.session;
+      }
+    }
+
     // Generate pseudonym
     const pseudonym = generatePseudonym();
 

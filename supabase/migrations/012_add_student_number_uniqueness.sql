@@ -60,3 +60,4 @@ GRANT EXECUTE ON FUNCTION check_student_number_available(TEXT) TO authenticated,
 -- - Index improves query performance for student number lookups
 -- - Function provides real-time validation capability
 -- - All student numbers are normalized to uppercase for consistency
+

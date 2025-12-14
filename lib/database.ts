@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
+import { CheckIn, Conversation, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Message, MessageType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
 import { supabase } from './supabase';
 
 // ============================================
@@ -46,18 +46,56 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
     throw new Error('This student number is already registered. Please contact support if this is an error.');
   }
 
+  // Try using the database function first (bypasses RLS)
+  // This is more reliable during signup when session might not be fully established
+  try {
+    const { data, error } = await supabase.rpc('create_user_profile', {
+      p_id: userId,
+      p_email: userData.email,
+      p_username: userData.username || null,
+      p_student_number: normalizedStudentNumber,
+      p_phone: userData.phone,
+      p_emergency_contact_name: userData.emergency_contact_name,
+      p_emergency_contact_phone: userData.emergency_contact_phone,
+      p_location: userData.location || null,
+      p_preferred_contact_method: userData.preferred_contact_method || null,
+      p_role: userData.role || 'student',
+      p_pseudonym: userData.pseudonym,
+      p_profile_data: userData.profile_data || {},
+    });
+
+    if (!error && data) {
+      return mapUserFromDB(data);
+    }
+
+    // If function doesn't exist (error code 42883), fall back to direct insert
+    if (error && (error.code === '42883' || error.message?.includes('function') || error.message?.includes('does not exist'))) {
+      console.log('Database function not available, using direct insert');
+    } else if (error) {
+      // Other errors from function - check for unique constraint
+      if (error.code === '23505' && error.message?.includes('student_number')) {
+        throw new Error('This student number is already registered. Please contact support if this is an error.');
+      }
+      throw error;
+    }
+  } catch (rpcError: any) {
+    // If RPC call itself fails, continue to direct insert
+    console.log('RPC call failed, trying direct insert:', rpcError);
+  }
+
+  // Fall back to direct insert (requires RLS policy and active session)
   const { data, error } = await supabase
     .from('users')
     .insert({
-      id: userId, // Use the auth user's ID
+      id: userId,
       email: userData.email,
-      username: userData.username || null, // Anonymous username
-      student_number: normalizedStudentNumber, // Required - normalized to uppercase
-      phone: userData.phone, // Required for crisis contact
-      emergency_contact_name: userData.emergency_contact_name, // Required
-      emergency_contact_phone: userData.emergency_contact_phone, // Required
-      location: userData.location || null, // Optional
-      preferred_contact_method: userData.preferred_contact_method || null, // Optional
+      username: userData.username || null,
+      student_number: normalizedStudentNumber,
+      phone: userData.phone,
+      emergency_contact_name: userData.emergency_contact_name,
+      emergency_contact_phone: userData.emergency_contact_phone,
+      location: userData.location || null,
+      preferred_contact_method: userData.preferred_contact_method || null,
       role: userData.role || 'student',
       pseudonym: userData.pseudonym,
       is_anonymous: true,
@@ -521,6 +559,104 @@ export async function deletePost(postId: string): Promise<void> {
     .eq('id', postId);
 
   if (error) throw error;
+}
+
+// ============================================
+// TOPIC STATS
+// ============================================
+
+export interface TopicStats {
+  category: PostCategory;
+  memberCount: number; // Total posts in this category
+  recentPostCount: number; // Posts in last 7 days
+  onlineCount: number; // Users active in this category (simplified: recent posts count)
+}
+
+export async function getTopicStats(): Promise<TopicStats[]> {
+  try {
+    // Get all posts grouped by category
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select('category, created_at')
+      .eq('status', 'active'); // Only count active posts
+
+    if (error) throw error;
+
+    // Calculate stats for each category
+    const statsMap = new Map<PostCategory, { total: number; recent: number }>();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Initialize all categories with 0 counts
+    const allCategories: PostCategory[] = [
+      'mental-health',
+      'crisis',
+      'substance-abuse',
+      'sexual-health',
+      'stis-hiv',
+      'family-home',
+      'academic',
+      'social',
+      'relationships',
+      'campus',
+      'general',
+    ];
+
+    allCategories.forEach((cat) => {
+      statsMap.set(cat, { total: 0, recent: 0 });
+    });
+
+    // Count posts per category
+    (posts || []).forEach((post: any) => {
+      const category = post.category as PostCategory;
+      const createdAt = new Date(post.created_at);
+      
+      if (statsMap.has(category)) {
+        const stats = statsMap.get(category)!;
+        stats.total += 1;
+        
+        // Count recent posts (last 7 days)
+        if (createdAt >= sevenDaysAgo) {
+          stats.recent += 1;
+        }
+      }
+    });
+
+    // Convert to array of TopicStats
+    const stats: TopicStats[] = allCategories.map((category) => {
+      const categoryStats = statsMap.get(category) || { total: 0, recent: 0 };
+      return {
+        category,
+        memberCount: categoryStats.total,
+        recentPostCount: categoryStats.recent,
+        onlineCount: categoryStats.recent, // Use recent posts as a proxy for "online" activity
+      };
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting topic stats:', error);
+    // Return empty stats for all categories on error
+    const allCategories: PostCategory[] = [
+      'mental-health',
+      'crisis',
+      'substance-abuse',
+      'sexual-health',
+      'stis-hiv',
+      'family-home',
+      'academic',
+      'social',
+      'relationships',
+      'campus',
+      'general',
+    ];
+    return allCategories.map((category) => ({
+      category,
+      memberCount: 0,
+      recentPostCount: 0,
+      onlineCount: 0,
+    }));
+  }
 }
 
 export async function upvotePost(postId: string): Promise<number> {
@@ -1260,6 +1396,8 @@ export async function createResource(resourceData: CreateResourceData): Promise<
 export async function getResources(filters?: {
   category?: PostCategory;
   resourceType?: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  approved?: boolean;
+  sourceType?: 'curated' | 'community';
 }): Promise<any[]> {
   let query = supabase
     .from('resources')
@@ -1272,6 +1410,14 @@ export async function getResources(filters?: {
 
   if (filters?.resourceType) {
     query = query.eq('resource_type', filters.resourceType);
+  }
+
+  if (filters?.approved !== undefined) {
+    query = query.eq('approved', filters.approved);
+  }
+
+  if (filters?.sourceType) {
+    query = query.eq('source_type', filters.sourceType);
   }
 
   const { data, error } = await query;
@@ -1649,6 +1795,324 @@ function mapAttendanceFromDB(data: any): MeetingAttendance {
     attended: data.attended,
     attendedAt: data.attended_at ? new Date(data.attended_at) : undefined,
     notes: data.notes || undefined,
+  };
+}
+
+// ============================================
+// CHAT OPERATIONS
+// ============================================
+
+export interface CreateMessageData {
+  conversationId: string;
+  senderId: string;
+  content: string;
+  messageType?: MessageType;
+  attachmentUrl?: string;
+}
+
+export async function createMessage(messageData: CreateMessageData): Promise<Message> {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: messageData.conversationId,
+      sender_id: messageData.senderId,
+      content: messageData.content,
+      message_type: messageData.messageType || 'text',
+      attachment_url: messageData.attachmentUrl || null,
+      status: 'sent',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Get sender info
+  const sender = await getUser(messageData.senderId);
+  
+  return mapMessageFromDB(data, sender?.pseudonym || 'Anonymous', sender?.role);
+}
+
+export async function getMessages(conversationId: string): Promise<Message[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select(`
+      *,
+      users!messages_sender_id_fkey(pseudonym, role)
+    `)
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map((msg: any) => {
+    const senderPseudonym = msg.users?.pseudonym || 'Anonymous';
+    const senderRole = msg.users?.role;
+    return mapMessageFromDB(msg, senderPseudonym, senderRole);
+  });
+}
+
+export async function markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+  const { error } = await supabase.rpc('mark_messages_as_read', {
+    p_conversation_id: conversationId,
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+}
+
+export async function getOrCreateConversation(userId: string, supporterId?: string): Promise<Conversation> {
+  const { data, error } = await supabase.rpc('get_or_create_conversation', {
+    p_user_id: userId,
+    p_supporter_id: supporterId || null,
+  });
+
+  if (error) throw error;
+
+  return getConversation(data);
+}
+
+export async function getConversation(conversationId: string): Promise<Conversation> {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(`
+      *,
+      user:users!conversations_user_id_fkey(pseudonym, role),
+      supporter:users!conversations_supporter_id_fkey(pseudonym, role)
+    `)
+    .eq('id', conversationId)
+    .single();
+
+  if (error) throw error;
+
+  return mapConversationFromDB(data);
+}
+
+export async function getConversations(userId: string, filters?: {
+  isArchived?: boolean;
+  supporterId?: string;
+}): Promise<Conversation[]> {
+  let query = supabase
+    .from('conversations')
+    .select(`
+      *,
+      user:users!conversations_user_id_fkey(pseudonym, role),
+      supporter:users!conversations_supporter_id_fkey(pseudonym, role)
+    `)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  // Filter by user if they're a student
+  const currentUser = await getUser(userId);
+  if (currentUser?.role === 'student') {
+    query = query.eq('user_id', userId);
+  } else {
+    // Support staff can see conversations assigned to them or all if admin
+    if (filters?.supporterId) {
+      query = query.eq('supporter_id', filters.supporterId);
+    } else if (currentUser?.role !== 'admin' && 
+               currentUser?.role !== 'moderator' &&
+               currentUser?.role !== 'student-affairs') {
+      query = query.or(`supporter_id.eq.${userId},supporter_id.is.null`);
+    }
+  }
+
+  if (filters?.isArchived !== undefined) {
+    query = query.eq('is_archived', filters.isArchived);
+  } else {
+    query = query.eq('is_archived', false);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  // Fetch last message content separately for conversations that have last_message_id
+  // This avoids foreign key relationship issues
+  const conversations = await Promise.all(
+    (data || []).map(async (conv: any) => {
+      if (conv.last_message_id) {
+        try {
+          const { data: messageData, error: msgError } = await supabase
+            .from('messages')
+            .select('content')
+            .eq('id', conv.last_message_id)
+            .maybeSingle();
+          
+          if (!msgError && messageData) {
+            conv.last_message = { content: messageData.content };
+          }
+        } catch (error) {
+          // If message doesn't exist or other error, just continue without it
+          // This is expected if the message was deleted
+        }
+      }
+      return conv;
+    })
+  );
+
+  return conversations.map(mapConversationFromDB);
+}
+
+export async function assignSupporterToConversation(conversationId: string, supporterId: string): Promise<Conversation> {
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ supporter_id: supporterId })
+    .eq('id', conversationId)
+    .select(`
+      *,
+      user:users!conversations_user_id_fkey(pseudonym, role),
+      supporter:users!conversations_supporter_id_fkey(pseudonym, role)
+    `)
+    .single();
+
+  if (error) throw error;
+
+  return mapConversationFromDB(data);
+}
+
+export async function updateConversation(conversationId: string, updates: {
+  title?: string;
+  isArchived?: boolean;
+  isResolved?: boolean;
+  supporterId?: string;
+}): Promise<Conversation> {
+  const updateData: any = {};
+  
+  if (updates.title !== undefined) updateData.title = updates.title;
+  if (updates.isArchived !== undefined) updateData.is_archived = updates.isArchived;
+  if (updates.isResolved !== undefined) updateData.is_resolved = updates.isResolved;
+  if (updates.supporterId !== undefined) updateData.supporter_id = updates.supporterId || null;
+
+  const { data, error } = await supabase
+    .from('conversations')
+    .update(updateData)
+    .eq('id', conversationId)
+    .select(`
+      *,
+      user:users!conversations_user_id_fkey(pseudonym, role),
+      supporter:users!conversations_supporter_id_fkey(pseudonym, role)
+    `)
+    .single();
+
+  if (error) throw error;
+
+  return mapConversationFromDB(data);
+}
+
+export async function setTypingIndicator(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('typing_indicators')
+    .upsert({
+      conversation_id: conversationId,
+      user_id: userId,
+      is_typing: isTyping,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'conversation_id,user_id',
+    });
+
+  if (error) throw error;
+}
+
+export async function getTypingIndicator(conversationId: string, excludeUserId?: string): Promise<{ userId: string; isTyping: boolean } | null> {
+  let query = supabase
+    .from('typing_indicators')
+    .select('user_id, is_typing')
+    .eq('conversation_id', conversationId)
+    .eq('is_typing', true)
+    .gt('updated_at', new Date(Date.now() - 5000).toISOString()); // Only recent (last 5 seconds)
+
+  if (excludeUserId) {
+    query = query.neq('user_id', excludeUserId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  if (data && data.length > 0) {
+    return {
+      userId: data[0].user_id,
+      isTyping: data[0].is_typing,
+    };
+  }
+
+  return null;
+}
+
+export async function updateOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('user_online_status')
+    .upsert({
+      user_id: userId,
+      is_online: isOnline,
+      last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id',
+    });
+
+  if (error) throw error;
+}
+
+export async function getOnlineStatus(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('user_online_status')
+    .select('is_online, last_seen')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return false;
+    throw error;
+  }
+
+  // Consider user online if marked as online and seen in last 30 seconds
+  if (data.is_online) {
+    const lastSeen = new Date(data.last_seen);
+    const now = new Date();
+    const diffSeconds = (now.getTime() - lastSeen.getTime()) / 1000;
+    return diffSeconds < 30;
+  }
+
+  return false;
+}
+
+function mapMessageFromDB(data: any, senderPseudonym?: string, senderRole?: User['role']): Message {
+  return {
+    id: data.id,
+    conversationId: data.conversation_id,
+    senderId: data.sender_id,
+    senderPseudonym: senderPseudonym || 'Anonymous',
+    senderRole: senderRole,
+    content: data.content,
+    messageType: data.message_type || 'text',
+    status: data.status || 'sent',
+    attachmentUrl: data.attachment_url || undefined,
+    readAt: data.read_at ? new Date(data.read_at) : undefined,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+function mapConversationFromDB(data: any): Conversation {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    userPseudonym: data.user?.pseudonym || 'Anonymous',
+    supporterId: data.supporter_id || undefined,
+    supporterPseudonym: data.supporter?.pseudonym || undefined,
+    supporterRole: data.supporter?.role,
+    title: data.title || undefined,
+    lastMessageId: data.last_message_id || undefined,
+    lastMessage: data.last_message?.content || undefined,
+    lastMessageAt: data.last_message_at ? new Date(data.last_message_at) : undefined,
+    unreadCountUser: data.unread_count_user || 0,
+    unreadCountSupporter: data.unread_count_supporter || 0,
+    isArchived: data.is_archived || false,
+    isResolved: data.is_resolved || false,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
   };
 }
 

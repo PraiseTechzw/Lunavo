@@ -81,7 +81,13 @@ export default function FeedbackScreen() {
           onMenuPress={() => setDrawerVisible(false)}
           rightAction={{
             icon: 'close',
-            onPress: () => router.back(),
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)' as any);
+              }
+            },
           }}
         />
 
@@ -323,3 +329,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+

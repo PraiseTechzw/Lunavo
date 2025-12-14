@@ -2,41 +2,59 @@
  * Content Moderation Screen - Review and moderate posts
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Post } from '@/app/types';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getPosts, updatePost } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
+    Alert,
+    Dimensions,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getPosts, updatePost, deletePost } from '@/lib/database';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { Post } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
-import { FlatList } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MODERATION_HISTORY_KEY = 'moderation_history';
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default function ModerationScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  
+  // Role guard - only admins can access
+  const { user, loading } = useRoleGuard(['admin'], '/(tabs)');
+  
   const [refreshing, setRefreshing] = useState(false);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState<'all' | 'flagged' | 'reported' | 'escalated' | 'queue'>('queue');
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [moderationHistory, setModerationHistory] = useState<any[]>([]);
+  
+  // Early return for loading
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
+    );
+  }
 
   useEffect(() => {
     loadPosts();
@@ -246,59 +264,66 @@ export default function ModerationScreen() {
     'history',
   ];
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Page Header - Web optimized */}
+      {isWeb && (
+        <View style={styles.pageHeader}>
+          <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
             Content Moderation
           </ThemedText>
-          <View style={{ width: 24 }} />
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+            Review and moderate community content
+          </ThemedText>
         </View>
+      )}
 
-        {/* Filters and Bulk Actions */}
-        <View style={[styles.filtersContainer, { backgroundColor: colors.background }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filtersScroll}
-            contentContainerStyle={styles.filtersContent}
-          >
-            {filters.map((filterOption) => (
-              <TouchableOpacity
-                key={filterOption}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: filter === filterOption ? colors.primary : colors.surface,
-                  },
-                ]}
-                onPress={() => {
-                  setFilter(filterOption);
-                  setBulkMode(false);
-                  setSelectedPosts(new Set());
+      {/* Filters and Bulk Actions */}
+      <WebCard style={styles.filtersCard}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersScroll}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {filters.map((filterOption) => (
+            <TouchableOpacity
+              key={filterOption}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: filter === filterOption ? colors.primary : colors.surface,
+                  borderColor: filter === filterOption ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => {
+                setFilter(filterOption);
+                setBulkMode(false);
+                setSelectedPosts(new Set());
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText
+                type="small"
+                style={{
+                  color: filter === filterOption ? '#FFFFFF' : colors.text,
+                  fontWeight: '600',
                 }}
-                activeOpacity={0.7}
               >
-                <ThemedText
-                  type="small"
-                  style={{
-                    color: filter === filterOption ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
-                  }}
-                >
-                  {filterOption === 'all' ? 'All' : filterOption === 'queue' ? 'Queue' : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          {filter !== 'history' && (
-            <View style={styles.bulkActionsContainer}>
+                {filterOption === 'all' ? 'All' : filterOption === 'queue' ? 'Queue' : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        {filter !== 'history' && (
+          <View style={styles.bulkActionsContainer}>
               <TouchableOpacity
                 style={[
                   styles.bulkModeButton,
@@ -351,82 +376,78 @@ export default function ModerationScreen() {
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
-              )}
-            </View>
-          )}
-        </View>
+            )}
+          </View>
+        )}
+      </WebCard>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {filter === 'history' ? (
-            moderationHistory.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-                <MaterialIcons name="history" size={64} color={colors.icon} />
-                <ThemedText type="h3" style={styles.emptyTitle}>
-                  No Moderation History
-                </ThemedText>
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  Your moderation actions will appear here
-                </ThemedText>
-              </View>
-            ) : (
-              moderationHistory.slice().reverse().map((action, index) => (
-                <View
-                  key={index}
-                  style={[styles.historyItem, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}
-                >
+      {/* Content */}
+      {filter === 'history' ? (
+        moderationHistory.length === 0 ? (
+          <WebCard style={styles.emptyCard}>
+            <MaterialIcons name="history" size={64} color={colors.icon} />
+            <ThemedText type="h3" style={[styles.emptyTitle, { color: colors.text }]}>
+              No Moderation History
+            </ThemedText>
+            <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+              Your moderation actions will appear here
+            </ThemedText>
+          </WebCard>
+        ) : (
+          <View style={styles.historyList}>
+            {moderationHistory.slice().reverse().map((action, index) => (
+              <WebCard
+                key={index}
+                hoverable
+                style={styles.historyItem}
+              >
                   <MaterialIcons
                     name={action.action === 'approved' ? 'check-circle' : 'delete'}
                     size={24}
                     color={action.action === 'approved' ? colors.success : colors.danger}
                   />
-                  <View style={styles.historyContent}>
-                    <ThemedText type="body" style={{ fontWeight: '600' }}>
-                      {action.action === 'approved' ? 'Approved' : 'Removed'}: {action.postTitle}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
-                      {formatDistanceToNow(new Date(action.timestamp), { addSuffix: true })}
-                    </ThemedText>
-                  </View>
+                <View style={styles.historyContent}>
+                  <ThemedText type="body" style={[styles.historyTitle, { color: colors.text }]}>
+                    {action.action === 'approved' ? 'Approved' : 'Removed'}: {action.postTitle}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                    {formatDistanceToNow(new Date(action.timestamp), { addSuffix: true })}
+                  </ThemedText>
                 </View>
-              ))
-            )
-          ) : allPosts.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-              <MaterialIcons name="check-circle" size={64} color={colors.success} />
-              <ThemedText type="h3" style={styles.emptyTitle}>
-                No Posts to Moderate
-              </ThemedText>
-              <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                All posts are compliant
-              </ThemedText>
-            </View>
-          ) : (
-            allPosts.map((post) => {
-              const isSelected = selectedPosts.has(post.id);
-              return (
-              <TouchableOpacity
+              </WebCard>
+            ))}
+          </View>
+        )
+      ) : allPosts.length === 0 ? (
+        <WebCard style={styles.emptyCard}>
+          <MaterialIcons name="check-circle" size={64} color={colors.success} />
+          <ThemedText type="h3" style={[styles.emptyTitle, { color: colors.text }]}>
+            No Posts to Moderate
+          </ThemedText>
+          <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+            All posts are compliant
+          </ThemedText>
+        </WebCard>
+      ) : (
+        <View style={styles.postsList}>
+          {allPosts.map((post) => {
+            const isSelected = selectedPosts.has(post.id);
+            return (
+              <WebCard
                 key={post.id}
+                hoverable
                 style={[
                   styles.postCard,
                   { 
-                    backgroundColor: colors.card,
                     borderWidth: isSelected ? 2 : 0,
                     borderColor: isSelected ? colors.primary : 'transparent',
                   },
-                  createShadow(3, '#000', 0.1),
                 ]}
-                onLongPress={() => {
-                  if (bulkMode) {
-                    togglePostSelection(post.id);
+                onPress={() => {
+                  if (!bulkMode) {
+                    router.push(`/post/${post.id}`);
                   }
                 }}
-                activeOpacity={0.7}
               >
                 {bulkMode && (
                   <TouchableOpacity
@@ -482,16 +503,16 @@ export default function ModerationScreen() {
                   onPress={() => router.push(`/post/${post.id}`)}
                   activeOpacity={0.7}
                 >
-                  <ThemedText type="h3" style={styles.postTitle}>
+                  <ThemedText type="h3" style={[styles.postTitle, { color: colors.text }]}>
                     {post.title}
                   </ThemedText>
-                  <ThemedText type="body" style={styles.postContent} numberOfLines={3}>
+                  <ThemedText type="body" style={[styles.postContent, { color: colors.text }]} numberOfLines={3}>
                     {post.content}
                   </ThemedText>
                 </TouchableOpacity>
 
                 <View style={styles.postFooter}>
-                  <View style={styles.categoryBadge}>
+                  <View style={[styles.categoryBadge, { backgroundColor: colors.surface }]}>
                     <ThemedText type="small" style={{ fontWeight: '600' }}>
                       {post.category}
                     </ThemedText>
@@ -519,13 +540,51 @@ export default function ModerationScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </WebCard>
             );
-            })
-          )}
+          })}
+        </View>
+      )}
 
-          <View style={{ height: Spacing.xl }} />
-        </ScrollView>
+      <View style={{ height: Spacing.xl }} />
+    </ScrollView>
+  );
+
+  // Web layout with container
+  if (isWeb) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1600} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile layout
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        {/* Mobile Header */}
+        <View style={[styles.header, { backgroundColor: colors.background }]}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/admin/dashboard' as any);
+              }
+            }} 
+            style={getCursorStyle()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="h2" style={styles.headerTitle}>
+            Content Moderation
+          </ThemedText>
+          <View style={{ width: 24 }} />
+        </View>
+        {content}
       </ThemedView>
     </SafeAreaView>
   );
@@ -537,6 +596,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
+    ...(isWeb ? {
+      height: '100%',
+      overflow: 'hidden',
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -549,10 +613,23 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: '700',
   },
+  pageHeader: {
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.lg,
+  },
+  pageTitle: {
+    fontWeight: '700',
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
+  },
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
+  filtersCard: {
+    marginBottom: Spacing.lg,
+  },
   filtersScroll: {
     maxHeight: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
   filtersContent: {
     paddingHorizontal: Spacing.md,
@@ -564,17 +641,57 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
+    borderWidth: 1,
+    ...getCursorStyle(),
+  },
+  bulkActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  bulkModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    ...getCursorStyle(),
+  },
+  bulkActionButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  bulkActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    ...getCursorStyle(),
   },
   scrollView: {
     flex: 1,
+    ...(isWeb ? {
+      height: '100%',
+      overflowY: 'auto' as any,
+    } : {}),
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
+    ...(isWeb ? {
+      minHeight: '100%',
+    } : {}),
   },
   emptyCard: {
-    padding: Spacing.xl * 2,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.xxl * 2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     marginTop: Spacing.md,
@@ -584,10 +701,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     textAlign: 'center',
   },
+  postsList: {
+    gap: Spacing.md,
+  },
   postCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    position: 'relative',
   },
   postHeader: {
     flexDirection: 'row',
@@ -644,54 +764,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
-  },
-  filtersContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  bulkActionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  bulkModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.md,
-  },
-  bulkActionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  bulkActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.md,
+    ...getCursorStyle(),
   },
   checkbox: {
     position: 'absolute',
     top: Spacing.sm,
     right: Spacing.sm,
     zIndex: 1,
+    ...getCursorStyle(),
+  },
+  historyList: {
+    gap: Spacing.md,
   },
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
   historyContent: {
     flex: 1,
-    marginLeft: Spacing.md,
+  },
+  historyTitle: {
+    fontWeight: '600',
   },
 });
 

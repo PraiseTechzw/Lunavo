@@ -23,17 +23,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -440,8 +440,7 @@ export default function CreatePostScreen() {
             {
               text: 'OK',
               onPress: () => {
-                router.back();
-                router.push('/(tabs)/forum');
+                router.replace('/(tabs)/forum' as any);
               },
             },
           ]
@@ -451,8 +450,7 @@ export default function CreatePostScreen() {
           {
             text: 'OK',
             onPress: () => {
-              router.back();
-              router.push(`/topic/${selectedCategory}` as any);
+              router.replace(`/topic/${selectedCategory}` as any);
             },
           },
         ]);

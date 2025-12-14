@@ -77,6 +77,12 @@ export default function AdminLayout() {
             headerShown: false,
           }} 
         />
+        <Stack.Screen 
+          name="users" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
       </Stack>
     );
   }
@@ -96,13 +102,17 @@ export default function AdminLayout() {
       <View style={[
         styles.content, 
         styles.webContent,
-        { marginTop: 70 } // Account for header
+        { 
+          marginTop: 70, // Account for header
+          height: 'calc(100vh - 70px)', // Fixed height for scrolling
+        }
       ]}>
         <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: {
               backgroundColor: colors.background,
+              height: '100%', // Ensure full height
             },
             // Web-specific optimizations
             animation: 'none', // Faster transitions on web
@@ -138,6 +148,12 @@ export default function AdminLayout() {
           headerShown: false,
         }} 
       />
+      <Stack.Screen 
+        name="users" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
         </Stack>
       </View>
     </View>
@@ -148,9 +164,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    ...(Platform.OS === 'web' ? {
+      height: '100vh',
+      overflow: 'hidden',
+    } : {}),
   },
   content: {
     flex: 1,
+    ...(Platform.OS === 'web' ? {
+      overflow: 'hidden',
+    } : {}),
   },
   webContent: {
     marginLeft: 280, // Sidebar width

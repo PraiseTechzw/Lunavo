@@ -87,21 +87,35 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const { user, error } = await signIn({ 
+      const { user, error, needsVerification, email } = await signIn({ 
         emailOrUsername: emailOrUsername.trim(), 
         password 
       });
 
+      // Check if email verification is needed
+      if (needsVerification && email) {
+        setLoading(false);
+        // Redirect to verification page with email
+        router.push({
+          pathname: '/auth/verify-email',
+          params: { email },
+        });
+        return;
+      }
+
       if (error) {
         Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');
+        setLoading(false);
         return;
       }
 
       if (user) {
+        // User is verified and authenticated - proceed to main app
         router.replace('/(tabs)');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An error occurred. Please try again.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }

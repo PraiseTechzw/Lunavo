@@ -2,33 +2,32 @@
  * Meeting Detail Screen - View meeting info, agenda, attendees, RSVP
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Meeting, MeetingAttendance } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
+    createOrUpdateAttendance,
+    getMeeting,
+    getMeetingAttendance,
+    getUser
+} from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { format, isPast } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import {
-  getMeeting,
-  getMeetingAttendance,
-  createOrUpdateAttendance,
-  getCurrentUser,
-  getUser,
-} from '@/lib/database';
-import { Meeting, MeetingAttendance } from '@/app/types';
-import { format, isPast } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 function AttendeesList({ attendance, colors }: { attendance: MeetingAttendance[]; colors: any }) {
   const [pseudonyms, setPseudonyms] = useState<Record<string, string>>({});
@@ -101,7 +100,16 @@ export default function MeetingDetailScreen() {
 
       if (!meetingData) {
         Alert.alert('Not Found', 'Meeting not found.', [
-          { text: 'OK', onPress: () => router.back() },
+          { 
+            text: 'OK', 
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)' as any);
+              }
+            }
+          },
         ]);
         return;
       }

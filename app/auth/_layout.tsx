@@ -2,9 +2,9 @@
  * Auth Flow Layout
  */
 
-import { Stack } from 'expo-router';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Stack } from 'expo-router';
 
 export default function AuthLayout() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -21,6 +21,7 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="verify-email" options={{ headerShown: false }} />
       <Stack.Screen name="verify-student" options={{ headerShown: false }} />
       <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />

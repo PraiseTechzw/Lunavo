@@ -2,26 +2,25 @@
  * Daily Check-In Screen
  */
 
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { saveCheckIn } from '@/app/utils/storage';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Slider,
-  Alert,
+    Alert,
+    ScrollView,
+    Slider,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import { saveCheckIn } from '@/app/utils/storage';
 
 const moods = [
   { id: 'awesome', iconName: 'sentiment-very-satisfied', iconFamily: 'MaterialIcons', label: 'Awesome', color: '#4CAF50' },
@@ -71,7 +70,13 @@ export default function CheckInScreen() {
       Alert.alert('Check-In Saved', 'Thank you for checking in. Your thoughts are private.', [
         {
           text: 'OK',
-          onPress: () => router.back(),
+          onPress: () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)' as any);
+            }
+          },
         },
       ]);
     } catch (error) {

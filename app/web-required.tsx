@@ -67,7 +67,7 @@ export default function WebRequiredScreen() {
           </View>
           
           <View style={styles.contactContainer}>
-            <ThemedText type="small" style={[styles.footer, { color: colors.icon }]}>
+          <ThemedText type="small" style={[styles.footer, { color: colors.icon }]}>
               For assistance, please contact:
             </ThemedText>
             <ThemedText type="body" style={[styles.contactInfo, { color: colors.primary }]}>
@@ -75,7 +75,7 @@ export default function WebRequiredScreen() {
             </ThemedText>
             <ThemedText type="body" style={[styles.contactInfo, { color: colors.primary }]}>
               +263 786 223 289
-            </ThemedText>
+          </ThemedText>
           </View>
         </View>
       </ThemedView>

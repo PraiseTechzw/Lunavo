@@ -2,31 +2,31 @@
  * Post detail screen - view a post and its replies
  */
 
-import { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
 import { CategoryBadge } from '@/app/components/category-badge';
-import { Post, Reply } from '@/app/types';
-import { getPosts, getReplies, addReply, updatePost } from '@/app/utils/storage';
-import { generatePseudonym, getPseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { formatDistanceToNow } from 'date-fns';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getContainerStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { Post, Reply } from '@/app/types';
+import { generatePseudonym, getPseudonym, sanitizeContent } from '@/app/utils/anonymization';
+import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { addReply, getPosts, getReplies, updatePost } from '@/app/utils/storage';
+import { RealtimeChannel, subscribeToPostUpdates, subscribeToReplies, subscribeToReplyChanges, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
-import { subscribeToReplies, subscribeToReplyChanges, subscribeToPostUpdates, unsubscribe, RealtimeChannel } from '@/lib/realtime';
+import { formatDistanceToNow } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,7 +67,16 @@ export default function PostDetailScreen() {
         setReplies(postReplies);
       } else {
         Alert.alert('Not Found', 'This post could not be found.', [
-          { text: 'OK', onPress: () => router.back() },
+          { 
+            text: 'OK', 
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/forum' as any);
+              }
+            }
+          },
         ]);
       }
     } catch (error) {

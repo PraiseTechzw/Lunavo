@@ -246,3 +246,4 @@ Potential improvements:
 **Status**: ✅ Ready for use
 
 **Component**: `app/components/web/data-table.tsx`
+

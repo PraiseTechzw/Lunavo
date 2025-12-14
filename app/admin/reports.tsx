@@ -2,34 +2,54 @@
  * Reports Management Screen - Review and handle reports
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Report } from '@/app/types';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getReports, updateReport } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
+    Alert,
+    Dimensions,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getReports, updateReport } from '@/app/utils/storage';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { Report } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default function ReportsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  
+  // Role guard - only admins can access
+  const { user, loading } = useRoleGuard(['admin'], '/(tabs)');
+  
   const [refreshing, setRefreshing] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'reviewed' | 'resolved' | 'dismissed'>('all');
+  
+  // Early return for loading
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
+    );
+  }
 
   useEffect(() => {
     loadReports();
@@ -77,21 +97,28 @@ export default function ReportsScreen() {
     'dismissed',
   ];
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Reports
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Page Header - Web optimized */}
+      {isWeb && (
+        <View style={styles.pageHeader}>
+          <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
+            Reports Management
           </ThemedText>
-          <View style={{ width: 24 }} />
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+            Review and manage user reports
+          </ThemedText>
         </View>
+      )}
 
-        {/* Filters */}
+      {/* Filters */}
+      <WebCard style={styles.filtersCard}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -105,6 +132,7 @@ export default function ReportsScreen() {
                 styles.filterChip,
                 {
                   backgroundColor: filter === filterOption ? colors.primary : colors.surface,
+                  borderColor: filter === filterOption ? colors.primary : colors.border,
                 },
               ]}
               onPress={() => setFilter(filterOption)}
@@ -122,122 +150,153 @@ export default function ReportsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+      </WebCard>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {reports.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-              <MaterialIcons name="check-circle" size={64} color={colors.success} />
-              <ThemedText type="h3" style={styles.emptyTitle}>
-                No Reports
-              </ThemedText>
-              <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                All reports have been handled
-              </ThemedText>
-            </View>
-          ) : (
-            reports.map((report) => (
-              <View
-                key={report.id}
-                style={[
-                  styles.reportCard,
-                  { backgroundColor: colors.card },
-                  createShadow(3, '#000', 0.1),
-                ]}
-              >
-                <View style={styles.reportHeader}>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(report.status) + '20' }
-                  ]}>
-                    <ThemedText
-                      type="small"
-                      style={{ color: getStatusColor(report.status), fontWeight: '700' }}
-                    >
-                      {report.status.toUpperCase()}
-                    </ThemedText>
-                  </View>
-                  <View style={[
-                    styles.typeBadge,
-                    { backgroundColor: colors.primary + '20' }
-                  ]}>
-                    <MaterialIcons name="description" size={14} color={colors.primary} />
-                    <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600', marginLeft: 4 }}>
-                      {report.targetType.toUpperCase()}
-                    </ThemedText>
-                  </View>
-                </View>
-
-                <View style={styles.reportBody}>
-                  <ThemedText type="body" style={styles.reasonLabel}>
-                    Reason:
-                  </ThemedText>
-                  <ThemedText type="body" style={styles.reasonText}>
-                    {report.reason}
-                  </ThemedText>
-
-                  {report.description && (
-                    <>
-                      <ThemedText type="body" style={[styles.descriptionLabel, { color: colors.icon }]}>
-                        Description:
-                      </ThemedText>
-                      <ThemedText type="body" style={styles.descriptionText}>
-                        {report.description}
-                      </ThemedText>
-                    </>
-                  )}
-
-                  <TouchableOpacity
-                    style={styles.viewTargetButton}
-                    onPress={() => {
-                      if (report.targetType === 'post') {
-                        router.push(`/post/${report.targetId}`);
-                      }
-                    }}
-                    activeOpacity={0.7}
+      {/* Reports List */}
+      {reports.length === 0 ? (
+        <WebCard style={styles.emptyCard}>
+          <MaterialIcons name="check-circle" size={64} color={colors.success} />
+          <ThemedText type="h3" style={[styles.emptyTitle, { color: colors.text }]}>
+            No Reports
+          </ThemedText>
+          <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+            All reports have been handled
+          </ThemedText>
+        </WebCard>
+      ) : (
+        <View style={styles.reportsList}>
+          {reports.map((report) => (
+            <WebCard
+              key={report.id}
+              hoverable
+              style={styles.reportCard}
+            >
+              <View style={styles.reportHeader}>
+                <View style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(report.status) + '20' }
+                ]}>
+                  <ThemedText
+                    type="small"
+                    style={{ color: getStatusColor(report.status), fontWeight: '700' }}
                   >
-                    <MaterialIcons name="visibility" size={16} color={colors.primary} />
-                    <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600', marginLeft: 4 }}>
-                      View {report.targetType}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.reportFooter}>
-                  <ThemedText type="small" style={{ color: colors.icon }}>
-                    {formatDistanceToNow(report.createdAt, { addSuffix: true })}
+                    {report.status.toUpperCase()}
                   </ThemedText>
-
-                  {report.status === 'pending' && (
-                    <View style={styles.actions}>
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: colors.success + '20' }]}
-                        onPress={() => handleStatusUpdate(report.id, 'resolved')}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons name="check" size={16} color={colors.success} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: colors.icon + '20' }]}
-                        onPress={() => handleStatusUpdate(report.id, 'dismissed')}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons name="close" size={16} color={colors.icon} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                </View>
+                <View style={[
+                  styles.typeBadge,
+                  { backgroundColor: colors.primary + '20' }
+                ]}>
+                  <MaterialIcons name="description" size={14} color={colors.primary} />
+                  <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600', marginLeft: 4 }}>
+                    {report.targetType.toUpperCase()}
+                  </ThemedText>
                 </View>
               </View>
-            ))
-          )}
 
-          <View style={{ height: Spacing.xl }} />
-        </ScrollView>
+              <View style={styles.reportBody}>
+                <ThemedText type="body" style={[styles.reasonLabel, { color: colors.text }]}>
+                  Reason:
+                </ThemedText>
+                <ThemedText type="body" style={[styles.reasonText, { color: colors.text }]}>
+                  {report.reason}
+                </ThemedText>
+
+                {report.description && (
+                  <>
+                    <ThemedText type="body" style={[styles.descriptionLabel, { color: colors.icon }]}>
+                      Description:
+                    </ThemedText>
+                    <ThemedText type="body" style={[styles.descriptionText, { color: colors.text }]}>
+                      {report.description}
+                    </ThemedText>
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={styles.viewTargetButton}
+                  onPress={() => {
+                    if (report.targetType === 'post') {
+                      router.push(`/post/${report.targetId}`);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="visibility" size={16} color={colors.primary} />
+                  <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600', marginLeft: 4 }}>
+                    View {report.targetType}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.reportFooter}>
+                <ThemedText type="small" style={{ color: colors.icon }}>
+                  {formatDistanceToNow(report.createdAt, { addSuffix: true })}
+                </ThemedText>
+
+                {report.status === 'pending' && (
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: colors.success + '20' }]}
+                      onPress={() => handleStatusUpdate(report.id, 'resolved')}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="check" size={16} color={colors.success} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: colors.icon + '20' }]}
+                      onPress={() => handleStatusUpdate(report.id, 'dismissed')}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="close" size={16} color={colors.icon} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </WebCard>
+          ))}
+        </View>
+      )}
+
+      <View style={{ height: Spacing.xl }} />
+    </ScrollView>
+  );
+
+  // Web layout with container
+  if (isWeb) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1600} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile layout
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        {/* Mobile Header */}
+        <View style={[styles.header, { backgroundColor: colors.background }]}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/admin/dashboard' as any);
+              }
+            }} 
+            style={getCursorStyle()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="h2" style={styles.headerTitle}>
+            Reports
+          </ThemedText>
+          <View style={{ width: 24 }} />
+        </View>
+        {content}
       </ThemedView>
     </SafeAreaView>
   );
@@ -249,6 +308,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
+    ...(isWeb ? {
+      height: '100%',
+      overflow: 'hidden',
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -261,10 +325,23 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: '700',
   },
+  pageHeader: {
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.lg,
+  },
+  pageTitle: {
+    fontWeight: '700',
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
+  },
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
+  filtersCard: {
+    marginBottom: Spacing.lg,
+  },
   filtersScroll: {
     maxHeight: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
   filtersContent: {
     paddingHorizontal: Spacing.md,
@@ -276,17 +353,27 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
+    borderWidth: 1,
+    ...getCursorStyle(),
   },
   scrollView: {
     flex: 1,
+    ...(isWeb ? {
+      height: '100%',
+      overflowY: 'auto' as any,
+    } : {}),
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
+    ...(isWeb ? {
+      minHeight: '100%',
+    } : {}),
   },
   emptyCard: {
-    padding: Spacing.xl * 2,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.xxl * 2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     marginTop: Spacing.md,
@@ -296,10 +383,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     textAlign: 'center',
   },
+  reportsList: {
+    gap: Spacing.md,
+  },
   reportCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -361,6 +450,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    ...getCursorStyle(),
   },
 });
 

@@ -385,7 +385,11 @@ export default function RegisterScreen() {
     if (currentStep > 1) {
       setCurrentStep((currentStep - 1) as Step);
     } else {
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/auth/login' as any);
+      }
     }
   };
 

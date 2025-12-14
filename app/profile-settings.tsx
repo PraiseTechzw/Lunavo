@@ -2,36 +2,43 @@
  * Profile Settings Screen
  */
 
-import { WebCard, WebContainer } from '@/app/components/web';
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  Platform,
-  Dimensions,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { getPseudonym } from '@/app/utils/storage';
+import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getCursorStyle, createShadow } from '@/app/utils/platform-styles';
-import { getCurrentUser } from '@/lib/database';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getPseudonym } from '@/app/utils/storage';
 import { signOut } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/database';
+import { UserRole } from '@/lib/permissions';
+import { supabase } from '@/lib/supabase';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [userName, setUserName] = useState('Alex');
+  const [userName, setUserName] = useState('User');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
+  const isStudentAffairs = userRole === 'student-affairs' || userRole === 'admin';
 
   useEffect(() => {
     loadUserInfo();
@@ -41,13 +48,23 @@ export default function ProfileSettingsScreen() {
     try {
       const user = await getCurrentUser();
       if (user) {
-        setUserRole(user.role);
-        setUserEmail(user.email || '');
+        setUserRole(user.role as UserRole);
+        setIsAnonymous(user.isAnonymous);
+        
+        // Get email from auth user
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser?.email) {
+          setUserEmail(authUser.email);
+        }
+        
+        // Set display name
         const pseudonym = await getPseudonym();
         if (pseudonym) {
-          setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
-        } else if (user.full_name) {
-          setUserName(user.full_name);
+          setUserName(pseudonym.split(/(?=[A-Z])/)[0] || user.pseudonym || 'User');
+        } else if (user.username) {
+          setUserName(user.username);
+        } else if (user.pseudonym) {
+          setUserName(user.pseudonym);
         }
       }
     } catch (error) {
@@ -55,15 +72,20 @@ export default function ProfileSettingsScreen() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: () => {
-          // Handle logout
-          router.replace('/onboarding');
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace('/auth/login');
+          } catch (error) {
+            console.error('Error signing out:', error);
+            router.replace('/auth/login');
+          }
         },
       },
     ]);
@@ -222,33 +244,52 @@ export default function ProfileSettingsScreen() {
         </View>
       </WebCard>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsSection}>
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              { backgroundColor: colors.primary },
-              createShadow(3, colors.primary, 0.3),
-            ]}
-            onPress={() => Alert.alert('Saved', 'Your changes have been saved.')}
-            activeOpacity={0.8}
-          >
-            <ThemedText type="body" style={[styles.saveButtonText, { color: '#FFFFFF' }]}>
-              Save Changes
-            </ThemedText>
-          </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.actionsSection}>
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            { backgroundColor: colors.primary },
+            createShadow(3, colors.primary, 0.3),
+          ]}
+          onPress={() => Alert.alert('Saved', 'Your changes have been saved.')}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="save" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={[styles.saveButtonText, { color: '#FFFFFF', marginLeft: Spacing.sm }]}>
+            Save Changes
+          </ThemedText>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <ThemedText type="body" style={[styles.logoutText, { color: colors.danger }]}>
-              Log Out
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        <TouchableOpacity
+          style={[styles.logoutButton, { borderColor: colors.border }]}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="logout" size={20} color={colors.danger} />
+          <ThemedText type="body" style={[styles.logoutText, { color: colors.danger, marginLeft: Spacing.sm }]}>
+            Log Out
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
+  // Web layout with container for Student Affairs
+  if (isWeb && isStudentAffairs) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1200} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile/Regular layout
+  return (
+    <ThemedView style={styles.container}>
+      {content}
     </ThemedView>
   );
 }
@@ -354,6 +395,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     gap: Spacing.md,
     ...(isWeb ? {
+      // @ts-ignore - Web-specific CSS grid
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
     } : {}),

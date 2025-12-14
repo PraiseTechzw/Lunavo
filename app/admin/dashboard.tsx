@@ -4,10 +4,11 @@
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Analytics, Post, Report } from '@/app/types';
-import { createShadow, getContainerStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getAnalytics, getEscalations, getPosts, getReports, getUsers } from '@/lib/database';
 import { subscribeToEscalations, subscribeToPosts } from '@/lib/realtime';
@@ -22,7 +23,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -169,7 +170,7 @@ export default function AdminDashboardScreen() {
           type: 'escalation',
           id: escalation.id,
           title: `Escalation: ${escalation.escalationLevel || 'unknown'}`,
-          date: escalation.createdAt || new Date(),
+          date: escalation.detectedAt || new Date(),
         });
       });
       activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -227,12 +228,361 @@ export default function AdminDashboardScreen() {
     }
   };
 
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Page Header - Web optimized */}
+      {isWeb && (
+        <View style={styles.pageHeader}>
+          <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
+            Admin Dashboard
+          </ThemedText>
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+            System overview and management
+          </ThemedText>
+        </View>
+      )}
+
+      {/* System Health */}
+      <WebCard style={styles.healthCard}>
+        <View style={styles.healthHeader}>
+          <MaterialIcons 
+            name={systemHealth.status === 'healthy' ? 'check-circle' : systemHealth.status === 'warning' ? 'warning' : 'error'} 
+            size={24} 
+            color={
+              systemHealth.status === 'healthy' ? colors.success : 
+              systemHealth.status === 'warning' ? colors.warning : 
+              colors.danger
+            } 
+          />
+          <ThemedText type="h3" style={styles.healthTitle}>
+            System Health: {systemHealth.status.toUpperCase()}
+          </ThemedText>
+        </View>
+        <View style={styles.healthStats}>
+          <View style={styles.healthStat}>
+            <ThemedText type="small" style={{ color: colors.icon }}>Response Time</ThemedText>
+            <ThemedText type="body" style={{ fontWeight: '600' }}>
+              {systemHealth.responseTime}ms
+            </ThemedText>
+          </View>
+          <View style={styles.healthStat}>
+            <ThemedText type="small" style={{ color: colors.icon }}>Active Connections</ThemedText>
+            <ThemedText type="body" style={{ fontWeight: '600' }}>
+              {systemHealth.activeConnections}
+            </ThemedText>
+          </View>
+        </View>
+      </WebCard>
+
+      {/* Quick Stats */}
+      <View style={styles.statsGrid}>
+        <WebCard style={styles.statCard}>
+          <View style={styles.statCardContent}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <MaterialIcons name="forum" size={28} color={colors.primary} />
+            </View>
+            <View style={styles.statInfo}>
+              <ThemedText type="h1" style={[styles.statValue, { color: colors.text }]}>
+                {stats.totalPosts}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Total Posts
+              </ThemedText>
+            </View>
+          </View>
+        </WebCard>
+
+        <WebCard style={styles.statCard}>
+          <View style={styles.statCardContent}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.danger + '15' }]}>
+              <MaterialIcons name="warning" size={28} color={colors.danger} />
+            </View>
+            <View style={styles.statInfo}>
+              <ThemedText type="h1" style={[styles.statValue, { color: colors.text }]}>
+                {stats.totalEscalations}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Escalations
+              </ThemedText>
+            </View>
+          </View>
+        </WebCard>
+
+        <WebCard style={styles.statCard}>
+          <View style={styles.statCardContent}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.warning + '15' }]}>
+              <MaterialIcons name="report" size={28} color={colors.warning} />
+            </View>
+            <View style={styles.statInfo}>
+              <ThemedText type="h1" style={[styles.statValue, { color: colors.text }]}>
+                {stats.pendingReports}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Pending Reports
+              </ThemedText>
+            </View>
+          </View>
+        </WebCard>
+
+        <WebCard style={styles.statCard}>
+          <View style={styles.statCardContent}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.success + '15' }]}>
+              <MaterialIcons name="people" size={28} color={colors.success} />
+            </View>
+            <View style={styles.statInfo}>
+              <ThemedText type="h1" style={[styles.statValue, { color: colors.text }]}>
+                {stats.activeUsers}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Active Users (30d)
+              </ThemedText>
+            </View>
+          </View>
+        </WebCard>
+      </View>
+
+      {/* Recent Activity */}
+      {recentActivity.length > 0 && (
+        <WebCard style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Recent Activity
+          </ThemedText>
+          <View style={styles.activityList}>
+            {recentActivity.slice(0, 5).map((activity) => (
+              <WebCard
+                key={`${activity.type}-${activity.id}`}
+                hoverable
+                style={styles.activityItem}
+              >
+                <View style={[styles.activityIconContainer, { backgroundColor: (activity.type === 'post' ? colors.primary : colors.danger) + '15' }]}>
+                  <MaterialIcons
+                    name={activity.type === 'post' ? 'forum' : 'priority-high'}
+                    size={20}
+                    color={activity.type === 'post' ? colors.primary : colors.danger}
+                  />
+                </View>
+                <View style={styles.activityContent}>
+                  <ThemedText type="body" style={[styles.activityTitle, { color: colors.text }]}>
+                    {activity.title}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                    {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
+                  </ThemedText>
+                </View>
+              </WebCard>
+            ))}
+          </View>
+        </WebCard>
+      )}
+
+      {/* Escalated Posts */}
+      <WebCard style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Escalated Posts
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => router.push('/admin/escalations')}
+            style={getCursorStyle()}
+          >
+            <ThemedText type="body" style={[styles.viewAll, { color: colors.primary }]}>
+              View All →
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {escalatedPosts.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <MaterialIcons name="check-circle" size={48} color={colors.success} />
+            <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+              No escalated posts
+            </ThemedText>
+          </View>
+        ) : (
+          <View style={styles.postsList}>
+            {escalatedPosts.map((post) => (
+              <WebCard
+                key={post.id}
+                hoverable
+                onPress={() => router.push(`/post/${post.id}`)}
+                style={styles.postCard}
+              >
+                <View style={styles.postHeader}>
+                  <View style={[
+                    styles.escalationBadge,
+                    { backgroundColor: getEscalationColor(post.escalationLevel) + '20' }
+                  ]}>
+                    <ThemedText type="small" style={{ color: getEscalationColor(post.escalationLevel), fontWeight: '700' }}>
+                      {post.escalationLevel.toUpperCase()}
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="small" style={{ color: colors.icon }}>
+                    {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+                  </ThemedText>
+                </View>
+                <ThemedText type="body" style={[styles.postTitle, { color: colors.text }]} numberOfLines={2}>
+                  {post.title}
+                </ThemedText>
+                {post.escalationReason && (
+                  <ThemedText type="small" style={[styles.postReason, { color: colors.icon }]}>
+                    {post.escalationReason}
+                  </ThemedText>
+                )}
+              </WebCard>
+            ))}
+          </View>
+        )}
+      </WebCard>
+
+      {/* Pending Reports */}
+      <WebCard style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Pending Reports
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => router.push('/admin/reports')}
+            style={getCursorStyle()}
+          >
+            <ThemedText type="body" style={[styles.viewAll, { color: colors.primary }]}>
+              View All →
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {pendingReports.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <MaterialIcons name="check-circle" size={48} color={colors.success} />
+            <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+              No pending reports
+            </ThemedText>
+          </View>
+        ) : (
+          <View style={styles.reportsList}>
+            {pendingReports.map((report) => (
+              <WebCard
+                key={report.id}
+                hoverable
+                onPress={() => router.push(`/admin/reports`)}
+                style={styles.reportCard}
+              >
+                <View style={styles.reportHeader}>
+                  <View style={[styles.reportIconContainer, { backgroundColor: colors.warning + '15' }]}>
+                    <MaterialIcons name="report-problem" size={20} color={colors.warning} />
+                  </View>
+                  <ThemedText type="body" style={[styles.reportType, { color: colors.text }]}>
+                    {report.targetType.toUpperCase()}
+                  </ThemedText>
+                </View>
+                <ThemedText type="body" style={[styles.reportReason, { color: colors.text }]}>
+                  {report.reason}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                  {formatDistanceToNow(report.createdAt, { addSuffix: true })}
+                </ThemedText>
+              </WebCard>
+            ))}
+          </View>
+        )}
+      </WebCard>
+
+      {/* Quick Actions */}
+      <WebCard style={styles.section}>
+        <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+          Quick Actions
+        </ThemedText>
+        <View style={styles.actionsGrid}>
+          <WebCard
+            hoverable
+            onPress={() => router.push('/admin/analytics')}
+            style={styles.actionButton}
+          >
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <MaterialIcons name="analytics" size={28} color={colors.primary} />
+            </View>
+            <ThemedText type="body" style={[styles.actionLabel, { color: colors.text }]}>
+              Analytics
+            </ThemedText>
+          </WebCard>
+
+          <WebCard
+            hoverable
+            onPress={() => router.push('/admin/moderation')}
+            style={styles.actionButton}
+          >
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.warning + '15' }]}>
+              <MaterialIcons name="security" size={28} color={colors.warning} />
+            </View>
+            <ThemedText type="body" style={[styles.actionLabel, { color: colors.text }]}>
+              Moderation
+            </ThemedText>
+          </WebCard>
+
+          <WebCard
+            hoverable
+            onPress={() => router.push('/admin/escalations')}
+            style={styles.actionButton}
+          >
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.danger + '15' }]}>
+              <MaterialIcons name="priority-high" size={28} color={colors.danger} />
+            </View>
+            <ThemedText type="body" style={[styles.actionLabel, { color: colors.text }]}>
+              Escalations
+            </ThemedText>
+          </WebCard>
+
+          <WebCard
+            hoverable
+            onPress={() => router.push('/admin/users')}
+            style={styles.actionButton}
+          >
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.success + '15' }]}>
+              <MaterialIcons name="people" size={28} color={colors.success} />
+            </View>
+            <ThemedText type="body" style={[styles.actionLabel, { color: colors.text }]}>
+              Users
+            </ThemedText>
+          </WebCard>
+        </View>
+      </WebCard>
+
+      <View style={{ height: Spacing.xl }} />
+    </ScrollView>
+  );
+
+  // Web layout with container
+  if (isWeb) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1600} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile layout
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={[styles.container, isWeb && getContainerStyle()]}>
-        {/* Header */}
+      <ThemedView style={styles.container}>
+        {/* Mobile Header */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)' as any);
+              }
+            }} 
+            style={getCursorStyle()}
+          >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText type="h2" style={styles.headerTitle}>
@@ -240,283 +590,7 @@ export default function AdminDashboardScreen() {
           </ThemedText>
           <View style={{ width: 24 }} />
         </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {/* System Health */}
-          <View style={[styles.healthCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <View style={styles.healthHeader}>
-              <MaterialIcons 
-                name={systemHealth.status === 'healthy' ? 'check-circle' : systemHealth.status === 'warning' ? 'warning' : 'error'} 
-                size={24} 
-                color={
-                  systemHealth.status === 'healthy' ? colors.success : 
-                  systemHealth.status === 'warning' ? colors.warning : 
-                  colors.danger
-                } 
-              />
-              <ThemedText type="h3" style={styles.healthTitle}>
-                System Health: {systemHealth.status.toUpperCase()}
-              </ThemedText>
-            </View>
-            <View style={styles.healthStats}>
-              <View style={styles.healthStat}>
-                <ThemedText type="small" style={{ color: colors.icon }}>Response Time</ThemedText>
-                <ThemedText type="body" style={{ fontWeight: '600' }}>
-                  {systemHealth.responseTime}ms
-                </ThemedText>
-              </View>
-              <View style={styles.healthStat}>
-                <ThemedText type="small" style={{ color: colors.icon }}>Active Connections</ThemedText>
-                <ThemedText type="body" style={{ fontWeight: '600' }}>
-                  {systemHealth.activeConnections}
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-
-          {/* Quick Stats */}
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="forum" size={32} color={colors.primary} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.totalPosts}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Total Posts
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="warning" size={32} color={colors.danger} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.totalEscalations}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Escalations
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="report" size={32} color={colors.warning} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.pendingReports}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Pending Reports
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="people" size={32} color={colors.success} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.activeUsers}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Active Users (30d)
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Recent Activity */}
-          {recentActivity.length > 0 && (
-            <View style={styles.section}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Recent Activity
-              </ThemedText>
-              {recentActivity.slice(0, 5).map((activity) => (
-                <View
-                  key={`${activity.type}-${activity.id}`}
-                  style={[styles.activityItem, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}
-                >
-                  <MaterialIcons
-                    name={activity.type === 'post' ? 'forum' : 'priority-high'}
-                    size={20}
-                    color={activity.type === 'post' ? colors.primary : colors.danger}
-                  />
-                  <View style={styles.activityContent}>
-                    <ThemedText type="body" style={{ fontWeight: '500' }}>
-                      {activity.title}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
-                      {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Escalated Posts */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Escalated Posts
-              </ThemedText>
-              <TouchableOpacity
-                onPress={() => router.push('/admin/escalations')}
-                style={getCursorStyle()}
-              >
-                <ThemedText type="body" style={[styles.viewAll, { color: colors.primary }]}>
-                  View All
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            {escalatedPosts.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-                <MaterialIcons name="check-circle" size={48} color={colors.success} />
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  No escalated posts
-                </ThemedText>
-              </View>
-            ) : (
-              escalatedPosts.map((post) => (
-                <TouchableOpacity
-                  key={post.id}
-                  style={[
-                    styles.postCard,
-                    { backgroundColor: colors.card },
-                    createShadow(2, '#000', 0.1),
-                  ]}
-                  onPress={() => router.push(`/post/${post.id}`)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.postHeader}>
-                    <View style={[
-                      styles.escalationBadge,
-                      { backgroundColor: getEscalationColor(post.escalationLevel) + '20' }
-                    ]}>
-                      <ThemedText type="small" style={{ color: getEscalationColor(post.escalationLevel), fontWeight: '700' }}>
-                        {post.escalationLevel.toUpperCase()}
-                      </ThemedText>
-                    </View>
-                    <ThemedText type="small" style={{ color: colors.icon }}>
-                      {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-                    </ThemedText>
-                  </View>
-                  <ThemedText type="body" style={styles.postTitle} numberOfLines={2}>
-                    {post.title}
-                  </ThemedText>
-                  <ThemedText type="small" style={[styles.postReason, { color: colors.icon }]}>
-                    {post.escalationReason}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-
-          {/* Pending Reports */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Pending Reports
-              </ThemedText>
-              <TouchableOpacity
-                onPress={() => router.push('/admin/reports')}
-                style={getCursorStyle()}
-              >
-                <ThemedText type="body" style={[styles.viewAll, { color: colors.primary }]}>
-                  View All
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            {pendingReports.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-                <MaterialIcons name="check-circle" size={48} color={colors.success} />
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  No pending reports
-                </ThemedText>
-              </View>
-            ) : (
-              pendingReports.map((report) => (
-                <TouchableOpacity
-                  key={report.id}
-                  style={[
-                    styles.reportCard,
-                    { backgroundColor: colors.card },
-                    createShadow(2, '#000', 0.1),
-                  ]}
-                  onPress={() => router.push(`/admin/reports/${report.id}`)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.reportHeader}>
-                    <MaterialIcons name="report-problem" size={20} color={colors.warning} />
-                    <ThemedText type="body" style={styles.reportType}>
-                      {report.targetType.toUpperCase()}
-                    </ThemedText>
-                  </View>
-                  <ThemedText type="body" style={styles.reportReason}>
-                    {report.reason}
-                  </ThemedText>
-                  <ThemedText type="small" style={[styles.reportTime, { color: colors.icon }]}>
-                    {formatDistanceToNow(report.createdAt, { addSuffix: true })}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Quick Actions
-            </ThemedText>
-            <View style={styles.actionsGrid}>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}
-                onPress={() => router.push('/admin/analytics')}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="analytics" size={32} color={colors.primary} />
-                <ThemedText type="body" style={styles.actionLabel}>
-                  Analytics
-                </ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}
-                onPress={() => router.push('/admin/moderation')}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="security" size={32} color={colors.warning} />
-                <ThemedText type="body" style={styles.actionLabel}>
-                  Moderation
-                </ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}
-                onPress={() => router.push('/admin/escalations')}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="priority-high" size={32} color={colors.danger} />
-                <ThemedText type="body" style={styles.actionLabel}>
-                  Escalations
-                </ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}
-                onPress={() => router.push('/admin/users')}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="people" size={32} color={colors.success} />
-                <ThemedText type="body" style={styles.actionLabel}>
-                  Users
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={{ height: Spacing.xl }} />
-        </ScrollView>
+        {content}
       </ThemedView>
     </SafeAreaView>
   );
@@ -528,11 +602,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    ...(isWeb && {
-      maxWidth: 1400,
-      marginHorizontal: 'auto',
-      width: '100%',
-    }),
+    backgroundColor: 'transparent',
+    ...(isWeb ? {
+      height: '100%',
+      overflow: 'hidden',
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -545,120 +619,33 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: '700',
   },
+  pageHeader: {
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.lg,
+  },
+  pageTitle: {
+    fontWeight: '700',
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
+  },
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
   scrollView: {
     flex: 1,
+    ...(isWeb ? {
+      height: '100%',
+      overflowY: 'auto' as any,
+    } : {}),
   },
   scrollContent: {
-    padding: Spacing.md,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  statCard: {
-    width: '48%',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    marginVertical: Spacing.xs,
-  },
-  statLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontWeight: '700',
-  },
-  viewAll: {
-    fontWeight: '600',
-  },
-  emptyCard: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginTop: Spacing.md,
-  },
-  postCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  escalationBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-  postTitle: {
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  postReason: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  reportCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  reportHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  reportType: {
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  reportReason: {
-    marginBottom: Spacing.xs,
-  },
-  reportTime: {
-    fontSize: 12,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  actionButton: {
-    width: '48%',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  actionLabel: {
-    fontWeight: '600',
-    textAlign: 'center',
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
+    ...(isWeb ? {
+      minHeight: '100%',
+    } : {}),
   },
   healthCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
   },
   healthHeader: {
@@ -668,7 +655,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   healthTitle: {
-    fontWeight: '700',
+    fontWeight: '600',
   },
   healthStats: {
     flexDirection: 'row',
@@ -677,16 +664,172 @@ const styles = StyleSheet.create({
   healthStat: {
     flex: 1,
   },
+  statsGrid: {
+    ...(isWeb ? {
+      // @ts-ignore - Web-specific CSS grid
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gap: Spacing.lg,
+    } : {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.md,
+    }),
+    marginBottom: Spacing.xl,
+  },
+  statCard: {
+    ...(isWeb ? {} : {
+      width: '48%',
+    }),
+  },
+  statCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  statIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statInfo: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: isWeb ? 28 : 24,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    fontSize: isWeb ? 20 : 18,
+  },
+  viewAll: {
+    fontWeight: '600',
+  },
+  activityList: {
+    gap: Spacing.md,
+  },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  activityIconContainer: {
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activityContent: {
     flex: 1,
-    marginLeft: Spacing.md,
+  },
+  activityTitle: {
+    fontWeight: '500',
+  },
+  emptyCard: {
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: Spacing.md,
+  },
+  postsList: {
+    gap: Spacing.md,
+  },
+  postCard: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  escalationBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  postTitle: {
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  postReason: {
+    marginTop: Spacing.xs,
+  },
+  reportsList: {
+    gap: Spacing.md,
+  },
+  reportCard: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  reportIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportType: {
+    fontWeight: '600',
+  },
+  reportReason: {
+    fontWeight: '500',
+  },
+  actionsGrid: {
+    ...(isWeb ? {
+      // @ts-ignore - Web-specific CSS grid
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: Spacing.lg,
+    } : {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.md,
+    }),
+  },
+  actionButton: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    gap: Spacing.md,
+    ...(isWeb ? {} : {
+      width: '48%',
+    }),
+  },
+  actionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionLabel: {
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

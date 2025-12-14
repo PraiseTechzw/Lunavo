@@ -2,25 +2,25 @@
  * Enhanced Report Screen - Submit detailed reports
  */
 
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Report } from '@/app/types';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { addReport, getPseudonym } from '@/app/utils/storage';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { addReport, getPseudonym } from '@/app/utils/storage';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { Report } from '@/app/types';
 
 const reportReasons = [
   { id: 'inappropriate', label: 'Inappropriate Content', icon: 'block' as const },
@@ -32,7 +32,14 @@ const reportReasons = [
 
 export default function ReportScreen() {
   const router = useRouter();
-  const { targetType = 'post', targetId } = useLocalSearchParams<{ targetType: string; targetId: string }>();
+  const params = useLocalSearchParams<{ targetType: string | string[]; targetId: string | string[] }>();
+  // Handle array values from useLocalSearchParams (expo-router can return arrays)
+  const targetType = Array.isArray(params.targetType) 
+    ? (params.targetType[0] || 'post') 
+    : (typeof params.targetType === 'string' ? params.targetType : 'post');
+  const targetId = Array.isArray(params.targetId) 
+    ? (params.targetId[0] || '') 
+    : (typeof params.targetId === 'string' ? params.targetId : '');
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [selectedReason, setSelectedReason] = useState<string>('');
@@ -55,10 +62,10 @@ export default function ReportScreen() {
       const pseudonym = await getPseudonym();
       const newReport: Report = {
         id: `report_${Date.now()}`,
-        targetType: targetType as 'post' | 'reply' | 'user',
+        targetType: (targetType || 'post') as 'post' | 'reply' | 'user',
         targetId: targetId || '',
         reporterId: pseudonym || 'anonymous',
-        reason: reportReasons.find(r => r.id === selectedReason)?.label || selectedReason,
+        reason: reportReasons.find(r => r.id === selectedReason)?.label || selectedReason || 'Other',
         description: description.trim(),
         status: 'pending',
         createdAt: new Date(),
@@ -72,7 +79,13 @@ export default function ReportScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)' as any);
+              }
+            },
           },
         ]
       );

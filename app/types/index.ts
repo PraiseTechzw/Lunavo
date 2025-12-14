@@ -167,9 +167,10 @@ export interface Resource {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  resourceType: 'article' | 'short-article' | 'video' | 'short-video' | 'pdf' | 'infographic' | 'image' | 'link' | 'training';
   url?: string;
   filePath?: string;
+  thumbnailUrl?: string;
   tags: string[];
   createdBy: string;
   createdAt: Date;
@@ -184,6 +185,44 @@ export interface Announcement {
   createdAt: Date;
   scheduledFor?: Date;
   isPublished: boolean;
+}
+
+// Chat types
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
+export type MessageType = 'text' | 'image' | 'voice' | 'system';
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderPseudonym?: string;
+  senderRole?: User['role'];
+  content: string;
+  messageType: MessageType;
+  status: MessageStatus;
+  attachmentUrl?: string;
+  readAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Conversation {
+  id: string;
+  userId: string;
+  userPseudonym?: string;
+  supporterId?: string;
+  supporterPseudonym?: string;
+  supporterRole?: User['role'];
+  title?: string;
+  lastMessageId?: string;
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  unreadCountUser: number;
+  unreadCountSupporter: number;
+  isArchived: boolean;
+  isResolved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 

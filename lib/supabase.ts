@@ -5,8 +5,10 @@
  * Make sure to set your Supabase URL and anon key in your .env file.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // Get environment variables
 // In Expo, EXPO_PUBLIC_* variables are available via process.env
@@ -35,10 +37,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Automatically refresh the session
     autoRefreshToken: true,
-    // Persist the session in AsyncStorage
+    // Persist the session in AsyncStorage (React Native) or localStorage (Web)
     persistSession: true,
-    // Detect session from URL (for OAuth redirects)
-    detectSessionInUrl: false,
+    // Detect session from URL (for OAuth redirects) - only on web
+    detectSessionInUrl: Platform.OS === 'web',
+    // Use AsyncStorage for React Native, undefined for web (uses localStorage by default)
+    ...(Platform.OS !== 'web' && { storage: AsyncStorage }),
   },
   // Enable real-time subscriptions
   realtime: {

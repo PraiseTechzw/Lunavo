@@ -51,6 +51,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     ...(Platform.OS === 'web' ? {
       marginHorizontal: 'auto',
+      height: '100%',
     } : {}),
   },
 });
+

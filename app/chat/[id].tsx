@@ -1,104 +1,228 @@
 /**
- * Chat Detail Screen
+ * Chat Detail Screen - Full real-time integration with enhanced UI/UX
  */
 
-import { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { Conversation, Message } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import {
+    createMessage,
+    getConversation,
+    getCurrentUser,
+    getMessages,
+    getOnlineStatus,
+    getOrCreateConversation,
+    markMessagesAsRead,
+    setTypingIndicator,
+    updateOnlineStatus
+} from '@/lib/database';
+import {
+    subscribeToMessages,
+    subscribeToMessageUpdates,
+    subscribeToOnlineStatus,
+    subscribeToTypingIndicators,
+    unsubscribe,
+} from '@/lib/realtime';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { format, isToday, isYesterday } from 'date-fns';
-
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'supporter';
-  time: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
-  type?: 'text' | 'image' | 'voice' | 'system';
-  attachmentUrl?: string;
-}
-
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    text: 'You are now connected with a peer. Remember to be respectful.',
-    sender: 'supporter',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    type: 'system',
-  },
-  {
-    id: '2',
-    text: "Hi, I'm struggling with my classes.",
-    sender: 'user',
-    time: new Date(Date.now() - 1000 * 60 * 30),
-    status: 'read',
-    type: 'text',
-  },
-  {
-    id: '3',
-    text: "I understand. Let's talk about it. What's on your mind?",
-    sender: 'supporter',
-    time: new Date(Date.now() - 1000 * 60 * 29),
-    type: 'text',
-  },
-  {
-    id: '4',
-    text: "Take your time. There's no rush. I'm here to listen whenever you're ready.",
-    sender: 'supporter',
-    time: new Date(Date.now() - 1000 * 60 * 25),
-    type: 'text',
-  },
-];
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [typingUserId, setTypingUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [supporterOnline, setSupporterOnline] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const channelsRef = useRef<RealtimeChannel[]>([]);
+  const inputHeight = useRef(new Animated.Value(44)).current;
 
+  // Load conversation and messages
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const user = await getCurrentUser();
+      if (!user) {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)' as any);
+        }
+        return;
+      }
+
+      setCurrentUserId(user.id);
+
+      // Update online status
+      try {
+        await updateOnlineStatus(user.id, true);
+      } catch (error) {
+        console.warn('Failed to update online status:', error);
+      }
+
+      // Get or create conversation
+      let conv: Conversation;
+      if (id && id !== 'new') {
+        conv = await getConversation(id);
+      } else {
+        conv = await getOrCreateConversation(user.id);
+        router.replace(`/chat/${conv.id}`);
+      }
+
+      setConversation(conv);
+
+      // Load messages
+      const msgs = await getMessages(conv.id);
+      setMessages(msgs);
+
+      // Mark messages as read
+      try {
+        await markMessagesAsRead(conv.id, user.id);
+      } catch (error) {
+        console.warn('Failed to mark messages as read:', error);
+      }
+
+      // Check supporter online status
+      if (conv.supporterId) {
+        try {
+          const isOnline = await getOnlineStatus(conv.supporterId);
+          setSupporterOnline(isOnline);
+        } catch (error) {
+          console.warn('Failed to get online status:', error);
+        }
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading chat:', error);
+      setLoading(false);
+    }
+  }, [id, router]);
+
+  // Setup real-time subscriptions
   useEffect(() => {
-    // Scroll to bottom when messages change
+    if (!conversation || !currentUserId) return;
+
+    // Clear previous channels
+    channelsRef.current.forEach(channel => unsubscribe(channel));
+    channelsRef.current = [];
+
+    // Subscribe to new messages
+    const messagesChannel = subscribeToMessages(conversation.id, (newMessage) => {
+      setMessages((prev) => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Mark as read if current user received it
+      if (newMessage.senderId !== currentUserId) {
+        markMessagesAsRead(conversation.id, currentUserId).catch(console.warn);
+      }
+    });
+    channelsRef.current.push(messagesChannel);
+
+    // Subscribe to message updates (status changes)
+    const updatesChannel = subscribeToMessageUpdates(conversation.id, ({ eventType, message }) => {
+      if (eventType === 'UPDATE' && message) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === message.id ? message : msg))
+        );
+      } else if (eventType === 'DELETE' && message) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== message?.id));
+      }
+    });
+    channelsRef.current.push(updatesChannel);
+
+    // Subscribe to typing indicators
+    const typingChannel = subscribeToTypingIndicators(conversation.id, (payload) => {
+      if (payload && payload.userId !== currentUserId) {
+        setIsTyping(payload.isTyping);
+        setTypingUserId(payload.userId);
+      } else {
+        setIsTyping(false);
+        setTypingUserId(null);
+      }
+    });
+    channelsRef.current.push(typingChannel);
+
+    // Subscribe to supporter online status
+    if (conversation.supporterId) {
+      const onlineChannel = subscribeToOnlineStatus(conversation.supporterId, (isOnline) => {
+        setSupporterOnline(isOnline);
+      });
+      channelsRef.current.push(onlineChannel);
+    }
+
+    return () => {
+      channelsRef.current.forEach(channel => unsubscribe(channel));
+      channelsRef.current = [];
+    };
+  }, [conversation?.id, currentUserId]);
+
+  // Update online status periodically
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        await updateOnlineStatus(currentUserId, true);
+      } catch (error) {
+        console.warn('Failed to update online status:', error);
+      }
+    }, 15000);
+
+    return () => {
+      clearInterval(intervalId);
+      updateOnlineStatus(currentUserId, false).catch(console.warn);
+    };
+  }, [currentUserId]);
+
+  // Load data on focus
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  // Auto-scroll when messages change
+  useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  }, [messages, isTyping]);
-
-  useEffect(() => {
-    // Simulate typing indicator
-    const simulateTyping = () => {
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 2000);
-    };
-
-    // Simulate supporter typing after user sends message
-    if (messages.length > 0 && messages[messages.length - 1]?.sender === 'user') {
-      const timer = setTimeout(simulateTyping, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [messages]);
+  }, [messages.length, isTyping]);
 
   const formatMessageTime = (date: Date): string => {
     if (isToday(date)) {
@@ -110,76 +234,79 @@ export default function ChatDetailScreen() {
     }
   };
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  const handleSend = async () => {
+    if (!inputText.trim() || !conversation || !currentUserId || sending) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
-      sender: 'user',
-      time: new Date(),
-      status: 'sending',
-      type: 'text',
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    setSending(true);
+    const messageText = inputText.trim();
     setInputText('');
 
-    // Simulate sending status
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
-        )
-      );
-    }, 500);
+    try {
+      // Send typing indicator stop
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      try {
+        await setTypingIndicator(conversation.id, currentUserId, false);
+      } catch (error) {
+        console.warn('Failed to set typing indicator:', error);
+      }
 
-    // Simulate delivered status
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
-        )
-      );
-    }, 1000);
+      // Create message
+      await createMessage({
+        conversationId: conversation.id,
+        senderId: currentUserId,
+        content: messageText,
+        messageType: 'text',
+      });
 
-    // Simulate read status and response
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === newMessage.id ? { ...msg, status: 'read' } : msg
-        )
-      );
-
-      // Simulate typing indicator
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        const response: Message = {
-          id: (Date.now() + 1).toString(),
-          text: 'Thank you for sharing. How does that make you feel?',
-          sender: 'supporter',
-          time: new Date(),
-          type: 'text',
-        };
-        setMessages((prev) => [...prev, response]);
-      }, 2000);
-    }, 2000);
+      // Mark messages as read for current user
+      try {
+        await markMessagesAsRead(conversation.id, currentUserId);
+      } catch (error) {
+        console.warn('Failed to mark messages as read:', error);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Restore input on error
+      setInputText(messageText);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleTyping = (text: string) => {
+  const handleTyping = async (text: string) => {
     setInputText(text);
-    
-    // In production, send typing indicator to server
-    // sendTypingIndicator(true);
-    
+
+    if (!conversation || !currentUserId) return;
+
+    // Animate input height
+    const height = text.length > 0 ? Math.min(44 + (text.split('\n').length - 1) * 20, 100) : 44;
+    Animated.spring(inputHeight, {
+      toValue: height,
+      useNativeDriver: false,
+    }).start();
+
+    // Send typing indicator
+    try {
+      await setTypingIndicator(conversation.id, currentUserId, true);
+    } catch (error) {
+      console.warn('Failed to set typing indicator:', error);
+    }
+
+    // Clear previous timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      // sendTypingIndicator(false);
-    }, 1000);
+
+    // Stop typing indicator after 3 seconds of no typing
+    typingTimeoutRef.current = setTimeout(async () => {
+      try {
+        await setTypingIndicator(conversation.id, currentUserId, false);
+      } catch (error) {
+        console.warn('Failed to set typing indicator:', error);
+      }
+    }, 3000);
   };
 
   const getStatusIcon = (status?: string) => {
@@ -197,20 +324,38 @@ export default function ChatDetailScreen() {
     }
   };
 
+  const getChatName = (): string => {
+    if (!conversation) return 'Chat';
+    if (conversation.supporterPseudonym) {
+      return conversation.supporterPseudonym;
+    }
+    return conversation.title || 'Support Team';
+  };
+
+  const getChatSubtitle = (): string => {
+    if (!conversation || !conversation.supporterRole) return '';
+    const roleName = conversation.supporterRole.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return roleName;
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
-    const isUser = item.sender === 'user';
-    const isSystem = item.type === 'system';
+    if (!currentUserId) return null;
+
+    const isUser = item.senderId === currentUserId;
+    const isSystem = item.messageType === 'system';
     const prevMessage = index > 0 ? messages[index - 1] : null;
-    const showAvatar = !prevMessage || prevMessage.sender !== item.sender;
+    const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
     const showTime = !prevMessage || 
-      Math.abs(item.time.getTime() - prevMessage.time.getTime()) > 5 * 60 * 1000; // 5 minutes
+      Math.abs(item.createdAt.getTime() - prevMessage.createdAt.getTime()) > 5 * 60 * 1000; // 5 minutes
 
     if (isSystem) {
       return (
         <View style={styles.systemMessageContainer}>
-          <ThemedText type="small" style={[styles.systemMessage, { color: colors.icon }]}>
-            {item.text}
-          </ThemedText>
+          <View style={[styles.systemMessageBubble, { backgroundColor: colors.surface }]}>
+            <ThemedText type="small" style={[styles.systemMessage, { color: colors.icon }]}>
+              {item.content}
+            </ThemedText>
+          </View>
         </View>
       );
     }
@@ -219,9 +364,11 @@ export default function ChatDetailScreen() {
       <View>
         {showTime && (
           <View style={styles.timeDivider}>
+            <View style={[styles.timeDividerLine, { backgroundColor: colors.border || '#E0E0E0' }]} />
             <ThemedText type="small" style={[styles.timeText, { color: colors.icon }]}>
-              {formatMessageTime(item.time)}
+              {formatMessageTime(item.createdAt)}
             </ThemedText>
+            <View style={[styles.timeDividerLine, { backgroundColor: colors.border || '#E0E0E0' }]} />
           </View>
         )}
         <View
@@ -245,10 +392,19 @@ export default function ChatDetailScreen() {
             style={[
               styles.messageBubble,
               {
-                backgroundColor: isUser ? colors.primary : colors.secondary + '30',
+                backgroundColor: isUser ? colors.primary : colors.surface,
+                ...(isUser ? createShadow(2, colors.primary, 0.2) : createShadow(1, '#000', 0.1)),
               },
             ]}
           >
+            {!isUser && showAvatar && (
+              <ThemedText 
+                type="small" 
+                style={[styles.senderName, { color: colors.secondary }]}
+              >
+                {item.senderPseudonym || 'Support'}
+              </ThemedText>
+            )}
             <ThemedText
               type="body"
               style={[
@@ -256,7 +412,7 @@ export default function ChatDetailScreen() {
                 { color: isUser ? '#FFFFFF' : colors.text },
               ]}
             >
-              {item.text}
+              {item.content}
             </ThemedText>
             {isUser && item.status && (
               <View style={styles.messageStatus}>
@@ -280,30 +436,134 @@ export default function ChatDetailScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <ThemedText 
+            type="body" 
+            style={[styles.loadingText, { color: colors.icon }]}
+          >
+            Loading conversation...
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (!conversation) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={colors.error || colors.primary} />
+          <ThemedText type="h3" style={{ color: colors.text, marginTop: Spacing.md }}>
+            Conversation not found
+          </ThemedText>
+          <TouchableOpacity 
+            style={[styles.backButton, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/chat' as any);
+              }
+            }}
+          >
+            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+              Go Back
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ThemedView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <ThemedView style={styles.container}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+        <View style={[
+          styles.header, 
+          { 
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border || '#E0E0E0',
+          }
+        ]}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/chat' as any);
+              }
+            }} 
+            style={[styles.backButtonHeader, getCursorStyle()]}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <View style={[styles.headerAvatar, { backgroundColor: colors.secondary + '20' }]}>
-            <Ionicons name="headset" size={20} color={colors.secondary} />
-          </View>
-          <View style={styles.headerInfo}>
-            <ThemedText type="body" style={styles.headerTitle}>
-              Peer Supporter
-            </ThemedText>
-            <ThemedText type="small" style={[styles.headerSubtitle, { color: colors.success }]}>
-              Online
-            </ThemedText>
-          </View>
-          <TouchableOpacity style={getCursorStyle()}>
+          <TouchableOpacity 
+            style={styles.headerInfo}
+            onPress={() => {
+              // Could show supporter profile
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[
+              styles.headerAvatar, 
+              { 
+                backgroundColor: supporterOnline 
+                  ? colors.success + '20' 
+                  : colors.secondary + '20' 
+              }
+            ]}>
+              {supporterOnline ? (
+                <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+              ) : (
+                <Ionicons name="headset" size={24} color={colors.secondary} />
+              )}
+            </View>
+            <View style={styles.headerTextContainer}>
+              <ThemedText type="body" style={[styles.headerTitle, { color: colors.text }]}>
+                {getChatName()}
+              </ThemedText>
+              <View style={styles.headerStatusRow}>
+                <View style={[
+                  styles.statusDot, 
+                  { backgroundColor: supporterOnline ? colors.success : colors.icon }
+                ]} />
+                <ThemedText 
+                  type="small" 
+                  style={[
+                    styles.headerSubtitle, 
+                    { color: supporterOnline ? colors.success : colors.icon }
+                  ]}
+                >
+                  {supporterOnline ? 'Online' : 'Offline'}
+                </ThemedText>
+                {getChatSubtitle() && (
+                  <>
+                    <ThemedText type="small" style={{ color: colors.icon, marginHorizontal: 4 }}>
+                      •
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: colors.icon }}>
+                      {getChatSubtitle()}
+                    </ThemedText>
+                  </>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={getCursorStyle()}
+            onPress={() => {
+              // Show options menu
+            }}
+          >
             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -315,16 +575,17 @@ export default function ChatDetailScreen() {
           renderItem={({ item, index }) => renderMessage({ item, index })}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
           ListFooterComponent={
-            isTyping ? (
+            isTyping && typingUserId !== currentUserId ? (
               <View style={[styles.messageContainer, styles.supporterMessageContainer]}>
                 <View style={[styles.avatar, { backgroundColor: colors.secondary + '20' }]}>
                   <Ionicons name="headset" size={20} color={colors.secondary} />
                 </View>
-                <View style={[styles.typingIndicator, { backgroundColor: colors.secondary + '30' }]}>
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
+                  <Animated.View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                  <Animated.View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                  <Animated.View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
                 </View>
               </View>
             ) : null
@@ -332,7 +593,13 @@ export default function ChatDetailScreen() {
         />
 
         {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <View style={[
+          styles.inputContainer, 
+          { 
+            backgroundColor: colors.background, 
+            borderTopColor: colors.border || '#E0E0E0',
+          }
+        ]}>
           <TouchableOpacity
             style={[styles.attachButton, { backgroundColor: colors.surface }]}
             onPress={() => {
@@ -340,44 +607,57 @@ export default function ChatDetailScreen() {
               console.log('Attachment pressed');
             }}
           >
-            <MaterialIcons name="attach-file" size={24} color={colors.icon} />
+            <MaterialIcons name="attach-file" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <TextInput
-            style={[
-              styles.input,
-              createInputStyle(),
-              {
-                backgroundColor: colors.surface,
-                color: colors.text,
-              },
-            ]}
-            placeholder="Type a message..."
-            placeholderTextColor={colors.icon}
-            value={inputText}
-            onChangeText={handleTyping}
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[styles.emojiButton, { backgroundColor: colors.surface }]}
-            onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-          >
-            <MaterialIcons name="emoji-emotions" size={24} color={colors.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: inputText.trim() ? 1 : 0.5,
-              },
-            ]}
-            onPress={handleSend}
-            disabled={!inputText.trim()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="send" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <Animated.View style={{ flex: 1, height: inputHeight }}>
+            <TextInput
+              style={[
+                styles.input,
+                createInputStyle(),
+                {
+                  backgroundColor: colors.surface,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="Type a message..."
+              placeholderTextColor={colors.icon}
+              value={inputText}
+              onChangeText={handleTyping}
+              multiline
+              maxLength={500}
+              editable={!sending}
+              textAlignVertical="center"
+            />
+          </Animated.View>
+          {inputText.trim() ? (
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: colors.primary,
+                },
+              ]}
+              onPress={handleSend}
+              disabled={sending}
+              activeOpacity={0.8}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="send" size={20} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.emojiButton, { backgroundColor: colors.surface }]}
+              onPress={() => {
+                // Handle emoji picker
+                console.log('Emoji pressed');
+              }}
+            >
+              <MaterialIcons name="emoji-emotions" size={22} color={colors.icon} />
+            </TouchableOpacity>
+          )}
         </View>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -388,56 +668,109 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  backButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.md,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  backButtonHeader: {
+    padding: Spacing.xs,
+  },
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
   headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerInfo: {
+  headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
     fontWeight: '600',
+    fontSize: 16,
+  },
+  headerStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 4,
   },
   headerSubtitle: {
     fontSize: 12,
-    marginTop: 2,
   },
   messagesContent: {
     padding: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   timeDivider: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.sm,
+    marginVertical: Spacing.md,
+    gap: Spacing.sm,
+  },
+  timeDividerLine: {
+    flex: 1,
+    height: 1,
   },
   timeText: {
     fontSize: 11,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
   },
   systemMessageContainer: {
     alignItems: 'center',
     marginVertical: Spacing.md,
   },
+  systemMessageBubble: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
   systemMessage: {
     fontSize: 12,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
     textAlign: 'center',
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     alignItems: 'flex-end',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   userMessageContainer: {
     justifyContent: 'flex-end',
@@ -463,10 +796,16 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: '75%',
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
+  },
+  senderName: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   messageText: {
     lineHeight: 20,
+    fontSize: 15,
   },
   messageStatus: {
     flexDirection: 'row',
@@ -477,8 +816,8 @@ const styles = StyleSheet.create({
   typingIndicator: {
     flexDirection: 'row',
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    gap: 6,
     alignItems: 'center',
   },
   typingDot: {
@@ -488,43 +827,39 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'flex-end',
     gap: Spacing.sm,
     borderTopWidth: 1,
   },
   attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emojiButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   input: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
     maxHeight: 100,
-    fontSize: 16,
+    fontSize: 15,
+    minHeight: 40,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
 });
-
-
-
-
-
-

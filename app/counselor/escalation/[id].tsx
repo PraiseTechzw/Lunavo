@@ -53,7 +53,16 @@ export default function EscalationDetailScreen() {
       const escalationData = await getEscalationById(id!);
       if (!escalationData) {
         Alert.alert('Not Found', 'Escalation not found.', [
-          { text: 'OK', onPress: () => router.back() },
+          { 
+            text: 'OK', 
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/counselor/dashboard' as any);
+              }
+            }
+          },
         ]);
         return;
       }
@@ -130,7 +139,16 @@ export default function EscalationDetailScreen() {
                 notes: `${escalation.notes || ''}\n\nResolution: ${resolutionNotes}`.trim(),
               });
               Alert.alert('Success', 'Escalation marked as resolved.', [
-                { text: 'OK', onPress: () => router.back() },
+                { 
+            text: 'OK', 
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/counselor/dashboard' as any);
+              }
+            }
+          },
               ]);
             } catch (error) {
               console.error('Error resolving escalation:', error);

@@ -62,24 +62,75 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
     const inWebRequired = segments[0] === 'web-required';
+    const inVerifyEmail = segments[1] === 'verify-email';
 
     if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
       // Redirect to login if not authenticated
       router.replace('/auth/login');
     } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      // Load user role and redirect to appropriate default route
-      getCurrentUser().then(user => {
-        if (user) {
-          const role = user.role as UserRole;
-          const platform = isMobile ? 'mobile' : 'web';
-          const defaultRoute = getDefaultRoute(role, platform);
-          router.replace(defaultRoute as any);
-        } else {
+      // Check email verification status before redirecting
+      const checkVerificationAndRedirect = async () => {
+        try {
+          // Check if email is confirmed in Supabase Auth
+          const { supabase } = await import('@/lib/supabase');
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          
+          const emailConfirmed = authUser?.email_confirmed_at || authUser?.confirmed_at;
+          
+          if (!emailConfirmed && !inVerifyEmail) {
+            // Email not verified - redirect to verification
+            const userEmail = authUser?.email;
+            if (userEmail) {
+              router.replace({
+                pathname: '/auth/verify-email',
+                params: { email: userEmail },
+              } as any);
+              return;
+            }
+          }
+
+          // Email is verified or already on verification page - proceed with normal redirect
+          const user = await getCurrentUser();
+          if (user) {
+            const role = user.role as UserRole;
+            const platform = isMobile ? 'mobile' : 'web';
+            const defaultRoute = getDefaultRoute(role, platform);
+            router.replace(defaultRoute as any);
+          } else {
+            router.replace('/(tabs)');
+          }
+        } catch (error) {
+          console.error('Error checking verification:', error);
           router.replace('/(tabs)');
         }
-      }).catch(() => {
-        router.replace('/(tabs)');
-      });
+      };
+
+      checkVerificationAndRedirect();
+    } else if (isAuthenticated && !inAuthGroup && !inOnboarding && !inWebRequired) {
+      // User is authenticated and not in auth/onboarding - check verification
+      const checkVerification = async () => {
+        try {
+          const { supabase } = await import('@/lib/supabase');
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          
+          const emailConfirmed = authUser?.email_confirmed_at || authUser?.confirmed_at;
+          
+          if (!emailConfirmed && !inVerifyEmail) {
+            // Email not verified - redirect to verification
+            const userEmail = authUser?.email;
+            if (userEmail) {
+              router.replace({
+                pathname: '/auth/verify-email',
+                params: { email: userEmail },
+              } as any);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking verification status:', error);
+        }
+      };
+
+      checkVerification();
     }
   }, [isAuthenticated, segments, isInitialized]);
 
@@ -148,12 +199,18 @@ export default function RootLayout() {
       const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
       setIsOnboardingComplete(onboardingValue === 'true');
 
+      // Wait a moment for Supabase to restore session from storage
+      // This ensures AsyncStorage/localStorage session is properly loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Check authentication status
       const session = await getSession();
+      console.log('[initializeAuth] Session restored:', session ? 'Yes' : 'No');
       setIsAuthenticated(!!session);
 
       // Listen to auth state changes
       const { data: { subscription } } = onAuthStateChange((event, session) => {
+        console.log('[initializeAuth] Auth state changed:', event, session ? 'Session present' : 'No session');
         setIsAuthenticated(!!session);
       });
 

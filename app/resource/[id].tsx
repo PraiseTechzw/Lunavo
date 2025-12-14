@@ -2,35 +2,41 @@
  * Resource Detail Screen
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  Share,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
+import { Resource } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getResource } from '@/lib/database';
-import { Resource } from '@/app/types';
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const FAVORITES_KEY = 'resource_favorites';
 const DOWNLOADS_KEY = 'resource_downloads';
 
 export default function ResourceDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string | string[] }>();
+  // Handle array values from useLocalSearchParams (expo-router can return arrays)
+  const id = Array.isArray(params.id) ? params.id[0] : (params.id || '');
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -38,6 +44,7 @@ export default function ResourceDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
@@ -115,6 +122,10 @@ export default function ResourceDetailScreen() {
       const downloadRecord = {
         id: resource.id,
         title: resource.title,
+        url: resource.url || resource.filePath || '',
+        resourceType: resource.resourceType,
+        description: resource.description || '',
+        category: resource.category,
         downloadedAt: new Date().toISOString(),
       };
 
@@ -127,21 +138,28 @@ export default function ResourceDetailScreen() {
 
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
       setIsDownloaded(true);
-
-      // Open resource URL if available
-      if (resource.url) {
-        const canOpen = await Linking.canOpenURL(resource.url);
-        if (canOpen) {
-          await Linking.openURL(resource.url);
-        } else {
-          Alert.alert('Error', 'Cannot open this resource URL.');
-        }
-      } else {
-        Alert.alert('Downloaded', 'Resource saved to your downloads.');
-      }
+      Alert.alert('Downloaded', 'Resource has been saved to your downloads.');
     } catch (error) {
       console.error('Error downloading resource:', error);
-      Alert.alert('Error', 'Failed to download resource.');
+      Alert.alert('Error', 'Failed to download resource. Please try again.');
+    }
+  };
+
+  const handleViewInApp = async () => {
+    if (!resource) return;
+
+    const resourceUrl = resource.url || resource.filePath;
+    if (resourceUrl) {
+      try {
+        // Open in in-app browser
+        await WebBrowser.openBrowserAsync(resourceUrl, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          controlsColor: colors.primary,
+        });
+      } catch (error) {
+        console.error('Error opening resource in app:', error);
+        Alert.alert('Error', 'Failed to open resource.');
+      }
     }
   };
 
@@ -184,19 +202,163 @@ export default function ResourceDetailScreen() {
     );
   }
 
-  const getResourceIcon = () => {
-    switch (resource.resourceType) {
+  // Get resource type color
+  const getResourceTypeColor = (resourceType: string): string => {
+    switch (resourceType) {
       case 'article':
-        return 'article';
+      case 'short-article':
+        return colors.academic || '#3B82F6';
       case 'video':
-        return 'video-library';
+      case 'short-video':
+        return colors.danger || '#EF4444';
       case 'pdf':
-        return 'picture-as-pdf';
+        return colors.warning || '#F59E0B';
+      case 'infographic':
+        return colors.secondary || '#8B5CF6';
+      case 'image':
+        return colors.info || '#06B6D4';
       case 'link':
-        return 'link';
+        return colors.success || '#10B981';
+      case 'training':
+        return colors.mentalHealth || '#A855F7';
       default:
-        return 'description';
+        return colors.primary || '#6366F1';
     }
+  };
+
+  const getResourceIcon = () => {
+    const resourceType = resource.resourceType || 'link';
+    switch (resourceType) {
+      case 'article':
+      case 'short-article':
+        return 'newspaper-outline';
+      case 'video':
+      case 'short-video':
+        return 'play-circle-outline';
+      case 'pdf':
+        return 'document-text-outline';
+      case 'infographic':
+        return 'stats-chart-outline';
+      case 'image':
+        return 'image-outline';
+      case 'link':
+        return 'link-outline';
+      case 'training':
+        return 'school-outline';
+      default:
+        return 'document-outline';
+    }
+  };
+
+  const getResourceTypeLabel = (resourceType: string | undefined): string => {
+    if (!resourceType) return 'Resource';
+    switch (resourceType) {
+      case 'short-article':
+        return 'Short Article';
+      case 'short-video':
+        return 'Short Video';
+      default:
+        return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+    }
+  };
+
+  const typeColor = getResourceTypeColor(resource.resourceType || 'link');
+  const resourceUrl = resource.url || resource.filePath || '';
+  const hasThumbnail = resource.thumbnailUrl;
+  const { width } = Dimensions.get('window');
+
+  // Render resource content based on type
+  const renderResourceContent = () => {
+    if (!resourceUrl) {
+      return (
+        <View style={[styles.noContentContainer, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name={getResourceIcon() as any} size={64} color={colors.icon} />
+          <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md, textAlign: 'center' }}>
+            No content available for this resource
+          </ThemedText>
+        </View>
+      );
+    }
+
+    // Images and Infographics - display directly (use thumbnail if available, otherwise use URL)
+    if (resource.resourceType === 'image' || resource.resourceType === 'infographic') {
+      const imageUrl = hasThumbnail ? resource.thumbnailUrl : resourceUrl;
+      return (
+        <View style={styles.imageContainer}>
+          <ExpoImage
+            source={{ uri: imageUrl }}
+            style={styles.resourceImage}
+            contentFit="contain"
+            transition={200}
+            cachePolicy="memory-disk"
+            onLoadStart={() => setImageLoading(true)}
+            onLoadEnd={() => setImageLoading(false)}
+          />
+          {imageLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    // Videos - show thumbnail with play button
+    if (resource.resourceType === 'video' || resource.resourceType === 'short-video') {
+      return (
+        <TouchableOpacity
+          style={styles.videoContainer}
+          onPress={handleViewInApp}
+          activeOpacity={0.9}
+        >
+          {hasThumbnail ? (
+            <ExpoImage
+              source={{ uri: resource.thumbnailUrl }}
+              style={styles.videoThumbnail}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <LinearGradient
+              colors={[typeColor + '40', typeColor + '20']}
+              style={styles.videoPlaceholder}
+            >
+              <MaterialIcons name="play-circle-filled" size={80} color={typeColor} />
+            </LinearGradient>
+          )}
+          <View style={styles.playButtonOverlay}>
+            <View style={[styles.playButton, { backgroundColor: colors.primary + 'E6' }]}>
+              <MaterialIcons name="play-arrow" size={48} color="#FFFFFF" />
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    // PDFs, Articles, Links - show preview with open button
+    return (
+      <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
+        <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
+          <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
+        </View>
+        <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
+          {resource.title}
+        </ThemedText>
+        <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
+          {getResourceTypeLabel(resource.resourceType)}
+        </ThemedText>
+        <TouchableOpacity
+          style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={handleViewInApp}
+        >
+          <MaterialIcons name="open-in-new" size={24} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+            Open in App
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
@@ -214,17 +376,25 @@ export default function ResourceDetailScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Resource Header */}
+          {/* Resource Content - Displayed First */}
+          <View style={[styles.resourceContentContainer, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
+            {renderResourceContent()}
+          </View>
+
+          {/* Resource Header with Title and Meta */}
           <View style={[styles.resourceHeader, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <View style={[styles.resourceIcon, { backgroundColor: colors.primary + '20' }]}>
-              <MaterialIcons name={getResourceIcon() as any} size={48} color={colors.primary} />
-            </View>
             <ThemedText type="h2" style={styles.resourceTitle}>
               {resource.title}
             </ThemedText>
             <View style={styles.resourceMeta}>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                {resource.category} • {resource.resourceType}
+              <View style={[styles.typeBadge, { backgroundColor: typeColor }]}>
+                <MaterialIcons name={getResourceIcon() as any} size={14} color="#FFFFFF" />
+                <ThemedText type="small" style={styles.typeBadgeText}>
+                  {getResourceTypeLabel(resource.resourceType)}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                {resource.category}
               </ThemedText>
             </View>
           </View>
@@ -297,12 +467,12 @@ export default function ResourceDetailScreen() {
               ]}
               onPress={handleDownload}
             >
-              <MaterialIcons name="download" size={24} color="#FFFFFF" />
+              <MaterialIcons name={isDownloaded ? "check-circle" : "download"} size={24} color="#FFFFFF" />
               <ThemedText
                 type="body"
                 style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}
               >
-                {isDownloaded ? 'Open' : 'Download'}
+                {isDownloaded ? 'Downloaded' : 'Download'}
               </ThemedText>
             </TouchableOpacity>
 
@@ -342,7 +512,7 @@ export default function ResourceDetailScreen() {
                 Type:
               </ThemedText>
               <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
-                {resource.resourceType}
+                {getResourceTypeLabel(resource.resourceType)}
               </ThemedText>
             </View>
             {resource.createdAt && (
@@ -392,6 +562,103 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.md,
   },
+  resourceContentContainer: {
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+    minHeight: 300,
+  },
+  imageContainer: {
+    width: '100%',
+    minHeight: 300,
+    position: 'relative',
+  },
+  resourceImage: {
+    width: '100%',
+    minHeight: 300,
+    maxHeight: 600,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  videoContainer: {
+    width: '100%',
+    minHeight: 300,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoThumbnail: {
+    width: '100%',
+    minHeight: 300,
+    maxHeight: 400,
+  },
+  videoPlaceholder: {
+    width: '100%',
+    minHeight: 300,
+    maxHeight: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButtonOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  documentContainer: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    minHeight: 300,
+    justifyContent: 'center',
+  },
+  documentIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  documentTitle: {
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+    fontWeight: '700',
+  },
+  documentSubtitle: {
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  openButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  noContentContainer: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+  },
   resourceHeader: {
     alignItems: 'center',
     padding: Spacing.lg,
@@ -399,12 +666,32 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   resourceIcon: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
+  },
+  resourceThumbnail: {
+    width: '100%',
+    height: 200,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+    alignSelf: 'center',
+  },
+  typeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   resourceTitle: {
     textAlign: 'center',
