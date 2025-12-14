@@ -10,7 +10,7 @@ import { CATEGORIES } from '@/app/constants/categories';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Post, PostCategory } from '@/app/types';
-import { getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
 import { getPosts as getPostsFromDB } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -105,8 +105,21 @@ export default function TopicScreen() {
   }, [posts, searchQuery, sortBy]);
 
   const setupRealtimeSubscriptions = () => {
-    const channel = subscribeToPosts(() => {
-      loadPosts();
+    if (!categoryKey) return;
+    
+    const channel = subscribeToPosts((newPost) => {
+      // Only add posts that match the current category
+      if (newPost.category === categoryKey) {
+        setPosts((prevPosts) => {
+          // Check if post already exists (avoid duplicates)
+          const exists = prevPosts.some((p) => p.id === newPost.id);
+          if (exists) return prevPosts;
+          
+          // Add new post at the beginning (most recent first)
+          // This ensures new posts appear instantly at the top
+          return [newPost, ...prevPosts];
+        });
+      }
     });
     postsChannelRef.current = channel;
   };

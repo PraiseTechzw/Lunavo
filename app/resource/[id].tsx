@@ -2,6 +2,7 @@
  * Resource Detail Screen
  */
 
+import { ImageViewer } from '@/app/components/resource-viewers/image-viewer';
 import { PDFViewer } from '@/app/components/resource-viewers/pdf-viewer';
 import { VideoPlayer } from '@/app/components/resource-viewers/video-player';
 import { WebViewer } from '@/app/components/resource-viewers/web-viewer';
@@ -11,6 +12,7 @@ import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Resource } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getResourceIcon, getResourceIconMaterial, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
 import { getResource } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -51,6 +53,7 @@ export default function ResourceDetailScreen() {
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [showWebViewer, setShowWebViewer] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -64,7 +67,12 @@ export default function ResourceDetailScreen() {
     try {
       if (!id) return;
       const resourceData = await getResource(id);
-      setResource(resourceData);
+      
+      // Map database resource to Resource interface using shared utility
+      if (resourceData) {
+        const mappedResource = mapResourceFromDB(resourceData);
+        setResource(mappedResource);
+      }
     } catch (error) {
       console.error('Error loading resource:', error);
       Alert.alert('Error', 'Failed to load resource. Please try again.');
@@ -213,67 +221,7 @@ export default function ResourceDetailScreen() {
     );
   }
 
-  // Get resource type color
-  const getResourceTypeColor = (resourceType: string): string => {
-    switch (resourceType) {
-      case 'article':
-      case 'short-article':
-        return colors.academic || '#3B82F6';
-      case 'video':
-      case 'short-video':
-        return colors.danger || '#EF4444';
-      case 'pdf':
-        return colors.warning || '#F59E0B';
-      case 'infographic':
-        return colors.secondary || '#8B5CF6';
-      case 'image':
-        return colors.info || '#06B6D4';
-      case 'link':
-        return colors.success || '#10B981';
-      case 'training':
-        return colors.mentalHealth || '#A855F7';
-      default:
-        return colors.primary || '#6366F1';
-    }
-  };
-
-  const getResourceIcon = () => {
-    const resourceType = resource.resourceType || 'link';
-    switch (resourceType) {
-      case 'article':
-      case 'short-article':
-        return 'newspaper-outline';
-      case 'video':
-      case 'short-video':
-        return 'play-circle-outline';
-      case 'pdf':
-        return 'document-text-outline';
-      case 'infographic':
-        return 'stats-chart-outline';
-      case 'image':
-        return 'image-outline';
-      case 'link':
-        return 'link-outline';
-      case 'training':
-        return 'school-outline';
-      default:
-        return 'document-outline';
-    }
-  };
-
-  const getResourceTypeLabel = (resourceType: string | undefined): string => {
-    if (!resourceType) return 'Resource';
-    switch (resourceType) {
-      case 'short-article':
-        return 'Short Article';
-      case 'short-video':
-        return 'Short Video';
-      default:
-        return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-    }
-  };
-
-  const typeColor = getResourceTypeColor(resource.resourceType || 'link');
+  const typeColor = getResourceTypeColor(resource.resourceType || 'link', colors);
   const resourceUrl = resource.url || resource.filePath || '';
   const hasThumbnail = resource.thumbnailUrl;
   const { width } = Dimensions.get('window');
@@ -283,7 +231,7 @@ export default function ResourceDetailScreen() {
     if (!resourceUrl) {
       return (
         <View style={[styles.noContentContainer, { backgroundColor: colors.surface }]}>
-          <MaterialIcons name={getResourceIcon() as any} size={64} color={colors.icon} />
+          <MaterialIcons name={getResourceIconMaterial(resource.resourceType || 'link') as any} size={64} color={colors.icon} />
           <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md, textAlign: 'center' }}>
             No content available for this resource
           </ThemedText>
@@ -291,11 +239,16 @@ export default function ResourceDetailScreen() {
       );
     }
 
-    // Images and Infographics - display directly (use thumbnail if available, otherwise use URL)
+    // Images and Infographics - display with tap to open fullscreen viewer
     if (resource.resourceType === 'image' || resource.resourceType === 'infographic') {
       const imageUrl = hasThumbnail ? resource.thumbnailUrl : resourceUrl;
       return (
-        <View style={styles.imageContainer}>
+        <>
+          <TouchableOpacity
+            style={styles.imageContainer}
+            onPress={() => setShowImageViewer(true)}
+            activeOpacity={0.9}
+          >
           <ExpoImage
             source={{ uri: imageUrl }}
             style={styles.resourceImage}
@@ -310,7 +263,22 @@ export default function ResourceDetailScreen() {
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
+            {/* Tap indicator */}
+            <View style={styles.imageTapIndicator}>
+              <MaterialIcons name="zoom-in" size={24} color="#FFFFFF" />
+              <ThemedText type="small" style={{ color: '#FFFFFF', marginTop: Spacing.xs }}>
+                Tap to view fullscreen
+              </ThemedText>
         </View>
+          </TouchableOpacity>
+          {showImageViewer && (
+            <ImageViewer
+              uri={imageUrl || resourceUrl}
+              title={resource.title}
+              onClose={() => setShowImageViewer(false)}
+            />
+          )}
+        </>
       );
     }
 
@@ -318,33 +286,33 @@ export default function ResourceDetailScreen() {
     if (resource.resourceType === 'video' || resource.resourceType === 'short-video') {
       return (
         <>
-          <TouchableOpacity
-            style={styles.videoContainer}
-            onPress={handleViewInApp}
-            activeOpacity={0.9}
-          >
-            {hasThumbnail ? (
-              <ExpoImage
-                source={{ uri: resource.thumbnailUrl }}
-                style={styles.videoThumbnail}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-              />
-            ) : (
-              <LinearGradient
-                colors={[typeColor + '40', typeColor + '20']}
-                style={styles.videoPlaceholder}
-              >
-                <MaterialIcons name="play-circle-filled" size={80} color={typeColor} />
-              </LinearGradient>
-            )}
-            <View style={styles.playButtonOverlay}>
-              <View style={[styles.playButton, { backgroundColor: colors.primary + 'E6' }]}>
-                <MaterialIcons name="play-arrow" size={48} color="#FFFFFF" />
-              </View>
+        <TouchableOpacity
+          style={styles.videoContainer}
+          onPress={handleViewInApp}
+          activeOpacity={0.9}
+        >
+          {hasThumbnail ? (
+            <ExpoImage
+              source={{ uri: resource.thumbnailUrl }}
+              style={styles.videoThumbnail}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <LinearGradient
+              colors={[typeColor + '40', typeColor + '20']}
+              style={styles.videoPlaceholder}
+            >
+              <MaterialIcons name="play-circle-filled" size={80} color={typeColor} />
+            </LinearGradient>
+          )}
+          <View style={styles.playButtonOverlay}>
+            <View style={[styles.playButton, { backgroundColor: colors.primary + 'E6' }]}>
+              <MaterialIcons name="play-arrow" size={48} color="#FFFFFF" />
             </View>
-          </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
           {showVideoPlayer && (
             <Modal
               visible={showVideoPlayer}
@@ -370,7 +338,7 @@ export default function ResourceDetailScreen() {
         <>
           <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
             <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
-              <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
+              <MaterialIcons name={getResourceIconMaterial(resource.resourceType || 'link') as any} size={64} color={typeColor} />
             </View>
             <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
               {resource.title}
@@ -408,27 +376,27 @@ export default function ResourceDetailScreen() {
 
     // Articles and Links - show preview with open button, opens in-app web viewer
     if (resource.resourceType === 'link' || resource.resourceType === 'article' || resource.resourceType === 'short-article') {
-      return (
+    return (
         <>
-          <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
-            <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
-              <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
-            </View>
-            <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
-              {resource.title}
-            </ThemedText>
-            <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
-              {getResourceTypeLabel(resource.resourceType)}
-            </ThemedText>
-            <TouchableOpacity
-              style={[styles.openButton, { backgroundColor: colors.primary }]}
-              onPress={handleViewInApp}
-            >
-              <MaterialIcons name="open-in-new" size={24} color="#FFFFFF" />
-              <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+      <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
+        <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
+              <MaterialIcons name={getResourceIconMaterial(resource.resourceType || 'link') as any} size={64} color={typeColor} />
+        </View>
+        <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
+          {resource.title}
+        </ThemedText>
+        <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
+          {getResourceTypeLabel(resource.resourceType)}
+        </ThemedText>
+        <TouchableOpacity
+          style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={handleViewInApp}
+        >
+          <MaterialIcons name="open-in-new" size={24} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
                 View Content
-              </ThemedText>
-            </TouchableOpacity>
+          </ThemedText>
+        </TouchableOpacity>
           </View>
           {showWebViewer && (
             <Modal
@@ -453,7 +421,7 @@ export default function ResourceDetailScreen() {
     return (
       <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
         <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
-          <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
+          <MaterialIcons name={getResourceIcon(resource.resourceType || 'link') as any} size={64} color={typeColor} />
         </View>
         <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
           {resource.title}
@@ -492,7 +460,7 @@ export default function ResourceDetailScreen() {
             </ThemedText>
             <View style={styles.resourceMeta}>
               <View style={[styles.typeBadge, { backgroundColor: typeColor }]}>
-                <MaterialIcons name={getResourceIcon() as any} size={14} color="#FFFFFF" />
+                <MaterialIcons name={getResourceIconMaterial(resource.resourceType || 'link') as any} size={14} color="#FFFFFF" />
                 <ThemedText type="small" style={styles.typeBadgeText}>
                   {getResourceTypeLabel(resource.resourceType)}
                 </ThemedText>
@@ -676,11 +644,25 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 300,
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resourceImage: {
     width: '100%',
     minHeight: 300,
     maxHeight: 600,
+  },
+  imageTapIndicator: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    right: Spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
   },
   loadingOverlay: {
     position: 'absolute',

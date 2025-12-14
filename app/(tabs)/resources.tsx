@@ -39,32 +39,17 @@ const CARD_WIDTH = (width - Spacing.md * 3) / 2; // 2 columns with spacing
 // Enhanced categories with icons - matching the design
 const categories = [
   { id: 'all', label: 'All', icon: 'apps-outline' },
-  { id: 'mental-health', label: 'Mental Health', icon: 'heart-outline' },
-  { id: 'peer-educator-toolkit', label: 'Peer Educator Toolkit', icon: 'people-outline' },
-  { id: 'crisis-support', label: 'Crisis Support', icon: 'warning-outline' },
-  { id: 'sexual-reproductive-health', label: 'Sexual & Reproductive Health', icon: 'medical-outline' },
-  { id: 'substance-abuse', label: 'Substance Abuse', icon: 'ban-outline' },
-  { id: 'academic-life-skills', label: 'Academic & Life Skills', icon: 'school-outline' },
-  { id: 'university-support', label: 'University Support', icon: 'business-outline' },
   { id: 'articles', label: 'Articles', icon: 'newspaper-outline' },
   { id: 'videos', label: 'Videos', icon: 'play-circle-outline' },
   { id: 'pdfs', label: 'PDFs', icon: 'document-text-outline' },
   { id: 'infographics', label: 'Infographics', icon: 'stats-chart-outline' },
   { id: 'images', label: 'Images', icon: 'images-outline' },
+  { id: 'short-articles', label: 'Short Articles', icon: 'document-text-outline' },
+  { id: 'short-videos', label: 'Short Videos', icon: 'videocam-outline' },
 ];
 
 // Map database resource to Resource interface
 function mapResourceFromDB(data: any): Resource {
-  // Enhanced thumbnail URL handling - prioritize thumbnail_url, fallback to url for images
-  let thumbnailUrl = data.thumbnail_url;
-  if (!thumbnailUrl && (data.resource_type === 'image' || data.resource_type === 'infographic')) {
-    thumbnailUrl = data.url || data.file_path;
-  }
-  // For videos, use thumbnail_url if available, otherwise undefined (will show placeholder)
-  if (!thumbnailUrl && (data.resource_type === 'video' || data.resource_type === 'short-video')) {
-    thumbnailUrl = data.thumbnail_url; // Keep undefined if no thumbnail
-  }
-
   return {
     id: data.id,
     title: data.title,
@@ -73,7 +58,7 @@ function mapResourceFromDB(data: any): Resource {
     resourceType: data.resource_type,
     url: data.url || undefined,
     filePath: data.file_path || undefined,
-    thumbnailUrl: thumbnailUrl,
+    thumbnailUrl: data.thumbnail_url || data.url || undefined,
     tags: data.tags || [],
     createdBy: data.created_by,
     createdAt: new Date(data.created_at),
@@ -240,12 +225,17 @@ export default function ResourcesScreen() {
     // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((r) => {
-        // Resource type filters
         if (selectedCategory === 'articles') {
-          return r.resourceType === 'article' || r.resourceType === 'short-article';
+          return r.resourceType === 'article';
+        }
+        if (selectedCategory === 'short-articles') {
+          return r.resourceType === 'short-article';
         }
         if (selectedCategory === 'videos') {
-          return r.resourceType === 'video' || r.resourceType === 'short-video';
+          return r.resourceType === 'video';
+        }
+        if (selectedCategory === 'short-videos') {
+          return r.resourceType === 'short-video';
         }
         if (selectedCategory === 'pdfs') {
           return r.resourceType === 'pdf';
@@ -256,43 +246,6 @@ export default function ResourcesScreen() {
         if (selectedCategory === 'images') {
           return r.resourceType === 'image';
         }
-        // Category filters (new categories) - use flexible matching with tags
-        if (selectedCategory === 'mental-health') {
-          return (r.category as string) === 'mental-health' || r.tags?.some(tag => 
-            ['mental health', 'wellbeing', 'well-being', 'anxiety', 'depression', 'stress', 'mindfulness'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'peer-educator-toolkit') {
-          return (r.category as string) === 'peer-educator-toolkit' || r.tags?.some(tag => 
-            ['peer educator', 'training', 'toolkit', 'resources'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'crisis-support') {
-          return r.category === 'crisis' || (r.category as string) === 'crisis-support' || r.tags?.some(tag => 
-            ['crisis', 'emergency', 'suicide', 'help', 'support'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'sexual-reproductive-health') {
-          return r.category === 'sexual-health' || r.category === 'stis-hiv' || (r.category as string) === 'sexual-reproductive-health' || r.tags?.some(tag => 
-            ['sexual health', 'reproductive', 'contraception', 'std', 'sti'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'substance-abuse') {
-          return r.category === 'substance-abuse' || r.tags?.some(tag => 
-            ['substance', 'drug', 'alcohol', 'addiction', 'recovery'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'academic-life-skills') {
-          return r.category === 'academic' || (r.category as string) === 'academic-life-skills' || r.tags?.some(tag => 
-            ['academic', 'study', 'skills', 'life skills', 'career'].includes(tag.toLowerCase())
-          );
-        }
-        if (selectedCategory === 'university-support') {
-          return (r.category as string) === 'university-support' || r.tags?.some(tag => 
-            ['university', 'policy', 'support', 'services'].includes(tag.toLowerCase())
-          );
-        }
-        // Default: match category or resource type
         return r.category === selectedCategory || r.resourceType === selectedCategory;
       });
     }
@@ -333,13 +286,7 @@ export default function ResourcesScreen() {
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const isFavorite = favorites.has(item.id);
     const typeColor = getResourceTypeColor(item.resourceType, colors);
-    // Enhanced thumbnail detection - check for thumbnail URL or use resource URL for images/videos
-    const hasThumbnail = item.thumbnailUrl || 
-      ((item.resourceType === 'image' || item.resourceType === 'infographic' || 
-        item.resourceType === 'video' || item.resourceType === 'short-video') && 
-       (item.url || item.filePath));
-    const thumbnailUri = item.thumbnailUrl || 
-      ((item.resourceType === 'image' || item.resourceType === 'infographic') ? (item.url || item.filePath) : item.thumbnailUrl);
+    const hasThumbnail = item.thumbnailUrl && (item.resourceType === 'image' || item.resourceType === 'infographic' || item.resourceType === 'video' || item.resourceType === 'short-video');
 
     return (
       <TouchableOpacity
@@ -353,17 +300,13 @@ export default function ResourcesScreen() {
       >
         {/* Thumbnail or Icon Header */}
         <View style={styles.cardHeader}>
-          {hasThumbnail && thumbnailUri ? (
+          {hasThumbnail ? (
             <ExpoImage
-              source={{ uri: thumbnailUri }}
+              source={{ uri: item.thumbnailUrl }}
               style={styles.cardThumbnail}
               contentFit="cover"
               transition={200}
               cachePolicy="memory-disk"
-              placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
-              onError={(error) => {
-                console.log('Thumbnail load error:', error);
-              }}
             />
           ) : (
             <LinearGradient
@@ -984,10 +927,5 @@ const styles = StyleSheet.create({
     padding: Spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  uploadButton: {
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    marginLeft: Spacing.sm,
   },
 });

@@ -4,14 +4,16 @@
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Post } from '@/app/types';
 import { getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getPosts, updatePost } from '@/lib/database';
-import { RealtimeChannel, subscribeToEscalations, subscribeToPostChanges, unsubscribe } from '@/lib/realtime';
+import { subscribeToEscalations, subscribeToPostChanges, unsubscribe } from '@/lib/realtime';
 import { MaterialIcons } from '@expo/vector-icons';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -42,6 +44,7 @@ export default function EscalationsScreen() {
   const [escalatedPosts, setEscalatedPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
   const escalationsChannelRef = useRef<RealtimeChannel | null>(null);
+  const postChangesChannelRef = useRef<RealtimeChannel | null>(null);
   
   // Early return for loading
   if (loading) {
@@ -59,6 +62,9 @@ export default function EscalationsScreen() {
     return () => {
       if (escalationsChannelRef.current) {
         unsubscribe(escalationsChannelRef.current);
+      }
+      if (postChangesChannelRef.current) {
+        unsubscribe(postChangesChannelRef.current);
       }
     };
   }, [filter]);
@@ -84,6 +90,7 @@ export default function EscalationsScreen() {
     });
 
     escalationsChannelRef.current = escalationsChannel;
+    postChangesChannelRef.current = postChangesChannel;
   };
 
   const loadEscalations = async () => {
@@ -209,10 +216,11 @@ export default function EscalationsScreen() {
             <WebCard
               key={post.id}
               hoverable
-              style={[
-                styles.postCard,
-                { borderLeftWidth: 4, borderLeftColor: getEscalationColor(post.escalationLevel) },
-              ]}
+              style={{
+                ...styles.postCard,
+                borderLeftWidth: 4,
+                borderLeftColor: getEscalationColor(post.escalationLevel),
+              }}
             >
               <View style={styles.postHeader}>
                 <View style={[

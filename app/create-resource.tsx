@@ -10,24 +10,27 @@ import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { PostCategory } from '@/app/types';
 import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { usePermissionGuard } from '@/hooks/use-auth-guard';
+import { getCurrentUser } from '@/lib/auth';
 import { createResource } from '@/lib/database';
 import { canCreateResources, UserRole } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Animated,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -57,26 +60,82 @@ export default function CreateResourceScreen() {
   const [tagInput, setTagInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ uri: string; name: string; type: string } | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<Array<{ uri: string; name: string }>>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAnimation] = useState(new Animated.Value(0));
+  const [user, setUser] = useState<any>(null);
+  const [permissionLoading, setPermissionLoading] = useState(true);
 
-  // Use permission guard to ensure only authorized roles can access
-  const { user, loading: permissionLoading } = usePermissionGuard('canCreateResources', '/(tabs)/resources');
+  // Load user and check permissions
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        console.log('[CreateResource] Current user:', currentUser);
+        
+        if (!currentUser) {
+          console.log('[CreateResource] No user found, redirecting');
+          Alert.alert('Access Denied', 'Please log in to upload resources.', [
+            { text: 'OK', onPress: () => router.replace('/(tabs)/resources') }
+          ]);
+          return;
+        }
+
+        console.log('[CreateResource] User role:', currentUser.role);
+        const hasPermission = canCreateResources(currentUser.role as UserRole);
+        console.log('[CreateResource] Has permission:', hasPermission);
+
+        // Check if user has permission to create resources
+        if (!hasPermission) {
+          console.log('[CreateResource] Permission denied, redirecting');
+          Alert.alert(
+            'Access Denied',
+            `You don't have permission to upload resources. Required roles: peer-educator-executive, student-affairs, or admin.`,
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)/resources') }]
+          );
+          return;
+        }
+
+        console.log('[CreateResource] Permission granted, setting user');
+        setUser(currentUser);
+      } catch (error) {
+        console.error('[CreateResource] Error checking access:', error);
+        Alert.alert('Error', 'Failed to verify permissions. Please try again.', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)/resources') }
+        ]);
+      } finally {
+        setPermissionLoading(false);
+      }
+    };
+
+    checkAccess();
+  }, []);
 
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
+        allowsMultipleSelection: true,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setUploadedImage(result.assets[0].uri);
-        setUploadedFile({
-          uri: result.assets[0].uri,
-          name: result.assets[0].fileName || 'image.jpg',
-          type: 'image',
-        });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newImages = result.assets.map((asset) => ({
+          uri: asset.uri,
+          name: asset.fileName || `image_${Date.now()}.jpg`,
+        }));
+        setUploadedImages([...uploadedImages, ...newImages]);
+        
+        // Set first image as the main uploaded file for backward compatibility
+        if (newImages.length > 0) {
+          setUploadedFile({
+            uri: newImages[0].uri,
+            name: newImages[0].name,
+            type: 'image',
+          });
+        }
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -84,44 +143,59 @@ export default function CreateResourceScreen() {
     }
   };
 
-  const handlePickDocument = async () => {
-    try {
-      // For PDFs and other documents, we'll use image picker with all media types
-      // or prompt user to provide URL instead
-      Alert.alert(
-        'File Upload',
-        'For PDFs and documents, please provide a URL link to the file, or use the image picker for images.',
-        [
-          { text: 'Use URL Instead', style: 'cancel' },
-          {
-            text: 'Pick Image',
-            onPress: async () => {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.All,
-                allowsEditing: false,
-                quality: 1,
-              });
-              if (!result.canceled && result.assets[0]) {
-                setUploadedFile({
-                  uri: result.assets[0].uri,
-                  name: result.assets[0].fileName || 'file',
-                  type: result.assets[0].mimeType || 'application/octet-stream',
-                });
-                if (result.assets[0].type === 'image') {
-                  setUploadedImage(result.assets[0].uri);
-                }
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to pick document');
+  const removeImage = (index: number) => {
+    const newImages = uploadedImages.filter((_, i) => i !== index);
+    setUploadedImages(newImages);
+    if (newImages.length > 0) {
+      setUploadedFile({
+        uri: newImages[0].uri,
+        name: newImages[0].name,
+        type: 'image',
+      });
+    } else {
+      setUploadedFile(null);
     }
   };
 
-  const uploadFile = async (fileUri: string, fileName: string, fileType: string): Promise<string | null> => {
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        const fileType = file.mimeType || 'application/octet-stream';
+        
+        setUploadedFile({
+          uri: file.uri,
+          name: file.name || 'document',
+          type: fileType,
+        });
+
+        // If it's an image, also set the image preview
+        if (fileType.startsWith('image/')) {
+          setUploadedImage(file.uri);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document. Please try again.');
+    }
+  };
+
+  const uploadFile = async (
+    fileUri: string,
+    fileName: string,
+    fileType: string,
+    onProgress?: (progress: number) => void
+  ): Promise<string | null> => {
     try {
       const fileExt = fileName.split('.').pop();
       const filePath = `resources/${Date.now()}_${fileName}`;
@@ -130,7 +204,7 @@ export default function CreateResourceScreen() {
       const response = await fetch(fileUri);
       const blob = await response.blob();
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage with progress tracking
       const { data, error } = await supabase.storage
         .from('resources')
         .upload(filePath, blob, {
@@ -139,6 +213,11 @@ export default function CreateResourceScreen() {
         });
 
       if (error) throw error;
+
+      // Simulate progress for better UX (Supabase doesn't provide native progress)
+      if (onProgress) {
+        onProgress(100);
+      }
 
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -198,14 +277,58 @@ export default function CreateResourceScreen() {
       let filePath: string | undefined;
       let thumbnailUrl: string | undefined;
 
-      // Upload file if provided
-      if (uploadedFile) {
-        const uploadedUrl = await uploadFile(uploadedFile.uri, uploadedFile.name, uploadedFile.type);
+      setUploadProgress(0);
+      let filePath: string | undefined;
+      let thumbnailUrl: string | undefined;
+
+      // Upload single file if provided (non-image or single image)
+      if (uploadedFile && uploadedImages.length === 0) {
+        setUploadProgress(10);
+        const uploadedUrl = await uploadFile(
+          uploadedFile.uri,
+          uploadedFile.name,
+          uploadedFile.type,
+          (progress) => setUploadProgress(10 + (progress * 0.4)) // 10-50%
+        );
         if (uploadedUrl) {
           filePath = uploadedUrl;
           if (uploadedFile.type.startsWith('image/')) {
             thumbnailUrl = uploadedUrl;
           }
+        }
+      }
+
+      // Upload multiple images if provided
+      if (uploadedImages.length > 0) {
+        setUploadProgress(10);
+        const totalImages = uploadedImages.length;
+        const uploadedUrls: string[] = [];
+        
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const image = uploadedImages[i];
+          const progressStart = 10 + (i / totalImages) * 40;
+          const progressEnd = 10 + ((i + 1) / totalImages) * 40;
+          
+          const uploadedUrl = await uploadFile(
+            image.uri,
+            image.name,
+            'image/jpeg',
+            (progress) => setUploadProgress(progressStart + (progress / 100) * (progressEnd - progressStart))
+          );
+          
+          if (uploadedUrl) {
+            uploadedUrls.push(uploadedUrl);
+            if (i === 0) {
+              filePath = uploadedUrl;
+              thumbnailUrl = uploadedUrl;
+            }
+          }
+        }
+        
+        // Store multiple image URLs in tags
+        if (uploadedUrls.length > 1) {
+          filePath = uploadedUrls[0];
+          thumbnailUrl = uploadedUrls[0];
         }
       }
 
@@ -223,6 +346,7 @@ export default function CreateResourceScreen() {
         resourceTags.push(`type:${selectedResourceType}`);
       }
 
+      setUploadProgress(50);
       const resourceData = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -234,44 +358,55 @@ export default function CreateResourceScreen() {
         createdBy: user.id,
       };
 
+      setUploadProgress(60);
       await createResource(resourceData);
+      setUploadProgress(100);
 
-      Alert.alert(
-        'Success',
-        'Resource created successfully! It will be reviewed before being published.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/resources' as any);
-              }
-            },
-          },
-        ]
-      );
+      // Show success animation
+      setShowSuccess(true);
+      Animated.sequence([
+        Animated.timing(successAnimation, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1500),
+        Animated.timing(successAnimation, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowSuccess(false);
+        // Auto-redirect to resources screen
+        router.replace('/(tabs)/resources' as any);
+      });
     } catch (error: any) {
       console.error('Error creating resource:', error);
       Alert.alert('Error', error.message || 'Failed to create resource. Please try again.');
+      setUploadProgress(0);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Show loading while checking permissions
-  if (permissionLoading || !user) {
+  if (permissionLoading) {
     return (
       <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <ThemedView style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
-            Checking permissions...
+            Loading...
           </ThemedText>
         </ThemedView>
       </SafeAreaView>
     );
+  }
+
+  // If no user after loading, they've been redirected
+  if (!user) {
+    return null;
   }
 
   // Double-check permission (should not reach here if guard works, but extra safety)
@@ -424,7 +559,7 @@ export default function CreateResourceScreen() {
                         fontWeight: '600',
                       }}
                     >
-                      {cat.label}
+                      {cat.name}
                     </ThemedText>
                   </TouchableOpacity>
                 ))}
@@ -456,26 +591,39 @@ export default function CreateResourceScreen() {
                   Upload File {needsUrl ? '(Optional)' : '*'}
                 </ThemedText>
                 {selectedResourceType === 'image' ? (
-                  <TouchableOpacity
-                    style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                    onPress={handlePickImage}
-                  >
-                    {uploadedImage ? (
-                      <View style={styles.uploadedFileContainer}>
-                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
-                          Image selected
-                        </ThemedText>
-                      </View>
-                    ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      onPress={handlePickImage}
+                    >
                       <View style={styles.uploadButtonContent}>
                         <Ionicons name="image-outline" size={24} color={colors.icon} />
                         <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
-                          Pick Image
+                          {uploadedImages.length > 0 ? `Add More Images (${uploadedImages.length} selected)` : 'Pick Images'}
                         </ThemedText>
                       </View>
+                    </TouchableOpacity>
+                    {uploadedImages.length > 0 && (
+                      <View style={styles.imagesGrid}>
+                        {uploadedImages.map((image, index) => (
+                          <View key={index} style={styles.imagePreviewContainer}>
+                            <ExpoImage
+                              source={{ uri: image.uri }}
+                              style={styles.imagePreview}
+                              contentFit="cover"
+                              transition={200}
+                            />
+                            <TouchableOpacity
+                              style={styles.removeImageButton}
+                              onPress={() => removeImage(index)}
+                            >
+                              <Ionicons name="close-circle" size={24} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
                     )}
-                  </TouchableOpacity>
+                  </>
                 ) : (
                   <TouchableOpacity
                     style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}

@@ -34,12 +34,12 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isPlaying = status?.isLoaded && status.isPlaying;
-  const duration = status?.isLoaded ? status.durationMillis : 0;
+  const duration = status?.isLoaded ? status.durationMillis : undefined;
   const position = status?.isLoaded ? status.positionMillis : 0;
-  const progress = duration > 0 ? position / duration : 0;
+  const progress = duration && duration > 0 ? position / duration : 0;
 
   useEffect(() => {
     // Auto-hide controls after 3 seconds when playing
@@ -200,6 +200,7 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
               <TouchableOpacity
                 style={styles.progressBarContainer}
                 onPress={(e) => {
+                  if (!duration) return;
                   const { locationX } = e.nativeEvent;
                   const width = Dimensions.get('window').width - 120;
                   const newPosition = (locationX / width) * duration;
@@ -218,7 +219,7 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
               </TouchableOpacity>
 
               <ThemedText style={[styles.timeText, { color: '#FFFFFF' }]}>
-                {formatTime(duration)}
+                {formatTime(duration || 0)}
               </ThemedText>
             </View>
           </View>

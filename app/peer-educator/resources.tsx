@@ -2,37 +2,39 @@
  * Resource Library - All resources for peer educators
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { PostCategory } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getResourceIconMaterial, mapResourceFromDB } from '@/app/utils/resource-utils';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getResources } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  RefreshControl,
   Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import { getResources } from '@/lib/database';
-import { PostCategory } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Resource {
   id: string;
   title: string;
   description: string;
   category: PostCategory;
-  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training' | 'short-article' | 'short-video' | 'infographic' | 'image';
   url?: string;
+  filePath?: string;
+  thumbnailUrl?: string;
   tags: string[];
   bookmarked: boolean;
 }
@@ -69,19 +71,17 @@ export default function ResourcesScreen() {
 
   const loadResources = async () => {
     try {
-      const allResources = await getResources();
+      const allResources = await getResources({ approved: true });
       
-      // Map database resources to app format
-      const mappedResources: Resource[] = allResources.map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        category: r.category,
-        resourceType: r.resource_type,
-        url: r.url || undefined,
-        tags: r.tags || [],
-        bookmarked: bookmarkedIds.has(r.id),
-      }));
+      // Map database resources to app format using shared utility
+      const mappedResources: Resource[] = allResources.map((r: any) => {
+        const mapped = mapResourceFromDB(r);
+        return {
+          ...mapped,
+          description: mapped.description ?? '',
+          bookmarked: bookmarkedIds.has(r.id),
+        } as Resource;
+      });
 
       setResources(mappedResources);
     } catch (error) {
@@ -155,26 +155,12 @@ export default function ResourcesScreen() {
   };
 
   const handleResourcePress = (resource: Resource) => {
-    if (resource.url) {
-      // TODO: Open resource URL or viewer
-      Alert.alert('Resource', `Opening ${resource.title}`);
-    }
+    // Navigate to resource detail screen which handles all viewing
+    router.push(`/resource/${resource.id}`);
   };
 
-  const getResourceIcon = (type: string) => {
-    switch (type) {
-      case 'video':
-        return 'play-circle-filled';
-      case 'pdf':
-        return 'picture-as-pdf';
-      case 'link':
-        return 'link';
-      case 'training':
-        return 'school';
-      default:
-        return 'article';
-    }
-  };
+  // Use shared utility function for MaterialIcons
+  const getResourceIcon = (type: string) => getResourceIconMaterial(type);
 
   const getResourceColor = (type: string) => {
     switch (type) {

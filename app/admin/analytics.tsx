@@ -636,9 +636,8 @@ const styles = StyleSheet.create({
   },
   overviewSection: {
     ...(isWeb ? {
-      // @ts-ignore - Web-specific CSS grid
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      display: 'grid' as any,
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' as any,
       gap: Spacing.lg,
     } : {
       flexDirection: 'row',
@@ -646,7 +645,7 @@ const styles = StyleSheet.create({
       gap: Spacing.md,
     }),
     marginBottom: Spacing.xl,
-  },
+  } as any,
   overviewCard: {
     ...(isWeb ? {} : {
       width: '48%',

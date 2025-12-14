@@ -666,9 +666,8 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     ...(isWeb ? {
-      // @ts-ignore - Web-specific CSS grid
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      display: 'grid' as any,
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' as any,
       gap: Spacing.lg,
     } : {
       flexDirection: 'row',
@@ -676,7 +675,7 @@ const styles = StyleSheet.create({
       gap: Spacing.md,
     }),
     marginBottom: Spacing.xl,
-  },
+  } as any,
   statCard: {
     ...(isWeb ? {} : {
       width: '48%',
@@ -801,16 +800,15 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     ...(isWeb ? {
-      // @ts-ignore - Web-specific CSS grid
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      display: 'grid' as any,
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' as any,
       gap: Spacing.lg,
     } : {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: Spacing.md,
     }),
-  },
+  } as any,
   actionButton: {
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,

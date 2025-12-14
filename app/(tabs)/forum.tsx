@@ -12,8 +12,9 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { PostCategory } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getTopicStats, TopicStats } from '@/lib/database';
-import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
+import { subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -163,9 +164,35 @@ export default function ForumScreen() {
 
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new posts to update stats in real-time
-    const newPostsChannel = subscribeToPosts(() => {
-      // Refresh stats when new posts are created
-      loadTopicStats();
+    const newPostsChannel = subscribeToPosts((newPost) => {
+      // Optimistically update stats for the category of the new post immediately
+      setTopicStats((prevStats) => {
+        const categoryExists = prevStats.some((stat) => stat.category === newPost.category);
+        
+        if (categoryExists) {
+          // Update existing category stats
+          return prevStats.map((stat) => {
+            if (stat.category === newPost.category) {
+              return {
+                ...stat,
+                memberCount: stat.memberCount + 1,
+                recentPostCount: stat.recentPostCount + 1,
+              };
+            }
+            return stat;
+          });
+        } else {
+          // If category doesn't exist in stats yet, refresh to get accurate data
+          loadTopicStats();
+          return prevStats;
+        }
+      });
+      
+      // Refresh stats in background to ensure accuracy (but UI already updated)
+      // Use a small delay to avoid race conditions
+      setTimeout(() => {
+        loadTopicStats();
+      }, 500);
     });
 
     postsChannelRef.current = newPostsChannel;

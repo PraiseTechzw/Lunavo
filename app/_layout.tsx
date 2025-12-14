@@ -367,12 +367,6 @@ export default function RootLayout() {
         }} 
       />
       <Stack.Screen 
-        name="meetings" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
         name="accessibility-settings" 
         options={{ 
           headerShown: false,

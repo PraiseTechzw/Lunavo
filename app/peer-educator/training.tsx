@@ -19,6 +19,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getResourceIconMaterial } from '../utils/resource-utils';
 
 interface TrainingResource {
   id: string;
@@ -117,7 +118,7 @@ export default function TrainingScreen() {
     Alert.alert('Training Resource', `Opening ${resource.title}`);
   };
 
-  const getResourceIcon = (type: string) => {
+  const getResourceIcon = (type: string) => getResourceIconMaterial(type);
     switch (type) {
       case 'video':
         return 'play-circle-filled';

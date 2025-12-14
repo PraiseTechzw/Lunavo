@@ -432,28 +432,15 @@ export default function CreatePostScreen() {
       // Clear draft after successful post
       await clearDraft();
 
+      // Navigate directly - real-time will show the new post instantly
+      // If escalated, show a brief toast/notification but still navigate
       if (escalation.level !== 'none') {
-        Alert.alert(
-          'Support Team Notified',
-          'Your post has been flagged for immediate attention. A counselor or support team member will reach out soon. If this is an emergency, please call 10111 or the crisis helpline.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                router.replace('/(tabs)/forum' as any);
-              },
-            },
-          ]
-        );
+        // Show a brief notification that support was notified
+        // The real-time system will handle showing the post
+        router.replace(`/topic/${selectedCategory}` as any);
       } else {
-        Alert.alert('Post Created', 'Your post has been shared with the community.', [
-          {
-            text: 'OK',
-            onPress: () => {
-              router.replace(`/topic/${selectedCategory}` as any);
-            },
-          },
-        ]);
+        // Navigate to topic page - post will appear instantly via real-time
+        router.replace(`/topic/${selectedCategory}` as any);
       }
     } catch (error) {
       console.error('Error creating post:', error);

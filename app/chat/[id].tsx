@@ -135,9 +135,17 @@ export default function ChatDetailScreen() {
     // Subscribe to new messages
     const messagesChannel = subscribeToMessages(conversation.id, (newMessage) => {
       setMessages((prev) => {
-        // Avoid duplicates
-        if (prev.some(m => m.id === newMessage.id)) {
-          return prev;
+        // Check if message already exists (avoid duplicates)
+        const exists = prev.some(m => m.id === newMessage.id || (m.id.startsWith('temp_') && m.content === newMessage.content && m.senderId === newMessage.senderId));
+        if (exists) {
+          // Replace optimistic message with real one
+          return prev.map((m) => 
+            (m.id.startsWith('temp_') && m.content === newMessage.content && m.senderId === newMessage.senderId) 
+              ? newMessage 
+              : m
+          ).filter((m, index, self) => 
+            index === self.findIndex((msg) => msg.id === m.id)
+          );
         }
         return [...prev, newMessage];
       });
@@ -241,6 +249,8 @@ export default function ChatDetailScreen() {
     const messageText = inputText.trim();
     setInputText('');
 
+    let tempId: string | null = null;
+
     try {
       // Send typing indicator stop
       if (typingTimeoutRef.current) {
@@ -252,13 +262,50 @@ export default function ChatDetailScreen() {
         console.warn('Failed to set typing indicator:', error);
       }
 
-      // Create message
+      // Get user info for optimistic message
+      const user = await getCurrentUser();
+      const senderPseudonym = user?.pseudonym || 'You';
+
+      // Create optimistic message
+      tempId = `temp_${Date.now()}`;
+      const optimisticMessage: Message = {
+        id: tempId,
+        conversationId: conversation.id,
+        senderId: currentUserId,
+        senderPseudonym,
+        senderRole: user?.role,
+        content: messageText,
+        messageType: 'text',
+        status: 'sending',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Add optimistic message immediately
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Create message in database (will trigger real-time event)
       await createMessage({
         conversationId: conversation.id,
         senderId: currentUserId,
         content: messageText,
         messageType: 'text',
       });
+
+      // Real-time subscription will replace optimistic message with real one
+      // If real-time doesn't fire within 2 seconds, update status to sent
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId ? { ...msg, status: 'sent' } : msg
+          )
+        );
+      }, 2000);
 
       // Mark messages as read for current user
       try {
@@ -268,6 +315,10 @@ export default function ChatDetailScreen() {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      if (tempId) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      }
       // Restore input on error
       setInputText(messageText);
     } finally {
