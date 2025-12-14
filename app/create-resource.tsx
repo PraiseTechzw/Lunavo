@@ -15,22 +15,22 @@ import { createResource } from '@/lib/database';
 import { canCreateResources, UserRole } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
 import * as DocumentPicker from 'expo-document-picker';
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
