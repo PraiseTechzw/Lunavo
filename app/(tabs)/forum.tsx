@@ -12,12 +12,14 @@ import { PostCategory } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getTopicStats, TopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
+import { FAB as FABButton } from '@/app/components/navigation/fab-button';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   TextInput,
@@ -329,6 +331,17 @@ export default function ForumScreen() {
                 </ThemedText>
               </View>
             }
+          />
+        )}
+        
+        {/* FAB - Create Post (Mobile Only) */}
+        {Platform.OS !== 'web' && (
+          <FABButton
+            icon="add"
+            label="Create Post"
+            onPress={() => router.push('/create-post')}
+            position="bottom-right"
+            color={colors.primary}
           />
         )}
       </ThemedView>

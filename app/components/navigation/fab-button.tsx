@@ -19,6 +19,7 @@ interface FABProps {
 }
 
 export function FAB({ icon, label, onPress, position = 'bottom-right', color }: FABProps) {
+  // Export as both named and default for flexibility
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const fabColor = color || colors.primary;
