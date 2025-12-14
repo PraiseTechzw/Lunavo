@@ -6,7 +6,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CATEGORY_LIST } from '@/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/auth';
 import { createResource } from '@/lib/database';
@@ -459,15 +459,24 @@ export default function CreateResourceScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Header */}
+        {/* Enhanced Header */}
         <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={[styles.backButton, { backgroundColor: colors.surface }, getCursorStyle()]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Upload Resource
-          </ThemedText>
-          <View style={{ width: 24 }} />
+          <View style={styles.headerContent}>
+            <ThemedText type="h2" style={styles.headerTitle}>
+              Upload Resource
+            </ThemedText>
+            <ThemedText type="caption" style={[styles.headerSubtitle, { color: colors.icon }]}>
+              Share valuable resources with the community
+            </ThemedText>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
 
         <KeyboardAvoidingView
@@ -482,45 +491,80 @@ export default function CreateResourceScreen() {
           >
             {/* Title */}
             <View style={styles.section}>
-              <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                Title *
-              </ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                placeholder="Enter resource title"
-                placeholderTextColor={colors.icon}
-                value={title}
-                onChangeText={setTitle}
-                maxLength={200}
-              />
+              <View style={styles.labelContainer}>
+                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                  Title
+                </ThemedText>
+                <ThemedText type="small" style={[styles.required, { color: colors.danger }]}>
+                  *
+                </ThemedText>
+              </View>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Ionicons name="text-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Enter resource title"
+                  placeholderTextColor={colors.icon}
+                  value={title}
+                  onChangeText={setTitle}
+                  maxLength={200}
+                />
+                {title.length > 0 && (
+                  <ThemedText type="small" style={[styles.charCount, { color: colors.icon }]}>
+                    {title.length}/200
+                  </ThemedText>
+                )}
+              </View>
             </View>
 
             {/* Description */}
             <View style={styles.section}>
-              <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                Description
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.textArea,
-                  { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
-                ]}
-                placeholder="Enter resource description"
-                placeholderTextColor={colors.icon}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                maxLength={1000}
-              />
+              <View style={styles.labelContainer}>
+                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                  Description
+                </ThemedText>
+                <ThemedText type="small" style={[styles.optional, { color: colors.icon }]}>
+                  Optional
+                </ThemedText>
+              </View>
+              <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.textArea, { color: colors.text }]}
+                  placeholder="Provide a brief description of the resource..."
+                  placeholderTextColor={colors.icon}
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={1000}
+                  textAlignVertical="top"
+                />
+                {description.length > 0 && (
+                  <View style={styles.charCountContainer}>
+                    <ThemedText type="small" style={[styles.charCount, { color: colors.icon }]}>
+                      {description.length}/1000
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
 
             {/* Resource Type */}
             <View style={styles.section}>
-              <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                Resource Type *
-              </ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+              <View style={styles.labelContainer}>
+                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                  Resource Type
+                </ThemedText>
+                <ThemedText type="small" style={[styles.required, { color: colors.danger }]}>
+                  *
+                </ThemedText>
+              </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={styles.typeScroll}
+                contentContainerStyle={styles.typeScrollContent}
+              >
                 {resourceTypes.map((type) => (
                   <TouchableOpacity
                     key={type.id}
@@ -529,21 +573,28 @@ export default function CreateResourceScreen() {
                       {
                         backgroundColor: selectedResourceType === type.id ? colors.primary : colors.surface,
                         borderColor: selectedResourceType === type.id ? colors.primary : colors.border,
+                        ...(selectedResourceType === type.id ? PlatformStyles.shadow : {}),
                       },
                     ]}
                     onPress={() => setSelectedResourceType(type.id)}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons
-                      name={type.icon as any}
-                      size={20}
-                      color={selectedResourceType === type.id ? '#FFFFFF' : colors.icon}
-                    />
+                    <View style={[
+                      styles.typeIconContainer,
+                      { backgroundColor: selectedResourceType === type.id ? 'rgba(255,255,255,0.2)' : 'transparent' }
+                    ]}>
+                      <Ionicons
+                        name={type.icon as any}
+                        size={22}
+                        color={selectedResourceType === type.id ? '#FFFFFF' : colors.icon}
+                      />
+                    </View>
                     <ThemedText
                       type="small"
                       style={{
                         color: selectedResourceType === type.id ? '#FFFFFF' : colors.text,
-                        marginLeft: Spacing.xs,
-                        fontWeight: '600',
+                        marginLeft: Spacing.sm,
+                        fontWeight: selectedResourceType === type.id ? '700' : '600',
                       }}
                     >
                       {type.label}
@@ -555,10 +606,20 @@ export default function CreateResourceScreen() {
 
             {/* Category */}
             <View style={styles.section}>
-              <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                Category *
-              </ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+              <View style={styles.labelContainer}>
+                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                  Category
+                </ThemedText>
+                <ThemedText type="small" style={[styles.required, { color: colors.danger }]}>
+                  *
+                </ThemedText>
+              </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryScrollContent}
+              >
                 {CATEGORY_LIST.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
@@ -567,15 +628,17 @@ export default function CreateResourceScreen() {
                       {
                         backgroundColor: selectedCategory === cat.id ? colors.primary : colors.surface,
                         borderColor: selectedCategory === cat.id ? colors.primary : colors.border,
+                        ...(selectedCategory === cat.id ? PlatformStyles.shadow : {}),
                       },
                     ]}
                     onPress={() => setSelectedCategory(cat.id)}
+                    activeOpacity={0.7}
                   >
                     <ThemedText
                       type="small"
                       style={{
                         color: selectedCategory === cat.id ? '#FFFFFF' : colors.text,
-                        fontWeight: '600',
+                        fontWeight: selectedCategory === cat.id ? '700' : '600',
                       }}
                     >
                       {cat.name}
@@ -588,38 +651,75 @@ export default function CreateResourceScreen() {
             {/* URL Input */}
             {needsUrl && (
               <View style={styles.section}>
-                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                  URL {needsFileUpload ? '(Optional)' : '*'}
-                </ThemedText>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                  placeholder="https://example.com/resource"
-                  placeholderTextColor={colors.icon}
-                  value={url}
-                  onChangeText={setUrl}
-                  keyboardType="url"
-                  autoCapitalize="none"
-                />
+                <View style={styles.labelContainer}>
+                  <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                    URL
+                  </ThemedText>
+                  {needsFileUpload ? (
+                    <ThemedText type="small" style={[styles.optional, { color: colors.icon }]}>
+                      Optional
+                    </ThemedText>
+                  ) : (
+                    <ThemedText type="small" style={[styles.required, { color: colors.danger }]}>
+                      *
+                    </ThemedText>
+                  )}
+                </View>
+                <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Ionicons name="link-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="https://example.com/resource"
+                    placeholderTextColor={colors.icon}
+                    value={url}
+                    onChangeText={setUrl}
+                    keyboardType="url"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
               </View>
             )}
 
             {/* File Upload */}
             {needsFileUpload && (
               <View style={styles.section}>
-                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                  Upload File {needsUrl ? '(Optional)' : '*'}
-                </ThemedText>
+                <View style={styles.labelContainer}>
+                  <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                    Upload File
+                  </ThemedText>
+                  {needsUrl ? (
+                    <ThemedText type="small" style={[styles.optional, { color: colors.icon }]}>
+                      Optional
+                    </ThemedText>
+                  ) : (
+                    <ThemedText type="small" style={[styles.required, { color: colors.danger }]}>
+                      *
+                    </ThemedText>
+                  )}
+                </View>
                 {selectedResourceType === 'image' ? (
                   <>
                     <TouchableOpacity
                       style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                       onPress={handlePickImage}
+                      activeOpacity={0.7}
                     >
                       <View style={styles.uploadButtonContent}>
-                        <Ionicons name="image-outline" size={24} color={colors.icon} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
-                          {uploadedImages.length > 0 ? `Add More Images (${uploadedImages.length} selected)` : 'Pick Images'}
-                        </ThemedText>
+                        <View style={[styles.uploadIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                          <Ionicons name="image-outline" size={28} color={colors.primary} />
+                        </View>
+                        <View style={styles.uploadTextContainer}>
+                          <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                            {uploadedImages.length > 0 ? `Add More Images` : 'Pick Images'}
+                          </ThemedText>
+                          {uploadedImages.length > 0 && (
+                            <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                              {uploadedImages.length} {uploadedImages.length === 1 ? 'image' : 'images'} selected
+                            </ThemedText>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                       </View>
                     </TouchableOpacity>
                     {uploadedImages.length > 0 && (
@@ -647,26 +747,42 @@ export default function CreateResourceScreen() {
                   <TouchableOpacity
                     style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     onPress={handlePickVideo}
+                    activeOpacity={0.7}
                   >
                     {uploadedFile ? (
                       <View style={styles.uploadedFileContainer}>
-                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }} numberOfLines={1}>
-                          {uploadedFile.name}
-                        </ThemedText>
+                        <View style={[styles.uploadIconContainer, { backgroundColor: colors.success + '15' }]}>
+                          <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                        </View>
+                        <View style={styles.uploadedFileInfo}>
+                          <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }} numberOfLines={1}>
+                            {uploadedFile.name}
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                            Video file selected
+                          </ThemedText>
+                        </View>
                         <TouchableOpacity
                           onPress={() => setUploadedFile(null)}
-                          style={{ marginLeft: Spacing.sm }}
+                          style={styles.removeFileButton}
                         >
-                          <Ionicons name="close-circle" size={20} color={colors.danger} />
+                          <Ionicons name="close-circle" size={24} color={colors.danger} />
                         </TouchableOpacity>
                       </View>
                     ) : (
                       <View style={styles.uploadButtonContent}>
-                        <Ionicons name="videocam-outline" size={24} color={colors.icon} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
-                          Pick Video from Gallery
-                        </ThemedText>
+                        <View style={[styles.uploadIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                          <Ionicons name="videocam-outline" size={28} color={colors.primary} />
+                        </View>
+                        <View style={styles.uploadTextContainer}>
+                          <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                            Pick Video from Gallery
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                            Select a video file
+                          </ThemedText>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -674,26 +790,42 @@ export default function CreateResourceScreen() {
                   <TouchableOpacity
                     style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     onPress={handlePickDocument}
+                    activeOpacity={0.7}
                   >
                     {uploadedFile ? (
                       <View style={styles.uploadedFileContainer}>
-                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }} numberOfLines={1}>
-                          {uploadedFile.name}
-                        </ThemedText>
+                        <View style={[styles.uploadIconContainer, { backgroundColor: colors.success + '15' }]}>
+                          <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                        </View>
+                        <View style={styles.uploadedFileInfo}>
+                          <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }} numberOfLines={1}>
+                            {uploadedFile.name}
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                            Document file selected
+                          </ThemedText>
+                        </View>
                         <TouchableOpacity
                           onPress={() => setUploadedFile(null)}
-                          style={{ marginLeft: Spacing.sm }}
+                          style={styles.removeFileButton}
                         >
-                          <Ionicons name="close-circle" size={20} color={colors.danger} />
+                          <Ionicons name="close-circle" size={24} color={colors.danger} />
                         </TouchableOpacity>
                       </View>
                     ) : (
                       <View style={styles.uploadButtonContent}>
-                        <Ionicons name="document-attach-outline" size={24} color={colors.icon} />
-                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
-                          Pick File
-                        </ThemedText>
+                        <View style={[styles.uploadIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                          <Ionicons name="document-attach-outline" size={28} color={colors.primary} />
+                        </View>
+                        <View style={styles.uploadTextContainer}>
+                          <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                            Pick File
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                            PDF, Word, or other documents
+                          </ThemedText>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -703,27 +835,34 @@ export default function CreateResourceScreen() {
 
             {/* Tags */}
             <View style={styles.section}>
-              <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
-                Tags
-              </ThemedText>
+              <View style={styles.labelContainer}>
+                <ThemedText type="h3" style={[styles.label, { color: colors.text }]}>
+                  Tags
+                </ThemedText>
+                <ThemedText type="small" style={[styles.optional, { color: colors.icon }]}>
+                  Optional
+                </ThemedText>
+              </View>
               <View style={styles.tagInputContainer}>
-                <TextInput
-                  style={[
-                    styles.tagInput,
-                    { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
-                  ]}
-                  placeholder="Add a tag"
-                  placeholderTextColor={colors.icon}
-                  value={tagInput}
-                  onChangeText={setTagInput}
-                  onSubmitEditing={addTag}
-                  returnKeyType="done"
-                />
+                <View style={[styles.tagInputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Ionicons name="pricetag-outline" size={18} color={colors.icon} style={styles.tagInputIcon} />
+                  <TextInput
+                    style={[styles.tagInput, { color: colors.text }]}
+                    placeholder="Add a tag and press enter"
+                    placeholderTextColor={colors.icon}
+                    value={tagInput}
+                    onChangeText={setTagInput}
+                    onSubmitEditing={addTag}
+                    returnKeyType="done"
+                  />
+                </View>
                 <TouchableOpacity
                   style={[styles.addTagButton, { backgroundColor: colors.primary }]}
                   onPress={addTag}
+                  activeOpacity={0.7}
+                  disabled={!tagInput.trim()}
                 >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Ionicons name="add" size={22} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
               {tags.length > 0 && (
@@ -731,13 +870,13 @@ export default function CreateResourceScreen() {
                   {tags.map((tag, index) => (
                     <View
                       key={index}
-                      style={[styles.tag, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                      style={[styles.tag, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}
                     >
-                      <ThemedText type="small" style={{ color: colors.primary }}>
+                      <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600' }}>
                         {tag}
                       </ThemedText>
                       <TouchableOpacity onPress={() => removeTag(tag)} style={styles.removeTagButton}>
-                        <Ionicons name="close-circle" size={16} color={colors.primary} />
+                        <Ionicons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -747,8 +886,21 @@ export default function CreateResourceScreen() {
 
             {/* Upload Progress */}
             {isSubmitting && uploadProgress > 0 && (
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBarBackground}>
+              <View style={[styles.progressContainer, { backgroundColor: colors.surface }]}>
+                <View style={styles.progressHeader}>
+                  <View style={styles.progressIconContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                  <View style={styles.progressInfo}>
+                    <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                      Uploading Resource
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
+                      {Math.round(uploadProgress)}% complete
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={[styles.progressBarBackground, { backgroundColor: colors.border }]}>
                   <Animated.View
                     style={[
                       styles.progressBarFill,
@@ -759,29 +911,36 @@ export default function CreateResourceScreen() {
                     ]}
                   />
                 </View>
-                <ThemedText type="small" style={{ color: colors.text, marginTop: Spacing.xs, textAlign: 'center' }}>
-                  Uploading... {Math.round(uploadProgress)}%
-                </ThemedText>
               </View>
             )}
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: colors.primary, opacity: isSubmitting ? 0.6 : 1 }]}
+              style={[
+                styles.submitButton, 
+                { 
+                  backgroundColor: colors.primary,
+                  opacity: isSubmitting ? 0.6 : 1,
+                  ...PlatformStyles.shadow,
+                }
+              ]}
               onPress={handleSubmit}
               disabled={isSubmitting}
+              activeOpacity={0.8}
             >
               {isSubmitting ? (
                 <>
-                  <ActivityIndicator color="#FFFFFF" />
-                  <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '700' }}>
                     Uploading...
                   </ThemedText>
                 </>
               ) : (
                 <>
-                  <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
-                  <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+                  <View style={styles.submitIconContainer}>
+                    <Ionicons name="cloud-upload-outline" size={22} color="#FFFFFF" />
+                  </View>
+                  <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '700', fontSize: 16 }}>
                     Upload Resource
                   </ThemedText>
                 </>
@@ -868,9 +1027,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
     borderBottomWidth: 1,
+    paddingBottom: Spacing.md,
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: Spacing.sm,
   },
   headerTitle: {
     fontWeight: '700',
+    fontSize: 20,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   keyboardView: {
     flex: 1,
@@ -906,17 +1083,28 @@ const styles = StyleSheet.create({
   },
   typeScroll: {
     marginHorizontal: -Spacing.md,
+  },
+  typeScrollContent: {
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
     marginRight: Spacing.sm,
+    minHeight: 48,
     ...getCursorStyle(),
+  },
+  typeIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryScroll: {
     marginHorizontal: -Spacing.md,
@@ -932,20 +1120,39 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
     ...getCursorStyle(),
   },
   uploadButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  uploadIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  uploadTextContainer: {
+    flex: 1,
   },
   uploadedFileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '100%',
+  },
+  uploadedFileInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  removeFileButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   tagInputContainer: {
     flexDirection: 'row',
@@ -976,14 +1183,14 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    gap: Spacing.xs,
+    borderWidth: 1.5,
+    gap: Spacing.sm,
   },
   removeTagButton: {
-    marginLeft: Spacing.xs,
+    padding: 2,
   },
   submitButton: {
     flexDirection: 'row',
@@ -994,20 +1201,25 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     ...getCursorStyle(),
   },
-  backButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.lg,
-    alignItems: 'center',
-    ...getCursorStyle(),
-  },
   progressContainer: {
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  progressIconContainer: {
+    marginRight: Spacing.md,
+  },
+  progressInfo: {
+    flex: 1,
   },
   progressBarBackground: {
-    height: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    height: 6,
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
   },
@@ -1018,15 +1230,16 @@ const styles = StyleSheet.create({
   imagesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.md,
     marginTop: Spacing.md,
   },
   imagePreviewContainer: {
     width: 100,
     height: 100,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     position: 'relative',
+    ...PlatformStyles.shadow,
   },
   imagePreview: {
     width: '100%',
@@ -1036,8 +1249,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: BorderRadius.full,
+    padding: 2,
+    ...PlatformStyles.shadow,
   },
   successModalContainer: {
     flex: 1,
