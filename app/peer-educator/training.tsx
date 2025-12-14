@@ -2,11 +2,11 @@
  * Training Resources - Ongoing training for peer educators
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,7 +20,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getResourceIconMaterial } from '../utils/resource-utils';
+import { getResourceIconMaterial } from '@/utils/resource-utils';
 
 interface TrainingResource {
   id: string;

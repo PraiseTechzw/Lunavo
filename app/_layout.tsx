@@ -1,7 +1,7 @@
-import { OfflineIndicator } from "@/app/components/offline-indicator";
-import { Colors } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/app/utils/navigation";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";

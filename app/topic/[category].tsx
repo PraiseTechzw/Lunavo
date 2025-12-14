@@ -2,15 +2,15 @@
  * Topic/Category Page - Shows all posts for a specific category
  */
 
-import { PostCard } from '@/app/components/post-card';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { WebCard, WebContainer } from '@/app/components/web';
-import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Post, PostCategory } from '@/app/types';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { PostCard } from '@/components/post-card';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { WebCard, WebContainer } from '@/components/web';
+import { CATEGORIES } from '@/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Post, PostCategory } from '@/types';
+import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
 import { getPosts as getPostsFromDB } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';

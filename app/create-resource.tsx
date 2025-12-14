@@ -3,17 +3,17 @@
  * Only accessible to: peer-educator-executive, student-affairs, admin
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORY_LIST } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { PostCategory } from '@/app/types';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { CATEGORY_LIST } from '@/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/auth';
 import { createResource } from '@/lib/database';
 import { canCreateResources, UserRole } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
+import { PostCategory } from '@/types';
+import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image as ExpoImage } from 'expo-image';
@@ -25,6 +25,7 @@ import {
   Alert,
   Animated,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -115,7 +116,7 @@ export default function CreateResourceScreen() {
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: true,
@@ -157,10 +158,33 @@ export default function CreateResourceScreen() {
     }
   };
 
+  const handlePickVideo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType.Videos,
+        allowsEditing: false,
+        quality: 1,
+        videoMaxDuration: 3600, // 1 hour max
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const video = result.assets[0];
+        setUploadedFile({
+          uri: video.uri,
+          name: video.fileName || `video_${Date.now()}.mp4`,
+          type: 'video/mp4',
+        });
+      }
+    } catch (error) {
+      console.error('Error picking video:', error);
+      Alert.alert('Error', 'Failed to pick video. Please try again.');
+    }
+  };
+
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         copyToCacheDirectory: true,
         multiple: false,
       });
@@ -178,11 +202,6 @@ export default function CreateResourceScreen() {
           name: file.name || 'document',
           type: fileType,
         });
-
-        // If it's an image, also set the image preview
-        if (fileType.startsWith('image/')) {
-          setUploadedImage(file.uri);
-        }
       }
     } catch (error) {
       console.error('Error picking document:', error);
@@ -255,8 +274,8 @@ export default function CreateResourceScreen() {
     }
 
     // Validate URL or file based on resource type
-    const needsUrl = ['article', 'short-article', 'video', 'short-video', 'link'].includes(selectedResourceType);
-    const needsFile = ['pdf', 'infographic', 'image'].includes(selectedResourceType);
+    const needsUrl = ['article', 'short-article', 'link'].includes(selectedResourceType);
+    const needsFile = ['pdf', 'infographic', 'image', 'video', 'short-video'].includes(selectedResourceType);
 
     const hasFile = uploadedFile || uploadedImages.length > 0;
 
@@ -434,8 +453,8 @@ export default function CreateResourceScreen() {
     );
   }
 
-  const needsFileUpload = ['pdf', 'infographic', 'image'].includes(selectedResourceType);
-  const needsUrl = ['article', 'short-article', 'video', 'short-video', 'link'].includes(selectedResourceType);
+  const needsFileUpload = ['pdf', 'infographic', 'image', 'video', 'short-video'].includes(selectedResourceType);
+  const needsUrl = ['article', 'short-article', 'link'].includes(selectedResourceType);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -624,6 +643,33 @@ export default function CreateResourceScreen() {
                       </View>
                     )}
                   </>
+                ) : selectedResourceType === 'video' || selectedResourceType === 'short-video' ? (
+                  <TouchableOpacity
+                    style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    onPress={handlePickVideo}
+                  >
+                    {uploadedFile ? (
+                      <View style={styles.uploadedFileContainer}>
+                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }} numberOfLines={1}>
+                          {uploadedFile.name}
+                        </ThemedText>
+                        <TouchableOpacity
+                          onPress={() => setUploadedFile(null)}
+                          style={{ marginLeft: Spacing.sm }}
+                        >
+                          <Ionicons name="close-circle" size={20} color={colors.danger} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.uploadButtonContent}>
+                        <Ionicons name="videocam-outline" size={24} color={colors.icon} />
+                        <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }}>
+                          Pick Video from Gallery
+                        </ThemedText>
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
                     style={[styles.uploadButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -635,6 +681,12 @@ export default function CreateResourceScreen() {
                         <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm }} numberOfLines={1}>
                           {uploadedFile.name}
                         </ThemedText>
+                        <TouchableOpacity
+                          onPress={() => setUploadedFile(null)}
+                          style={{ marginLeft: Spacing.sm }}
+                        >
+                          <Ionicons name="close-circle" size={20} color={colors.danger} />
+                        </TouchableOpacity>
                       </View>
                     ) : (
                       <View style={styles.uploadButtonContent}>
@@ -962,7 +1014,6 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: BorderRadius.full,
-    transition: 'width 0.3s ease',
   },
   imagesGrid: {
     flexDirection: 'row',

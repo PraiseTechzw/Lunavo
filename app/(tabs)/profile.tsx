@@ -2,13 +2,13 @@
  * Profile Tab - Navigates to Profile Settings
  */
 
-import { StreakDisplay } from '@/app/components/streak-display';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow } from '@/app/utils/platform-styles';
-import { getPseudonym } from '@/app/utils/storage';
+import { StreakDisplay } from '@/components/streak-display';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createShadow } from '@/utils/platform-styles';
+import { getPseudonym } from '@/utils/storage';
 import { getCurrentUser, getPosts, getReplies, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
 import { getUserPoints } from '@/lib/points-system';

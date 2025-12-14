@@ -12,17 +12,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { getPosts, getReplies, getMeetings, getCurrentUser } from '@/lib/database';
-import { Post, Reply, Meeting } from '@/app/types';
+import { Post, Reply, Meeting } from '@/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { PostCard } from '@/app/components/post-card';
+import { PostCard } from '@/components/post-card';
 
 export default function PeerEducatorDashboardScreen() {
   const router = useRouter();

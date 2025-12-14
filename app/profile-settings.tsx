@@ -2,13 +2,13 @@
  * Profile Settings Screen
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { WebCard, WebContainer } from '@/app/components/web';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPseudonym } from '@/app/utils/storage';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { WebCard, WebContainer } from '@/components/web';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { getPseudonym } from '@/utils/storage';
 import { signOut } from '@/lib/auth';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';

@@ -15,13 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { verifyStudent } from '@/lib/auth';
-import { getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { getCursorStyle, createInputStyle } from '@/utils/platform-styles';
 
 const DEPARTMENTS = [
   'Applied Sciences',

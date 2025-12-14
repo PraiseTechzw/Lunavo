@@ -6,7 +6,7 @@
 import { createNotification, getPost } from './database';
 import { getCurrentUser } from './auth';
 import { scheduleNotification } from './notifications';
-import { NotificationType } from '@/app/types';
+import { NotificationType } from '@/types';
 
 /**
  * Send notification when a new reply is added to user's post

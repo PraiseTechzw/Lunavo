@@ -2,15 +2,15 @@
  * Post detail screen - view a post and its replies
  */
 
-import { CategoryBadge } from '@/app/components/category-badge';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Post, Reply } from '@/app/types';
-import { generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPosts, getPseudonym } from '@/app/utils/storage';
+import { CategoryBadge } from '@/components/category-badge';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Post, Reply } from '@/types';
+import { generatePseudonym, sanitizeContent } from '@/utils/anonymization';
+import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
+import { getPosts, getPseudonym } from '@/utils/storage';
 import { createReply, getCurrentUser, getReplies as getRepliesFromDB } from '@/lib/database';
 import { subscribeToPostUpdates, subscribeToReplies, subscribeToReplyChanges, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';

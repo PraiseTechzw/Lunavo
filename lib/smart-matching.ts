@@ -2,7 +2,7 @@
  * Smart Matching System - Match peer educators to posts based on expertise and history
  */
 
-import { Post, PostCategory, User } from '@/app/types';
+import { Post, PostCategory, User } from '@/types';
 import { getReplies, getPosts, getUser } from './database';
 import { analyzePost } from './ai-utils';
 

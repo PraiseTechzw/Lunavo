@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CheckIn, Conversation, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Message, MessageType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
+import { CheckIn, Conversation, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Message, MessageType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/types';
 import { supabase } from './supabase';
 
 // ============================================

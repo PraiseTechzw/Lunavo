@@ -2,8 +2,8 @@
  * Content Recommendations Engine - Similar posts, resources, peer educators
  */
 
-import { Post, PostCategory, Resource, User } from '@/app/types';
-import { mapResourceFromDB } from '@/app/utils/resource-utils';
+import { Post, PostCategory, Resource, User } from '@/types';
+import { mapResourceFromDB } from '@/utils/resource-utils';
 import { extractKeywords } from './ai-utils';
 import { getPosts, getReplies, getResources, getUser } from './database';
 import { supabase } from './supabase';

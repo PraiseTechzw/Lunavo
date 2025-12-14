@@ -3,14 +3,14 @@
  * Shows all support topics/categories as cards with stats
  */
 
-import { FAB as FABButton } from '@/app/components/navigation/fab-button';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { PostCategory } from '@/app/types';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { FAB as FABButton } from '@/components/navigation/fab-button';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { CATEGORIES } from '@/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PostCategory } from '@/types';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { getTopicStats, TopicStats } from '@/lib/database';
 import { subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';

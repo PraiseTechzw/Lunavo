@@ -2,7 +2,7 @@
  * Authentication utilities for Supabase
  */
 
-import { generatePseudonym } from '@/app/utils/anonymization';
+import { generatePseudonym } from '@/utils/anonymization';
 import { createUser, getUser } from './database';
 import { supabase } from './supabase';
 

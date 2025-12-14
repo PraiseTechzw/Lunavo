@@ -3,11 +3,11 @@
  * Web-only layout with sidebar navigation
  */
 
-import { SidebarNavigation } from '@/app/components/navigation/sidebar-navigation';
-import { WebHeader } from '@/app/components/web';
-import { Colors } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { isStudentAffairsMobileBlocked } from '@/app/utils/navigation';
+import { SidebarNavigation } from '@/components/navigation/sidebar-navigation';
+import { WebHeader } from '@/components/web';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { isStudentAffairsMobileBlocked } from '@/utils/navigation';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';
 import { Stack, useRouter } from 'expo-router';

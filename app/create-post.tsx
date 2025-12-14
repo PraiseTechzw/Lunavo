@@ -3,37 +3,37 @@
  * Enhanced UI with dynamic categories based on existing topics
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORIES, CATEGORY_LIST } from '@/app/constants/categories';
-import { checkEscalation } from '@/app/constants/escalation';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { useDebounce } from '@/app/hooks/use-debounce';
-import { PostCategory } from '@/app/types';
-import { containsIdentifyingInfo, generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPseudonym, savePseudonym } from '@/app/utils/storage';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { CATEGORIES, CATEGORY_LIST } from '@/constants/categories';
+import { checkEscalation } from '@/constants/escalation';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDebounce } from '@/hooks/use-debounce';
 import { analyzePost } from '@/lib/ai-utils';
 import { createPost as createPostDB, getCurrentUser, getTopicStats } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
+import { PostCategory } from '@/types';
+import { containsIdentifyingInfo, generatePseudonym, sanitizeContent } from '@/utils/anonymization';
+import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
+import { getPseudonym, savePseudonym } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -165,7 +165,7 @@ export default function CreatePostScreen() {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         quality: 0.8,
         aspect: [4, 3],

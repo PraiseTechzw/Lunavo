@@ -2,7 +2,7 @@
  * Role-based permissions system
  */
 
-import { User } from '@/app/types';
+import { User } from '@/types';
 
 export type UserRole =
   | 'student'

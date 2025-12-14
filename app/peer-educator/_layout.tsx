@@ -3,8 +3,8 @@
  */
 
 import { Stack } from 'expo-router';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors } from '@/app/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 export default function PeerEducatorLayout() {
   const colorScheme = useColorScheme() ?? 'light';

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { getCurrentUser } from './auth';
 import { hasPermission, UserRole } from './permissions';
-import { User } from '@/app/types';
+import { User } from '@/types';
 import React from 'react';
 
 /**

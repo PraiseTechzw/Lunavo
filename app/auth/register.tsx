@@ -2,12 +2,12 @@
  * Modern Multi-Step Registration Screen - Dark blue header with wave pattern
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createInputStyle, createShadow } from '@/app/utils/platform-styles';
-import { useToast } from '@/app/utils/useToast';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createInputStyle, createShadow } from '@/utils/platform-styles';
+import { useToast } from '@/utils/useToast';
 import { signUp } from '@/lib/auth';
 import { checkEmailAvailability, checkStudentNumberAvailability, checkUsernameAvailability } from '@/lib/database';
 import { Ionicons } from '@expo/vector-icons';

@@ -2,17 +2,17 @@
  * Resource Detail Screen
  */
 
-import { ImageViewer } from '@/app/components/resource-viewers/image-viewer';
-import { PDFViewer } from '@/app/components/resource-viewers/pdf-viewer';
-import { VideoPlayer } from '@/app/components/resource-viewers/video-player';
-import { WebViewer } from '@/app/components/resource-viewers/web-viewer';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Resource } from '@/app/types';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResourceIcon, getResourceIconMaterial, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
+import { ImageViewer } from '@/components/resource-viewers/image-viewer';
+import { PDFViewer } from '@/components/resource-viewers/pdf-viewer';
+import { VideoPlayer } from '@/components/resource-viewers/video-player';
+import { WebViewer } from '@/components/resource-viewers/web-viewer';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Resource } from '@/types';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { getResourceIcon, getResourceIconMaterial, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/utils/resource-utils';
 import { getResource } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

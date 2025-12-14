@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { getUserPoints, getPointsHistory, spendPoints } from '@/lib/points-system';
 import { getCurrentUser } from '@/lib/database';
 import { useRoleGuard } from '@/hooks/use-auth-guard';

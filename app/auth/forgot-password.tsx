@@ -18,13 +18,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { resetPassword } from '@/lib/auth';
-import { getCursorStyle, createInputStyle, createShadow } from '@/app/utils/platform-styles';
+import { getCursorStyle, createInputStyle, createShadow } from '@/utils/platform-styles';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();

@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { getUserBadges, createUserBadge, getStreak, updateStreak, createStreak, getReplies, getPosts } from './database';
 import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
 import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
-import { User } from '@/app/types';
+import { User } from '@/types';
 
 // ============================================
 // BADGE DEFINITIONS

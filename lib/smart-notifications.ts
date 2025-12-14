@@ -5,7 +5,7 @@
 import * as Notifications from 'expo-notifications';
 import { scheduleNotification, cancelNotification } from './notifications';
 import { createNotification } from './database';
-import { NotificationType } from '@/app/types';
+import { NotificationType } from '@/types';
 
 export interface NotificationPriority {
   level: 'low' | 'normal' | 'high' | 'urgent' | 'critical';

@@ -3,7 +3,7 @@
  * Ensures no user IDs or identifying information is exposed
  */
 
-import { Post, Reply, Escalation, User } from '@/app/types';
+import { Post, Reply, Escalation, User } from '@/types';
 
 /**
  * Anonymize a post for analytics (remove user IDs, keep only pseudonyms)

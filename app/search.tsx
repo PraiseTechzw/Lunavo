@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { createShadow, getCursorStyle, createInputStyle } from '@/utils/platform-styles';
 import { getPosts, getResources, getUsers } from '@/lib/database';
-import { Post, Resource, User, PostCategory } from '@/app/types';
+import { Post, Resource, User, PostCategory } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
 type SearchTab = 'all' | 'posts' | 'resources' | 'users';

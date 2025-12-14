@@ -4,13 +4,13 @@
  * Full support for all resource types: PDFs, Articles, Infographics, Videos, Images, and more
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Resource } from '@/app/types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Resource } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/utils/resource-utils';
 import { getCurrentUser, getResources } from '@/lib/database';
 import { UserRole, canCreateResources } from '@/lib/permissions';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -97,7 +97,7 @@ const contentCategories = [
 ];
 
 // Note: Resource utility functions (mapResourceFromDB, getResourceTypeColor, 
-// getResourceIcon, getResourceTypeLabel) are now imported from '@/app/utils/resource-utils'
+// getResourceIcon, getResourceTypeLabel) are now imported from '@/utils/resource-utils'
 // This ensures consistent type mapping and badge display across the app
 
 /**

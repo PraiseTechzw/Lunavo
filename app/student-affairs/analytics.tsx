@@ -4,14 +4,14 @@
  * All data is anonymized (no user IDs, only aggregated data)
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { WebCard, WebContainer } from '@/app/components/web';
-import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { EscalationLevel, PostCategory } from '@/app/types';
-import { getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { WebCard, WebContainer } from '@/components/web';
+import { CATEGORIES } from '@/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { EscalationLevel, PostCategory } from '@/types';
+import { getCursorStyle } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getEscalations, getPosts, getReplies } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';

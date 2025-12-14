@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import { getCurrentUser, getSession } from '@/lib/auth';
 import { hasPermission, UserRole, getPermissions } from '@/lib/permissions';
-import { User } from '@/app/types';
+import { User } from '@/types';
 
 /**
  * Hook to check authentication and redirect if not authenticated

@@ -2,12 +2,12 @@
  * Chat List Screen - Enhanced UI/UX with modern design
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Conversation } from '@/app/types';
-import { createShadow } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Conversation } from '@/types';
+import { createShadow } from '@/utils/platform-styles';
 import { getConversations, getCurrentUser, getOnlineStatus, updateOnlineStatus } from '@/lib/database';
 import { subscribeToConversations, subscribeToOnlineStatus, unsubscribe } from '@/lib/realtime';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';

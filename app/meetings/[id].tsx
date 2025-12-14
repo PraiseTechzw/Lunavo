@@ -2,12 +2,12 @@
  * Meeting Detail Screen - View meeting info, agenda, attendees, RSVP
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Meeting, MeetingAttendance } from '@/app/types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Meeting, MeetingAttendance } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import {
     createOrUpdateAttendance,

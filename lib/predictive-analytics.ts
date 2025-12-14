@@ -2,7 +2,7 @@
  * Predictive Analytics - Escalation likelihood, user needs prediction, peak usage
  */
 
-import { Post, EscalationLevel, PostCategory } from '@/app/types';
+import { Post, EscalationLevel, PostCategory } from '@/types';
 import { getPosts, getReplies, getEscalations } from './database';
 import { detectSentiment, analyzePost } from './ai-utils';
 

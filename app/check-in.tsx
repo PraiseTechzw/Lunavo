@@ -2,12 +2,12 @@
  * Daily Check-In Screen
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { saveCheckIn } from '@/app/utils/storage';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
+import { saveCheckIn } from '@/utils/storage';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';

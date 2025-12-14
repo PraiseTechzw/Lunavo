@@ -2,7 +2,7 @@
  * AI Utilities - Smart Post Categorization, Sentiment Detection, and Keyword Extraction
  */
 
-import { Post, PostCategory } from '@/app/types';
+import { Post, PostCategory } from '@/types';
 
 // ============================================
 // POST CATEGORIZATION

@@ -2,7 +2,7 @@
  * Content Moderation Tools - Auto-moderation, spam detection, duplicate detection
  */
 
-import { Post } from '@/app/types';
+import { Post } from '@/types';
 import { getPosts } from './database';
 import { analyzePost, detectSentiment } from './ai-utils';
 

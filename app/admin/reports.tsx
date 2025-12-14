@@ -2,13 +2,13 @@
  * Reports Management Screen - Review and handle reports
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { WebCard, WebContainer } from '@/app/components/web';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Report } from '@/app/types';
-import { getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { WebCard, WebContainer } from '@/components/web';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Report } from '@/types';
+import { getCursorStyle } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getReports, updateReport } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';

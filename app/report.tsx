@@ -2,13 +2,13 @@
  * Enhanced Report Screen - Submit detailed reports
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Report } from '@/app/types';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { addReport, getPseudonym } from '@/app/utils/storage';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Report } from '@/types';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { addReport, getPseudonym } from '@/utils/storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';

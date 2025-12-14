@@ -3,12 +3,12 @@
  * Users enter the 8-digit code sent to their email
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow } from '@/app/utils/platform-styles';
-import { useToast } from '@/app/utils/useToast';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createShadow } from '@/utils/platform-styles';
+import { useToast } from '@/utils/useToast';
 import { resendOTP, verifyOTP } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';

@@ -4,9 +4,9 @@
  * Uses top navigation on web, bottom tabs on mobile
  */
 
-import { WebHeader, WebTopNav } from '@/app/components/web';
-import { Colors } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { WebHeader, WebTopNav } from '@/components/web';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';

@@ -2,13 +2,13 @@
  * Resource Library - All resources for peer educators
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { PostCategory } from '@/app/types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResourceIconMaterial, mapResourceFromDB } from '@/app/utils/resource-utils';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PostCategory } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { getResourceIconMaterial, mapResourceFromDB } from '@/utils/resource-utils';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getResources } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';
