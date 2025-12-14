@@ -8,13 +8,14 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Resource } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel } from '@/app/utils/resource-utils';
 import {
-    getCheckInStreak,
-    getPosts,
-    getPseudonym,
-    hasCheckedInToday
+  getCheckInStreak,
+  getPosts,
+  getPseudonym,
+  hasCheckedInToday
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';
@@ -25,13 +26,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -74,6 +75,8 @@ export default function HomeScreen() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [user, setUser] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [recommendedResources, setRecommendedResources] = useState<Resource[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   
   // Calculate FAB position: tab bar height (80) + spacing (8) + safe area bottom
   const fabBottom = Platform.OS === 'web' ? 24 : 80 + 8 + insets.bottom;
@@ -112,23 +115,27 @@ export default function HomeScreen() {
     return () => clearInterval(tipInterval);
   }, []);
 
-  const loadUserData = async () => {
-    await Promise.all([
-      loadUserInfo(),
-      loadStats(),
-      loadRecommendedResources(),
-    ]);
-  };
-
   const loadRecommendedResources = async () => {
     try {
-      if (!user?.id) return;
+      const currentUser = user || await getCurrentUser();
+      if (!currentUser?.id) {
+        setRecommendedResources([]);
+        return;
+      }
       
       setLoadingRecommendations(true);
-      const recommendations = await getRecommendedResources(user.id, 6);
+      const recommendations = await getRecommendedResources(currentUser.id, 6);
       
       // Extract resources from recommendations (they're already mapped in the recommendation function)
-      const mappedResources = recommendations.map((rec) => rec.resource);
+      // Filter out any invalid resources
+      const mappedResources = recommendations
+        .map((rec) => rec.resource)
+        .filter((resource): resource is Resource => 
+          resource != null && 
+          resource.id != null && 
+          resource.title != null &&
+          resource.resourceType != null
+        );
       
       setRecommendedResources(mappedResources);
     } catch (error) {
@@ -137,6 +144,17 @@ export default function HomeScreen() {
       setRecommendedResources([]);
     } finally {
       setLoadingRecommendations(false);
+    }
+  };
+
+  const loadUserData = async () => {
+    await Promise.all([
+      loadUserInfo(),
+      loadStats(),
+    ]);
+    // Load recommendations after user info is loaded
+    if (user?.id) {
+      await loadRecommendedResources();
     }
   };
 
@@ -800,8 +818,16 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
   },
   moodSectionTitle: {
     fontWeight: '700',
@@ -896,20 +922,6 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     zIndex: 1000,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
   },
   recommendedResourcesContent: {
     gap: Spacing.md,

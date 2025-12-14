@@ -6,6 +6,7 @@ import { Post, PostCategory, Resource, User } from '@/app/types';
 import { mapResourceFromDB } from '@/app/utils/resource-utils';
 import { extractKeywords } from './ai-utils';
 import { getPosts, getReplies, getResources, getUser } from './database';
+import { supabase } from './supabase';
 
 export interface PostRecommendation {
   post: Post;
@@ -491,6 +492,4 @@ export async function trackRecommendationEffectiveness(
   }
 }
 
-// Import supabase
-import { supabase } from './supabase';
 

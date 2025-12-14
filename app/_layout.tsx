@@ -38,13 +38,30 @@ export default function RootLayout() {
       const subscription = addNotificationResponseListener((response) => {
         const data = response.notification.request.content.data;
         
-        // Navigate based on notification data
+        // Navigate based on notification data with safe navigation
+        const safeNavigateNotification = (route: string) => {
+          setTimeout(() => {
+            try {
+              router.push(route as any);
+            } catch (error) {
+              console.error('[Notification] Navigation error, retrying...', error);
+              setTimeout(() => {
+                try {
+                  router.push(route as any);
+                } catch (retryError) {
+                  console.error('[Notification] Navigation failed after retry:', retryError);
+                }
+              }, 500);
+            }
+          }, 200);
+        };
+        
         if (data?.postId) {
-          router.push(`/post/${data.postId}` as any);
+          safeNavigateNotification(`/post/${data.postId}`);
         } else if (data?.meetingId) {
-          router.push(`/meetings/${data.meetingId}` as any);
+          safeNavigateNotification(`/meetings/${data.meetingId}`);
         } else if (data?.screen && typeof data.screen === 'string') {
-          router.push(data.screen as any);
+          safeNavigateNotification(data.screen);
         }
       });
 
@@ -186,15 +203,30 @@ export default function RootLayout() {
         const currentRoute = segments.join('/');
         const platform = isMobile ? 'mobile' : 'web';
 
+        // Helper function for safe navigation in role guard
+        const safeNavigateRole = (route: string) => {
+          setTimeout(() => {
+            try {
+              router.replace(route as any);
+            } catch (navError) {
+              console.error('[Role Guard] Navigation error, retrying...', navError);
+              // Retry once
+              setTimeout(() => {
+                try {
+                  router.replace(route as any);
+                } catch (retryError) {
+                  console.error('[Role Guard] Navigation failed after retry:', retryError);
+                }
+              }, 300);
+            }
+          }, 150);
+        };
+
         // CRITICAL: Student Affairs mobile blocking
         if (isStudentAffairsMobileBlocked(role, platform)) {
           if (currentRoute !== 'web-required') {
             console.log('[Role Guard] Student Affairs detected on mobile - redirecting to web-required');
-            try {
-              router.replace('/web-required');
-            } catch (navError) {
-              console.error('[Role Guard] Navigation error:', navError);
-            }
+            safeNavigateRole('/web-required');
           }
           return;
         }
@@ -210,33 +242,21 @@ export default function RootLayout() {
           // Redirect to default route for role
           const defaultRoute = getDefaultRoute(role, platform);
           console.log(`[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`);
-          try {
-            router.replace(defaultRoute as any);
-          } catch (navError) {
-            console.error('[Role Guard] Navigation error:', navError);
-          }
+          safeNavigateRole(defaultRoute);
           return;
         }
 
         // Special case: Counselors should not access general forum
         if ((role === 'counselor' || role === 'life-coach') && currentRoute === '(tabs)/forum') {
           console.log('[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard');
-          try {
-            router.replace('/counselor/dashboard');
-          } catch (navError) {
-            console.error('[Role Guard] Navigation error:', navError);
-          }
+          safeNavigateRole('/counselor/dashboard');
           return;
         }
 
         // Special case: Student Affairs should not access forum/chat
         if (role === 'student-affairs' && (currentRoute === '(tabs)/forum' || currentRoute === '(tabs)/chat')) {
           console.log('[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard');
-          try {
-            router.replace('/student-affairs/dashboard');
-          } catch (navError) {
-            console.error('[Role Guard] Navigation error:', navError);
-          }
+          safeNavigateRole('/student-affairs/dashboard');
           return;
         }
       } catch (error) {
