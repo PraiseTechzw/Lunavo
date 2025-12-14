@@ -169,7 +169,8 @@ export default function ChatDetailScreen() {
           prev.map((msg) => (msg.id === message.id ? message : msg))
         );
       } else if (eventType === 'DELETE' && message) {
-        setMessages((prev) => prev.filter((msg) => msg.id !== message?.id));
+        // For DELETE events, message contains the deleted message with ID
+        setMessages((prev) => prev.filter((msg) => msg.id !== message.id));
       }
     });
     channelsRef.current.push(updatesChannel);
