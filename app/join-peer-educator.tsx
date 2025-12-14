@@ -326,7 +326,7 @@ export default function JoinPeerEducatorScreen() {
                     <TextInput
                       style={[
                         styles.textArea,
-                        createInputStyle(colors),
+                        createInputStyle(),
                         { color: colors.text, minHeight: 100 },
                       ]}
                       placeholder="Any previous experience in peer support, counseling, or related fields..."

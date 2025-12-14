@@ -6,22 +6,23 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { signIn } from '@/lib/auth';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -131,7 +132,12 @@ export default function LoginScreen() {
       <ThemedView style={[styles.container, styles.webContainer]}>
         <View style={[styles.webBackground, { backgroundColor: colors.background }]}>
           {/* Decorative gradient background */}
-          <View style={styles.webGradientOverlay} />
+          <LinearGradient
+            colors={['#6366F1', '#8B5CF6', '#EC4899']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.webGradientOverlay}
+          />
           
           <ScrollView
             contentContainerStyle={styles.webScrollContent}
@@ -582,11 +588,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '40%',
-    background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)',
     opacity: 0.05,
-    ...(Platform.OS === 'web' ? {
-      background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)',
-    } : {}),
   },
   webScrollContent: {
     flexGrow: 1,

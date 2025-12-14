@@ -1,11 +1,11 @@
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
 import { UserRole } from "@/lib/permissions";
+import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/utils/navigation";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
