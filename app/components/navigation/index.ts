@@ -6,7 +6,8 @@
  * import { SidebarNavigation, DrawerMenu, FAB } from '@/app/components/navigation';
  */
 
-export { SidebarNavigation } from './sidebar-navigation';
-export { DrawerMenu } from './drawer-menu';
 export { DrawerHeader } from './drawer-header';
+export { DrawerMenu } from './drawer-menu';
 export { FAB } from './fab-button';
+export { SidebarNavigation } from './sidebar-navigation';
+
