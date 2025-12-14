@@ -98,6 +98,9 @@ export default function HomeScreen() {
     // Reload recommendations when user changes
     if (user?.id) {
       loadRecommendedResources();
+    } else {
+      // Clear recommendations if no user
+      setRecommendedResources([]);
     }
   }, [user?.id]);
 
@@ -417,6 +420,11 @@ export default function HomeScreen() {
               contentContainerStyle={styles.recommendedResourcesContent}
             >
               {recommendedResources.map((resource) => {
+                // Safety checks
+                if (!resource || !resource.id || !resource.resourceType) {
+                  return null;
+                }
+
                 const typeColor = getResourceTypeColor(resource.resourceType, colors);
                 const isImageType = resource.resourceType === 'image' || resource.resourceType === 'infographic';
                 const isVideoType = resource.resourceType === 'video' || resource.resourceType === 'short-video';
@@ -437,18 +445,25 @@ export default function HomeScreen() {
                       { backgroundColor: colors.card },
                       createShadow(2, '#000', 0.08),
                     ]}
-                    onPress={() => router.push(`/resource/${resource.id}`)}
+                    onPress={() => {
+                      if (resource.id) {
+                        router.push(`/resource/${resource.id}`);
+                      }
+                    }}
                     activeOpacity={0.8}
                   >
                     {/* Thumbnail or Icon */}
                     <View style={styles.recommendedResourceHeader}>
-                      {hasThumbnail ? (
+                      {hasThumbnail && resource.thumbnailUrl ? (
                         <ExpoImage
-                          source={{ uri: resource.thumbnailUrl! }}
+                          source={{ uri: resource.thumbnailUrl }}
                           style={styles.recommendedResourceThumbnail}
                           contentFit="cover"
                           transition={200}
                           cachePolicy="memory-disk"
+                          onError={() => {
+                            // Fallback handled by hasThumbnail check
+                          }}
                         />
                       ) : (
                         <LinearGradient
@@ -475,7 +490,7 @@ export default function HomeScreen() {
                         style={[styles.recommendedResourceTitle, { color: colors.text }]} 
                         numberOfLines={2}
                       >
-                        {resource.title}
+                        {resource.title || 'Untitled Resource'}
                       </ThemedText>
                       {resource.description && (
                         <ThemedText 
