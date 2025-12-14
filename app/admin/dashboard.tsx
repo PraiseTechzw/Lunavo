@@ -58,31 +58,7 @@ export default function AdminDashboardScreen() {
     activeUsers: 0,
   });
   
-  // Early return AFTER all hooks
-  if (loading) {
-    return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ThemedText>Loading...</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  useEffect(() => {
-    loadData();
-    setupRealtimeSubscriptions();
-    checkSystemHealth();
-    
-    // Refresh data every 30 seconds
-    const interval = setInterval(() => {
-      loadData();
-      checkSystemHealth();
-    }, 30000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-
+  // Define functions before useEffect (they'll be hoisted, but this is clearer)
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new posts
     const postsChannel = subscribeToPosts((post) => {
@@ -192,8 +168,8 @@ export default function AdminDashboardScreen() {
         activity.push({
           type: 'escalation',
           id: escalation.id,
-          title: `Escalation: ${escalation.level}`,
-          date: escalation.createdAt,
+          title: `Escalation: ${escalation.escalationLevel || 'unknown'}`,
+          date: escalation.createdAt || new Date(),
         });
       });
       activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -202,6 +178,38 @@ export default function AdminDashboardScreen() {
       console.error('Error loading admin data:', error);
     }
   };
+
+  // All hooks must be called before any conditional returns
+  useEffect(() => {
+    // Only run effects when not loading and user is available
+    if (loading || !user) return;
+    
+    loadData();
+    const unsubscribeRealtime = setupRealtimeSubscriptions();
+    checkSystemHealth();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(() => {
+      loadData();
+      checkSystemHealth();
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+      }
+    };
+  }, [loading, user]);
+  
+  // Early return AFTER all hooks
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
+    );
+  }
 
   const onRefresh = async () => {
     setRefreshing(true);

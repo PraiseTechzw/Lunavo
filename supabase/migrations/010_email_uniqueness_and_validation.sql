@@ -68,3 +68,4 @@ CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
 -- - Real-time validation can use check_email_available() function
 -- - Function returns false if email format is invalid or email already exists
 
+

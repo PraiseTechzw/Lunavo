@@ -99,3 +99,4 @@ GRANT EXECUTE ON FUNCTION verify_email_otp(TEXT, TEXT) TO authenticated, anon;
 -- - OTPs are marked as used after verification
 -- - Old OTPs are automatically marked as used when a new one is generated
 
+
