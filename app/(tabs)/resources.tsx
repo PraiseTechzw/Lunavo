@@ -10,6 +10,7 @@ import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/t
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Resource } from '@/app/types';
 import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
 import { getCurrentUser, getResources } from '@/lib/database';
 import { UserRole, canCreateResources } from '@/lib/permissions';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -95,83 +96,9 @@ const contentCategories = [
   },
 ];
 
-// Map database resource to Resource interface
-function mapResourceFromDB(data: any): Resource {
-  return {
-    id: data.id,
-    title: data.title,
-    description: data.description || '',
-    category: data.category,
-    resourceType: data.resource_type,
-    url: data.url || undefined,
-    filePath: data.file_path || undefined,
-    thumbnailUrl: data.thumbnail_url || data.url || undefined,
-    tags: data.tags || [],
-    createdBy: data.created_by,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at),
-  };
-}
-
-// Get resource type color
-function getResourceTypeColor(resourceType: string, colors: any): string {
-  switch (resourceType) {
-    case 'article':
-    case 'short-article':
-      return colors.academic || '#3B82F6';
-    case 'video':
-    case 'short-video':
-      return colors.danger || '#EF4444';
-    case 'pdf':
-      return colors.warning || '#F59E0B';
-    case 'infographic':
-      return colors.secondary || '#8B5CF6';
-    case 'image':
-      return colors.info || '#06B6D4';
-    case 'link':
-      return colors.success || '#10B981';
-    case 'training':
-      return colors.mentalHealth || '#A855F7';
-    default:
-      return colors.primary || '#6366F1';
-  }
-}
-
-// Get resource type icon
-function getResourceIcon(resourceType: string): string {
-  switch (resourceType) {
-    case 'article':
-    case 'short-article':
-      return 'newspaper-outline';
-    case 'video':
-    case 'short-video':
-      return 'play-circle-outline';
-    case 'pdf':
-      return 'document-text-outline';
-    case 'infographic':
-      return 'stats-chart-outline';
-    case 'image':
-      return 'image-outline';
-    case 'link':
-      return 'link-outline';
-    case 'training':
-      return 'school-outline';
-    default:
-      return 'document-outline';
-  }
-}
-
-// Get resource type label
-function getResourceTypeLabel(resourceType: string): string {
-  switch (resourceType) {
-    case 'short-article':
-      return 'Short Article';
-    case 'short-video':
-      return 'Short Video';
-    default:
-      return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-  }
-}
+// Note: Resource utility functions (mapResourceFromDB, getResourceTypeColor, 
+// getResourceIcon, getResourceTypeLabel) are now imported from '@/app/utils/resource-utils'
+// This ensures consistent type mapping and badge display across the app
 
 export default function ResourcesScreen() {
   const router = useRouter();

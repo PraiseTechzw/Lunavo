@@ -10,12 +10,26 @@ export function mapResourceFromDB(data: any): Resource & { approved?: boolean; s
   let actualResourceType = data.resource_type;
   
   // Extract actual type from tags if present (e.g., "type:image", "type:infographic")
+  // Also handle partial matches (e.g., "type:ins" might be "type:infographic" truncated)
   const typeTag = tags.find((tag: string) => tag.startsWith('type:'));
   if (typeTag) {
-    const extractedType = typeTag.replace('type:', '');
+    const extractedType = typeTag.replace('type:', '').toLowerCase();
+    
+    // Handle partial matches and common abbreviations
+    let resolvedType = extractedType;
+    if (extractedType.startsWith('inf')) {
+      resolvedType = 'infographic';
+    } else if (extractedType.startsWith('img') || extractedType === 'image') {
+      resolvedType = 'image';
+    } else if (extractedType.startsWith('short-art')) {
+      resolvedType = 'short-article';
+    } else if (extractedType.startsWith('short-vid')) {
+      resolvedType = 'short-video';
+    }
+    
     // Only override if it's a valid type that differs from database type
-    if (['image', 'infographic', 'short-article', 'short-video'].includes(extractedType)) {
-      actualResourceType = extractedType;
+    if (['image', 'infographic', 'short-article', 'short-video'].includes(resolvedType)) {
+      actualResourceType = resolvedType;
     }
   }
   
@@ -145,7 +159,7 @@ export function getResourceIcon(resourceType: string): string {
 }
 
 /**
- * Get resource type label
+ * Get resource type label for display in badges and UI
  */
 export function getResourceTypeLabel(resourceType: string): string {
   switch (resourceType) {
@@ -153,7 +167,25 @@ export function getResourceTypeLabel(resourceType: string): string {
       return 'Short Article';
     case 'short-video':
       return 'Short Video';
+    case 'infographic':
+      return 'Infographic';
+    case 'image':
+      return 'Image';
+    case 'pdf':
+      return 'PDF';
+    case 'article':
+      return 'Article';
+    case 'video':
+      return 'Video';
+    case 'link':
+      return 'Link';
+    case 'training':
+      return 'Training';
     default:
-      return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+      // Capitalize first letter and handle camelCase
+      return resourceType
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, (str) => str.toUpperCase())
+        .trim();
   }
 }
