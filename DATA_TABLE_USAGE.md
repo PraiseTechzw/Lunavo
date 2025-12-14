@@ -247,3 +247,4 @@ Potential improvements:
 
 **Component**: `app/components/web/data-table.tsx`
 
+

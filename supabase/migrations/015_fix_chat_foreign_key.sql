@@ -26,3 +26,4 @@ BEGIN
     FOREIGN KEY (last_message_id) REFERENCES messages(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
