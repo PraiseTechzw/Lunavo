@@ -64,13 +64,43 @@ export default function RootLayout() {
     const inWebRequired = segments[0] === 'web-required';
     const inVerifyEmail = segments[1] === 'verify-email';
 
+    // Helper function to safely navigate
+    const safeNavigate = (route: string | any, delay: number = 100) => {
+      setTimeout(() => {
+        try {
+          if (typeof route === 'string') {
+            router.replace(route as any);
+          } else {
+            router.replace(route);
+          }
+        } catch (error) {
+          console.error('[Navigation] Router not ready, retrying...', error);
+          // Retry once after a longer delay
+          setTimeout(() => {
+            try {
+              if (typeof route === 'string') {
+                router.replace(route as any);
+              } else {
+                router.replace(route);
+              }
+            } catch (retryError) {
+              console.error('[Navigation] Navigation failed after retry:', retryError);
+            }
+          }, 500);
+        }
+      }, delay);
+    };
+
     if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
       // Redirect to login if not authenticated
-      router.replace('/auth/login');
+      safeNavigate('/auth/login');
     } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
       // Check email verification status before redirecting
       const checkVerificationAndRedirect = async () => {
         try {
+          // Wait for router to be ready
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           // Check if email is confirmed in Supabase Auth
           const { supabase } = await import('@/lib/supabase');
           const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -81,10 +111,10 @@ export default function RootLayout() {
             // Email not verified - redirect to verification
             const userEmail = authUser?.email;
             if (userEmail) {
-              router.replace({
+              safeNavigate({
                 pathname: '/auth/verify-email',
                 params: { email: userEmail },
-              } as any);
+              });
               return;
             }
           }
@@ -95,13 +125,13 @@ export default function RootLayout() {
             const role = user.role as UserRole;
             const platform = isMobile ? 'mobile' : 'web';
             const defaultRoute = getDefaultRoute(role, platform);
-            router.replace(defaultRoute as any);
+            safeNavigate(defaultRoute);
           } else {
-            router.replace('/(tabs)');
+            safeNavigate('/(tabs)');
           }
         } catch (error) {
           console.error('Error checking verification:', error);
-          router.replace('/(tabs)');
+          safeNavigate('/(tabs)');
         }
       };
 
@@ -110,6 +140,8 @@ export default function RootLayout() {
       // User is authenticated and not in auth/onboarding - check verification
       const checkVerification = async () => {
         try {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           const { supabase } = await import('@/lib/supabase');
           const { data: { user: authUser } } = await supabase.auth.getUser();
           
@@ -119,10 +151,10 @@ export default function RootLayout() {
             // Email not verified - redirect to verification
             const userEmail = authUser?.email;
             if (userEmail) {
-              router.replace({
+              safeNavigate({
                 pathname: '/auth/verify-email',
                 params: { email: userEmail },
-              } as any);
+              });
             }
           }
         } catch (error) {
@@ -137,9 +169,15 @@ export default function RootLayout() {
   // Comprehensive role-based navigation protection
   useEffect(() => {
     if (!isAuthenticated || !isInitialized) return;
+    
+    // Wait for router to be ready - check if segments are available
+    if (!segments || segments.length === 0) return;
 
     const checkRoleAccess = async () => {
       try {
+        // Add a small delay to ensure router is fully mounted
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const currentUser = await getCurrentUser();
         if (!currentUser) return;
 
@@ -152,7 +190,11 @@ export default function RootLayout() {
         if (isStudentAffairsMobileBlocked(role, platform)) {
           if (currentRoute !== 'web-required') {
             console.log('[Role Guard] Student Affairs detected on mobile - redirecting to web-required');
-            router.replace('/web-required');
+            try {
+              router.replace('/web-required');
+            } catch (navError) {
+              console.error('[Role Guard] Navigation error:', navError);
+            }
           }
           return;
         }
@@ -168,21 +210,33 @@ export default function RootLayout() {
           // Redirect to default route for role
           const defaultRoute = getDefaultRoute(role, platform);
           console.log(`[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`);
-          router.replace(defaultRoute as any);
+          try {
+            router.replace(defaultRoute as any);
+          } catch (navError) {
+            console.error('[Role Guard] Navigation error:', navError);
+          }
           return;
         }
 
         // Special case: Counselors should not access general forum
         if ((role === 'counselor' || role === 'life-coach') && currentRoute === '(tabs)/forum') {
           console.log('[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard');
-          router.replace('/counselor/dashboard');
+          try {
+            router.replace('/counselor/dashboard');
+          } catch (navError) {
+            console.error('[Role Guard] Navigation error:', navError);
+          }
           return;
         }
 
         // Special case: Student Affairs should not access forum/chat
         if (role === 'student-affairs' && (currentRoute === '(tabs)/forum' || currentRoute === '(tabs)/chat')) {
           console.log('[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard');
-          router.replace('/student-affairs/dashboard');
+          try {
+            router.replace('/student-affairs/dashboard');
+          } catch (navError) {
+            console.error('[Role Guard] Navigation error:', navError);
+          }
           return;
         }
       } catch (error) {
