@@ -40,6 +40,7 @@ export function ImageViewer({ uri, title, onClose }: ImageViewerProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -161,21 +162,51 @@ export function ImageViewer({ uri, title, onClose }: ImageViewerProps) {
                 contentFit="contain"
                 transition={200}
                 cachePolicy="memory-disk"
-                onLoadStart={() => setIsLoading(true)}
+                onLoadStart={() => {
+                  setIsLoading(true);
+                  setError(null);
+                }}
                 onLoadEnd={() => setIsLoading(false)}
-                onError={() => setIsLoading(false)}
+                onError={(error) => {
+                  console.error('Image viewer error:', error);
+                  setIsLoading(false);
+                  setError('Failed to load image. Please check your connection and try again.');
+                }}
+                placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
               />
             </Animated.View>
           </Animated.View>
         </GestureDetector>
 
         {/* Loading indicator */}
-        {isLoading && (
+        {isLoading && !error && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
             <ThemedText style={[styles.loadingText, { color: '#FFFFFF' }]}>
               Loading image...
             </ThemedText>
+          </View>
+        )}
+
+        {/* Error indicator */}
+        {error && (
+          <View style={styles.loadingOverlay}>
+            <MaterialIcons name="error-outline" size={64} color="#FFFFFF" />
+            <ThemedText style={[styles.loadingText, { color: '#FFFFFF', marginTop: Spacing.md }]}>
+              {error}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}
+              onPress={() => {
+                setError(null);
+                setIsLoading(true);
+              }}
+            >
+              <Ionicons name="refresh" size={20} color="#FFFFFF" />
+              <ThemedText style={{ color: '#FFFFFF', marginLeft: Spacing.xs, fontWeight: '600' }}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -301,6 +332,14 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
   },
   tapArea: {
     position: 'absolute',

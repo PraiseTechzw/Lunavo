@@ -223,7 +223,14 @@ export default function ResourceDetailScreen() {
 
   const typeColor = getResourceTypeColor(resource.resourceType || 'link', colors);
   const resourceUrl = resource.url || resource.filePath || '';
-  const hasThumbnail = resource.thumbnailUrl;
+  
+  // Only show thumbnail for actual images/videos/infographics, not PDFs
+  const isImageType = resource.resourceType === 'image' || resource.resourceType === 'infographic';
+  const isVideoType = resource.resourceType === 'video' || resource.resourceType === 'short-video';
+  const isPDF = resource.resourceType === 'pdf' && 
+                !resource.tags?.some((tag: string) => tag.startsWith('type:image') || tag.startsWith('type:infographic'));
+  
+  const hasThumbnail = !isPDF && resource.thumbnailUrl && (isImageType || isVideoType);
   const { width } = Dimensions.get('window');
 
   // Render resource content based on type
@@ -240,7 +247,11 @@ export default function ResourceDetailScreen() {
     }
 
     // Images and Infographics - display with tap to open fullscreen viewer
-    if (resource.resourceType === 'image' || resource.resourceType === 'infographic') {
+    // Only show as image if it's actually an image type, not a PDF
+    const isActualImage = (resource.resourceType === 'image' || resource.resourceType === 'infographic') &&
+                          resource.resourceType !== 'pdf';
+    
+    if (isActualImage) {
       const imageUrl = hasThumbnail ? resource.thumbnailUrl : resourceUrl;
       return (
         <>
@@ -257,6 +268,12 @@ export default function ResourceDetailScreen() {
             cachePolicy="memory-disk"
             onLoadStart={() => setImageLoading(true)}
             onLoadEnd={() => setImageLoading(false)}
+            onError={(error) => {
+              console.error('Image load error:', error);
+              setImageLoading(false);
+              Alert.alert('Error', 'Failed to load image. Please check your connection and try again.');
+            }}
+            placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
           />
           {imageLoading && (
             <View style={styles.loadingOverlay}>

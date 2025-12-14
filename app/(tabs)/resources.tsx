@@ -276,28 +276,33 @@ export default function ResourcesScreen() {
     }
 
     // Filter by resource type category (Articles, Videos, PDFs, etc.)
+    // IMPORTANT: Only show resources that match the exact type (no PDFs in images, etc.)
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((r) => {
+        // Strict type matching - ensure PDFs don't show up as images
         if (selectedCategory === 'articles') {
-          return r.resourceType === 'article';
+          return r.resourceType === 'article' && r.resourceType !== 'pdf';
         }
         if (selectedCategory === 'short-articles') {
           return r.resourceType === 'short-article';
         }
         if (selectedCategory === 'videos') {
-          return r.resourceType === 'video';
+          return r.resourceType === 'video' && r.resourceType !== 'pdf';
         }
         if (selectedCategory === 'short-videos') {
           return r.resourceType === 'short-video';
         }
         if (selectedCategory === 'pdfs') {
-          return r.resourceType === 'pdf';
+          // Only show actual PDFs, not images/infographics stored as PDFs
+          return r.resourceType === 'pdf' && 
+                 !r.tags?.some((tag: string) => tag.startsWith('type:image') || tag.startsWith('type:infographic'));
         }
         if (selectedCategory === 'infographics') {
           return r.resourceType === 'infographic';
         }
         if (selectedCategory === 'images') {
-          return r.resourceType === 'image';
+          // Only show actual images, not PDFs
+          return r.resourceType === 'image' && r.resourceType !== 'pdf';
         }
         return r.resourceType === selectedCategory;
       });
@@ -339,14 +344,19 @@ export default function ResourcesScreen() {
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const isFavorite = favorites.has(item.id);
     const typeColor = getResourceTypeColor(item.resourceType, colors);
-    // Enhanced thumbnail detection - check if thumbnail exists and is valid
+    
+    // Enhanced thumbnail detection - only show thumbnails for actual images/videos/infographics
+    // Never show thumbnails for PDFs (even if they have a URL)
+    const isImageType = item.resourceType === 'image' || item.resourceType === 'infographic';
+    const isVideoType = item.resourceType === 'video' || item.resourceType === 'short-video';
+    const isPDF = item.resourceType === 'pdf' && 
+                  !item.tags?.some((tag: string) => tag.startsWith('type:image') || tag.startsWith('type:infographic'));
+    
     const hasThumbnail = 
+      !isPDF && // Never show thumbnail for actual PDFs
       item.thumbnailUrl && 
-      (item.resourceType === 'image' || 
-       item.resourceType === 'infographic' || 
-       item.resourceType === 'video' || 
-       item.resourceType === 'short-video') &&
-      (item.thumbnailUrl.startsWith('http') || item.thumbnailUrl.startsWith('file://'));
+      (isImageType || isVideoType) &&
+      (item.thumbnailUrl.startsWith('http') || item.thumbnailUrl.startsWith('file://') || item.thumbnailUrl.startsWith('data:'));
 
     return (
       <TouchableOpacity
@@ -368,9 +378,11 @@ export default function ResourcesScreen() {
               transition={200}
               cachePolicy="memory-disk"
               placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
-              onError={() => {
-                // Fallback handled by ExpoImage automatically
+              onError={(error) => {
+                console.error('Thumbnail load error for resource:', item.id, error);
+                // Fallback to icon will be handled by hasThumbnail check
               }}
+              recyclingKey={item.id}
             />
           ) : (
             <LinearGradient

@@ -2,21 +2,35 @@ import { Resource } from '@/app/types';
 
 /**
  * Map database resource to Resource interface
+ * Handles resource type mapping from database enum to app types
  */
 export function mapResourceFromDB(data: any): Resource & { approved?: boolean; sourceType?: string } {
-  // Generate thumbnail URL based on resource type if not provided
+  // Check tags for actual resource type (handles images/infographics stored as PDFs)
+  const tags = data.tags || [];
+  let actualResourceType = data.resource_type;
+  
+  // Extract actual type from tags if present (e.g., "type:image", "type:infographic")
+  const typeTag = tags.find((tag: string) => tag.startsWith('type:'));
+  if (typeTag) {
+    const extractedType = typeTag.replace('type:', '');
+    // Only override if it's a valid type that differs from database type
+    if (['image', 'infographic', 'short-article', 'short-video'].includes(extractedType)) {
+      actualResourceType = extractedType;
+    }
+  }
+  
+  // Generate thumbnail URL based on actual resource type if not provided
   let thumbnailUrl = data.thumbnail_url;
   
   if (!thumbnailUrl) {
-    // Auto-generate thumbnail URLs based on resource type
-    if (data.resource_type === 'image' || data.resource_type === 'infographic') {
+    // Auto-generate thumbnail URLs based on actual resource type
+    if (actualResourceType === 'image' || actualResourceType === 'infographic') {
       thumbnailUrl = data.file_path || data.url;
-    } else if (data.resource_type === 'video' || data.resource_type === 'short-video') {
+    } else if (actualResourceType === 'video' || actualResourceType === 'short-video') {
       // For videos, use the URL or file path as thumbnail (first frame)
       thumbnailUrl = data.file_path || data.url;
-    } else if (data.resource_type === 'pdf') {
-      // For PDFs, could use a preview service or first page snapshot
-      // For now, we'll use a fallback icon
+    } else if (actualResourceType === 'pdf') {
+      // For PDFs, don't auto-generate thumbnail (use fallback icon)
       thumbnailUrl = undefined;
     }
   }
@@ -26,11 +40,11 @@ export function mapResourceFromDB(data: any): Resource & { approved?: boolean; s
     title: data.title,
     description: data.description || '',
     category: data.category,
-    resourceType: data.resource_type,
+    resourceType: actualResourceType, // Use the actual type, not the database type
     url: data.url || undefined,
     filePath: data.file_path || undefined,
     thumbnailUrl: thumbnailUrl || undefined,
-    tags: data.tags || [],
+    tags: tags,
     createdBy: data.created_by,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
