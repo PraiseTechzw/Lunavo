@@ -8,31 +8,30 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Resource } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
+import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel } from '@/app/utils/resource-utils';
 import {
-  getCheckInStreak,
-  getPosts,
-  getPseudonym,
-  hasCheckedInToday
+    getCheckInStreak,
+    getPosts,
+    getPseudonym,
+    hasCheckedInToday
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
-import { getRecommendedResources } from '@/lib/recommendations';
 import { UserRole } from '@/lib/permissions';
+import { getRecommendedResources } from '@/lib/recommendations';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Dimensions,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Dimensions,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 

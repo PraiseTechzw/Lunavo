@@ -2,10 +2,10 @@
  * Content Recommendations Engine - Similar posts, resources, peer educators
  */
 
-import { Post, PostCategory, User, Resource } from '@/app/types';
+import { Post, PostCategory, Resource, User } from '@/app/types';
 import { mapResourceFromDB } from '@/app/utils/resource-utils';
+import { extractKeywords } from './ai-utils';
 import { getPosts, getReplies, getResources, getUser } from './database';
-import { analyzePost, extractKeywords } from './ai-utils';
 
 export interface PostRecommendation {
   post: Post;
