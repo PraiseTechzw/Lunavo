@@ -25,13 +25,9 @@ Welcome to the Lunavo Platform documentation wiki. This comprehensive guide cove
 
 ### 📊 Implementation Status
 - [Current Status](Implementation-Status/Current-Status.md) - Overall implementation progress
-- [Phase Documentation](Implementation-Status/Phases.md) - Detailed phase-by-phase progress
-- [Completion Reports](Implementation-Status/Completion-Reports.md) - Feature completion summaries
 
 ### 🔧 Technical Reference
-- [Database Schema](Technical-Reference/Database-Schema.md) - Database structure and relationships
 - [Security & Privacy](Technical-Reference/Security-and-Privacy.md) - Security measures and privacy protection
-- [Deployment Guide](Technical-Reference/Deployment.md) - Production deployment instructions
 - [Troubleshooting](Technical-Reference/Troubleshooting.md) - Common issues and solutions
 
 ## 🎯 Quick Links
