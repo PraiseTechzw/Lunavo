@@ -451,9 +451,8 @@ export default function HomeScreen() {
                 
                 const hasThumbnail = 
                   !isPDF && 
-                  resource.thumbnailUrl && 
-                  (isImageType || isVideoType) &&
-                  (resource.thumbnailUrl.startsWith('http') || resource.thumbnailUrl.startsWith('file://') || resource.thumbnailUrl.startsWith('data:'));
+                  isValidImageUrl(resource.thumbnailUrl) &&
+                  (isImageType || isVideoType);
 
                 return (
                   <TouchableOpacity
@@ -480,7 +479,7 @@ export default function HomeScreen() {
                           transition={200}
                           cachePolicy="memory-disk"
                           onError={() => {
-                            // Fallback handled by hasThumbnail check
+                            // Silently fail - fallback to icon is automatic
                           }}
                         />
                       ) : (

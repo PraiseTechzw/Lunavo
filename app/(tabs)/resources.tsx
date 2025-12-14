@@ -281,9 +281,8 @@ export default function ResourcesScreen() {
     
     const hasThumbnail = 
       !isPDF && // Never show thumbnail for actual PDFs
-      item.thumbnailUrl && 
-      (isImageType || isVideoType) &&
-      (item.thumbnailUrl.startsWith('http') || item.thumbnailUrl.startsWith('file://') || item.thumbnailUrl.startsWith('data:'));
+      isValidImageUrl(item.thumbnailUrl) && // Validate URL format
+      (isImageType || isVideoType);
 
     return (
       <TouchableOpacity
@@ -305,9 +304,9 @@ export default function ResourcesScreen() {
               transition={200}
               cachePolicy="memory-disk"
               placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
-              onError={(error) => {
-                console.error('Thumbnail load error for resource:', item.id, error);
-                // Fallback to icon will be handled by hasThumbnail check
+              onError={() => {
+                // Silently fail - fallback to icon is handled automatically
+                // Don't log errors for expected failures (unsupported formats, etc.)
               }}
               recyclingKey={item.id}
             />

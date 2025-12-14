@@ -127,7 +127,10 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
           onLoadStart={() => setIsLoading(true)}
           onLoad={() => setIsLoading(false)}
           onError={(error) => {
-            console.error('Video playback error:', error);
+            // Log error but don't spam console for format issues
+            if (__DEV__) {
+              console.warn('Video playback error (format may not be supported):', error);
+            }
             setIsLoading(false);
           }}
         />
