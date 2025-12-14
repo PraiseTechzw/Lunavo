@@ -2,6 +2,9 @@
  * Resource Detail Screen
  */
 
+import { PDFViewer } from '@/app/components/resource-viewers/pdf-viewer';
+import { VideoPlayer } from '@/app/components/resource-viewers/video-player';
+import { WebViewer } from '@/app/components/resource-viewers/web-viewer';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
@@ -15,12 +18,12 @@ import { format } from 'date-fns';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
@@ -45,6 +48,9 @@ export default function ResourceDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const [showWebViewer, setShowWebViewer] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -145,21 +151,26 @@ export default function ResourceDetailScreen() {
     }
   };
 
-  const handleViewInApp = async () => {
+  const handleViewInApp = () => {
     if (!resource) return;
 
+    const resourceType = resource.resourceType;
     const resourceUrl = resource.url || resource.filePath;
-    if (resourceUrl) {
-      try {
-        // Open in in-app browser
-        await WebBrowser.openBrowserAsync(resourceUrl, {
-          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-          controlsColor: colors.primary,
-        });
-      } catch (error) {
-        console.error('Error opening resource in app:', error);
-        Alert.alert('Error', 'Failed to open resource.');
-      }
+
+    if (!resourceUrl) {
+      Alert.alert('Error', 'No content URL available for this resource.');
+      return;
+    }
+
+    // Open appropriate in-app viewer based on resource type
+    if (resourceType === 'video' || resourceType === 'short-video') {
+      setShowVideoPlayer(true);
+    } else if (resourceType === 'pdf') {
+      setShowPDFViewer(true);
+    } else if (resourceType === 'link' || resourceType === 'article' || resourceType === 'short-article') {
+      setShowWebViewer(true);
+    } else {
+      Alert.alert('Info', 'This resource type is displayed directly in the app.');
     }
   };
 
@@ -303,40 +314,142 @@ export default function ResourceDetailScreen() {
       );
     }
 
-    // Videos - show thumbnail with play button
+    // Videos - show thumbnail with play button, opens in-app video player
     if (resource.resourceType === 'video' || resource.resourceType === 'short-video') {
       return (
-        <TouchableOpacity
-          style={styles.videoContainer}
-          onPress={handleViewInApp}
-          activeOpacity={0.9}
-        >
-          {hasThumbnail ? (
-            <ExpoImage
-              source={{ uri: resource.thumbnailUrl }}
-              style={styles.videoThumbnail}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-            />
-          ) : (
-            <LinearGradient
-              colors={[typeColor + '40', typeColor + '20']}
-              style={styles.videoPlaceholder}
-            >
-              <MaterialIcons name="play-circle-filled" size={80} color={typeColor} />
-            </LinearGradient>
-          )}
-          <View style={styles.playButtonOverlay}>
-            <View style={[styles.playButton, { backgroundColor: colors.primary + 'E6' }]}>
-              <MaterialIcons name="play-arrow" size={48} color="#FFFFFF" />
+        <>
+          <TouchableOpacity
+            style={styles.videoContainer}
+            onPress={handleViewInApp}
+            activeOpacity={0.9}
+          >
+            {hasThumbnail ? (
+              <ExpoImage
+                source={{ uri: resource.thumbnailUrl }}
+                style={styles.videoThumbnail}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <LinearGradient
+                colors={[typeColor + '40', typeColor + '20']}
+                style={styles.videoPlaceholder}
+              >
+                <MaterialIcons name="play-circle-filled" size={80} color={typeColor} />
+              </LinearGradient>
+            )}
+            <View style={styles.playButtonOverlay}>
+              <View style={[styles.playButton, { backgroundColor: colors.primary + 'E6' }]}>
+                <MaterialIcons name="play-arrow" size={48} color="#FFFFFF" />
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          {showVideoPlayer && (
+            <Modal
+              visible={showVideoPlayer}
+              animationType="slide"
+              presentationStyle="fullScreen"
+              onRequestClose={() => setShowVideoPlayer(false)}
+            >
+              <VideoPlayer
+                uri={resourceUrl}
+                thumbnailUri={resource.thumbnailUrl}
+                title={resource.title}
+                onClose={() => setShowVideoPlayer(false)}
+              />
+            </Modal>
+          )}
+        </>
       );
     }
 
-    // PDFs, Articles, Links - show preview with open button
+    // PDFs - show preview with open button, opens in-app PDF viewer
+    if (resource.resourceType === 'pdf') {
+      return (
+        <>
+          <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
+              <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
+            </View>
+            <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
+              {resource.title}
+            </ThemedText>
+            <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
+              {getResourceTypeLabel(resource.resourceType)}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.openButton, { backgroundColor: colors.primary }]}
+              onPress={handleViewInApp}
+            >
+              <MaterialIcons name="description" size={24} color="#FFFFFF" />
+              <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+                View PDF
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          {showPDFViewer && (
+            <Modal
+              visible={showPDFViewer}
+              animationType="slide"
+              presentationStyle="fullScreen"
+              onRequestClose={() => setShowPDFViewer(false)}
+            >
+              <PDFViewer
+                uri={resourceUrl}
+                title={resource.title}
+                onClose={() => setShowPDFViewer(false)}
+              />
+            </Modal>
+          )}
+        </>
+      );
+    }
+
+    // Articles and Links - show preview with open button, opens in-app web viewer
+    if (resource.resourceType === 'link' || resource.resourceType === 'article' || resource.resourceType === 'short-article') {
+      return (
+        <>
+          <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
+              <MaterialIcons name={getResourceIcon() as any} size={64} color={typeColor} />
+            </View>
+            <ThemedText type="h3" style={[styles.documentTitle, { color: colors.text }]}>
+              {resource.title}
+            </ThemedText>
+            <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
+              {getResourceTypeLabel(resource.resourceType)}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.openButton, { backgroundColor: colors.primary }]}
+              onPress={handleViewInApp}
+            >
+              <MaterialIcons name="open-in-new" size={24} color="#FFFFFF" />
+              <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+                View Content
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          {showWebViewer && (
+            <Modal
+              visible={showWebViewer}
+              animationType="slide"
+              presentationStyle="fullScreen"
+              onRequestClose={() => setShowWebViewer(false)}
+            >
+              <WebViewer
+                uri={resourceUrl}
+                title={resource.title}
+                onClose={() => setShowWebViewer(false)}
+                allowExternalRedirects={false}
+              />
+            </Modal>
+          )}
+        </>
+      );
+    }
+
+    // Default fallback
     return (
       <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
         <View style={[styles.documentIconContainer, { backgroundColor: typeColor + '20' }]}>
@@ -348,15 +461,6 @@ export default function ResourceDetailScreen() {
         <ThemedText type="body" style={[styles.documentSubtitle, { color: colors.icon }]}>
           {getResourceTypeLabel(resource.resourceType)}
         </ThemedText>
-        <TouchableOpacity
-          style={[styles.openButton, { backgroundColor: colors.primary }]}
-          onPress={handleViewInApp}
-        >
-          <MaterialIcons name="open-in-new" size={24} color="#FFFFFF" />
-          <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
-            Open in App
-          </ThemedText>
-        </TouchableOpacity>
       </View>
     );
   };
@@ -752,6 +856,15 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginTop: Spacing.md,
+  },
+  fullscreenViewer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: '#000',
   },
 });
 
