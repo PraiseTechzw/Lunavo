@@ -2,23 +2,24 @@
  * Training Resources - Ongoing training for peer educators
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getResourceIconMaterial } from '../utils/resource-utils';
 
 interface TrainingResource {
@@ -119,17 +120,6 @@ export default function TrainingScreen() {
   };
 
   const getResourceIcon = (type: string) => getResourceIconMaterial(type);
-    switch (type) {
-      case 'video':
-        return 'play-circle-filled';
-      case 'document':
-        return 'description';
-      case 'quiz':
-        return 'quiz';
-      default:
-        return 'article';
-    }
-  };
 
   const getResourceColor = (type: string) => {
     switch (type) {

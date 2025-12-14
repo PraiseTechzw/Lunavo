@@ -258,12 +258,14 @@ export default function CreateResourceScreen() {
     const needsUrl = ['article', 'short-article', 'video', 'short-video', 'link'].includes(selectedResourceType);
     const needsFile = ['pdf', 'infographic', 'image'].includes(selectedResourceType);
 
-    if (needsUrl && !url.trim() && !uploadedFile) {
+    const hasFile = uploadedFile || uploadedImages.length > 0;
+
+    if (needsUrl && !url.trim() && !hasFile) {
       Alert.alert('Validation Error', 'Please provide a URL or upload a file');
       return;
     }
 
-    if (needsFile && !uploadedFile && !url.trim()) {
+    if (needsFile && !hasFile && !url.trim()) {
       Alert.alert('Validation Error', 'Please upload a file or provide a URL');
       return;
     }
@@ -278,8 +280,6 @@ export default function CreateResourceScreen() {
       let thumbnailUrl: string | undefined;
 
       setUploadProgress(0);
-      let filePath: string | undefined;
-      let thumbnailUrl: string | undefined;
 
       // Upload single file if provided (non-image or single image)
       if (uploadedFile && uploadedImages.length === 0) {
@@ -693,14 +693,39 @@ export default function CreateResourceScreen() {
               )}
             </View>
 
+            {/* Upload Progress */}
+            {isSubmitting && uploadProgress > 0 && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBarBackground}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: `${uploadProgress}%`,
+                        backgroundColor: colors.primary,
+                      },
+                    ]}
+                  />
+                </View>
+                <ThemedText type="small" style={{ color: colors.text, marginTop: Spacing.xs, textAlign: 'center' }}>
+                  Uploading... {Math.round(uploadProgress)}%
+                </ThemedText>
+              </View>
+            )}
+
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: colors.primary }]}
+              style={[styles.submitButton, { backgroundColor: colors.primary, opacity: isSubmitting ? 0.6 : 1 }]}
               onPress={handleSubmit}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <>
+                  <ActivityIndicator color="#FFFFFF" />
+                  <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}>
+                    Uploading...
+                  </ThemedText>
+                </>
               ) : (
                 <>
                   <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
@@ -715,6 +740,60 @@ export default function CreateResourceScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </ThemedView>
+
+      {/* Success Animation Modal */}
+      <Modal
+        visible={showSuccess}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={[styles.successModalContainer, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
+          <Animated.View
+            style={[
+              styles.successModalContent,
+              {
+                backgroundColor: colors.card,
+                opacity: successAnimation,
+                transform: [
+                  {
+                    scale: successAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={[styles.successIconContainer, { backgroundColor: colors.success + '20' }]}>
+              <Animated.View
+                style={{
+                  transform: [
+                    {
+                      rotate: successAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={80} color={colors.success} />
+              </Animated.View>
+            </View>
+            <ThemedText type="h2" style={{ color: colors.text, marginTop: Spacing.lg, fontWeight: '700' }}>
+              Success!
+            </ThemedText>
+            <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.sm, textAlign: 'center' }}>
+              Resource uploaded successfully
+            </ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs, textAlign: 'center' }}>
+              Redirecting to resources...
+            </ThemedText>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -869,5 +948,74 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     alignItems: 'center',
     ...getCursorStyle(),
+  },
+  progressContainer: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: BorderRadius.full,
+    transition: 'width 0.3s ease',
+  },
+  imagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  imagePreviewContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: BorderRadius.full,
+  },
+  successModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successModalContent: {
+    borderRadius: 20,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    minWidth: 280,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  successIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
