@@ -3,7 +3,24 @@ import { Resource } from '@/app/types';
 /**
  * Map database resource to Resource interface
  */
-export function mapResourceFromDB(data: any): Resource {
+export function mapResourceFromDB(data: any): Resource & { approved?: boolean; sourceType?: string } {
+  // Generate thumbnail URL based on resource type if not provided
+  let thumbnailUrl = data.thumbnail_url;
+  
+  if (!thumbnailUrl) {
+    // Auto-generate thumbnail URLs based on resource type
+    if (data.resource_type === 'image' || data.resource_type === 'infographic') {
+      thumbnailUrl = data.file_path || data.url;
+    } else if (data.resource_type === 'video' || data.resource_type === 'short-video') {
+      // For videos, use the URL or file path as thumbnail (first frame)
+      thumbnailUrl = data.file_path || data.url;
+    } else if (data.resource_type === 'pdf') {
+      // For PDFs, could use a preview service or first page snapshot
+      // For now, we'll use a fallback icon
+      thumbnailUrl = undefined;
+    }
+  }
+
   return {
     id: data.id,
     title: data.title,
@@ -12,12 +29,15 @@ export function mapResourceFromDB(data: any): Resource {
     resourceType: data.resource_type,
     url: data.url || undefined,
     filePath: data.file_path || undefined,
-    thumbnailUrl: data.thumbnail_url || data.url || undefined,
+    thumbnailUrl: thumbnailUrl || undefined,
     tags: data.tags || [],
     createdBy: data.created_by,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
-  };
+    // Include approval metadata if available
+    approved: data.approved,
+    sourceType: data.source_type,
+  } as Resource & { approved?: boolean; sourceType?: string };
 }
 
 /**

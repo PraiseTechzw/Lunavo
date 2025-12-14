@@ -36,8 +36,9 @@ const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const CARD_WIDTH = (width - Spacing.md * 3) / 2; // 2 columns with spacing
 
-// Enhanced categories with icons - matching the design
-const categories = [
+// Professional resource categories for Peer Educator platform
+// Organized by content type and purpose
+const resourceTypeCategories = [
   { id: 'all', label: 'All', icon: 'apps-outline' },
   { id: 'articles', label: 'Articles', icon: 'newspaper-outline' },
   { id: 'videos', label: 'Videos', icon: 'play-circle-outline' },
@@ -46,6 +47,52 @@ const categories = [
   { id: 'images', label: 'Images', icon: 'images-outline' },
   { id: 'short-articles', label: 'Short Articles', icon: 'document-text-outline' },
   { id: 'short-videos', label: 'Short Videos', icon: 'videocam-outline' },
+];
+
+// Content organization categories - as specified in requirements
+const contentCategories = [
+  {
+    id: 'mental-health',
+    label: 'Mental Health & Well-Being',
+    icon: 'heart-outline',
+    description: 'Resources for mental wellness and emotional support',
+  },
+  {
+    id: 'peer-educator-toolkit',
+    label: 'Peer Educator Toolkit',
+    icon: 'school-outline',
+    description: 'Training materials and resources for peer educators',
+  },
+  {
+    id: 'crisis',
+    label: 'Crisis & Emergency Support',
+    icon: 'warning-outline',
+    description: 'Immediate help and crisis intervention resources',
+  },
+  {
+    id: 'sexual-health',
+    label: 'Sexual & Reproductive Health',
+    icon: 'heart-circle-outline',
+    description: 'SRH education and support resources',
+  },
+  {
+    id: 'substance-abuse',
+    label: 'Substance Abuse Awareness',
+    icon: 'medical-outline',
+    description: 'Drug and alcohol awareness and support',
+  },
+  {
+    id: 'academic',
+    label: 'Academic & Life Skills',
+    icon: 'library-outline',
+    description: 'Study skills, time management, and academic support',
+  },
+  {
+    id: 'campus',
+    label: 'University Support & Policies',
+    icon: 'business-outline',
+    description: 'Campus resources, policies, and student services',
+  },
 ];
 
 // Map database resource to Resource interface
@@ -131,6 +178,7 @@ export default function ResourcesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedContentCategory, setSelectedContentCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
@@ -163,7 +211,7 @@ export default function ResourcesScreen() {
 
   useEffect(() => {
     filterResources();
-  }, [resources, selectedCategory, searchQuery, showFavoritesOnly, favorites]);
+  }, [resources, selectedCategory, selectedContentCategory, searchQuery, showFavoritesOnly, favorites]);
 
   const loadUserRole = async () => {
     try {
@@ -222,7 +270,12 @@ export default function ResourcesScreen() {
   const filterResources = () => {
     let filtered = resources;
 
-    // Filter by category
+    // Filter by content category (Mental Health, Peer Educator Toolkit, etc.)
+    if (selectedContentCategory) {
+      filtered = filtered.filter((r) => r.category === selectedContentCategory);
+    }
+
+    // Filter by resource type category (Articles, Videos, PDFs, etc.)
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((r) => {
         if (selectedCategory === 'articles') {
@@ -246,7 +299,7 @@ export default function ResourcesScreen() {
         if (selectedCategory === 'images') {
           return r.resourceType === 'image';
         }
-        return r.category === selectedCategory || r.resourceType === selectedCategory;
+        return r.resourceType === selectedCategory;
       });
     }
 
@@ -286,7 +339,14 @@ export default function ResourcesScreen() {
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const isFavorite = favorites.has(item.id);
     const typeColor = getResourceTypeColor(item.resourceType, colors);
-    const hasThumbnail = item.thumbnailUrl && (item.resourceType === 'image' || item.resourceType === 'infographic' || item.resourceType === 'video' || item.resourceType === 'short-video');
+    // Enhanced thumbnail detection - check if thumbnail exists and is valid
+    const hasThumbnail = 
+      item.thumbnailUrl && 
+      (item.resourceType === 'image' || 
+       item.resourceType === 'infographic' || 
+       item.resourceType === 'video' || 
+       item.resourceType === 'short-video') &&
+      (item.thumbnailUrl.startsWith('http') || item.thumbnailUrl.startsWith('file://'));
 
     return (
       <TouchableOpacity
@@ -302,11 +362,15 @@ export default function ResourcesScreen() {
         <View style={styles.cardHeader}>
           {hasThumbnail ? (
             <ExpoImage
-              source={{ uri: item.thumbnailUrl }}
+              source={{ uri: item.thumbnailUrl! }}
               style={styles.cardThumbnail}
               contentFit="cover"
               transition={200}
               cachePolicy="memory-disk"
+              placeholder={{ blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.' }}
+              onError={() => {
+                // Fallback handled by ExpoImage automatically
+              }}
             />
           ) : (
             <LinearGradient
@@ -461,11 +525,88 @@ export default function ResourcesScreen() {
             )}
           </View>
 
-          {/* Category Filters - Pill-shaped buttons */}
+          {/* Content Organization Categories - Professional sections */}
+          <View style={styles.section}>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+              Browse by Topic
+            </ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.contentCategoriesContent}
+            >
+              {contentCategories.map((cat) => {
+                const isSelected = selectedContentCategory === cat.id;
+                const categoryResources = resources.filter((r) => r.category === cat.id);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.contentCategoryCard,
+                      {
+                        backgroundColor: isSelected ? colors.primary : colors.card,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      },
+                      createShadow(2, '#000', 0.08),
+                    ]}
+                    onPress={() => {
+                      setSelectedContentCategory(isSelected ? null : cat.id);
+                      setSelectedCategory('all'); // Reset type filter when selecting content category
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.contentCategoryIcon,
+                        {
+                          backgroundColor: isSelected
+                            ? '#FFFFFF'
+                            : colors.primary + '20',
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={cat.icon as any}
+                        size={24}
+                        color={isSelected ? colors.primary : colors.primary}
+                      />
+                    </View>
+                    <ThemedText
+                      type="body"
+                      style={{
+                        color: isSelected ? '#FFFFFF' : colors.text,
+                        fontWeight: '700',
+                        marginTop: Spacing.sm,
+                        fontSize: 13,
+                      }}
+                      numberOfLines={2}
+                    >
+                      {cat.label}
+                    </ThemedText>
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: isSelected ? '#FFFFFF' : colors.icon,
+                        marginTop: Spacing.xs,
+                        fontSize: 11,
+                      }}
+                    >
+                      {categoryResources.length} resources
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Resource Type Filters - Pill-shaped buttons */}
           <View style={styles.categoriesContainer}>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text, marginBottom: Spacing.sm }]}>
+              Filter by Type
+            </ThemedText>
             <FlatList
               horizontal
-              data={categories}
+              data={resourceTypeCategories}
               renderItem={({ item }) => {
                 const isSelected = selectedCategory === item.id;
                 return (
@@ -477,7 +618,12 @@ export default function ResourcesScreen() {
                         borderColor: isSelected ? selectedFilterColor : colors.border,
                       },
                     ]}
-                    onPress={() => setSelectedCategory(item.id)}
+                    onPress={() => {
+                      setSelectedCategory(item.id);
+                      if (item.id !== 'all') {
+                        setSelectedContentCategory(null); // Reset content category when selecting type
+                      }
+                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons
@@ -757,11 +903,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   categoriesContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   categoriesContent: {
     gap: Spacing.sm,
     paddingRight: Spacing.md,
+  },
+  contentCategoriesContent: {
+    gap: Spacing.md,
+    paddingRight: Spacing.md,
+  },
+  contentCategoryCard: {
+    width: 140,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  contentCategoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryChip: {
     flexDirection: 'row',

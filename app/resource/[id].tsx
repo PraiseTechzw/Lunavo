@@ -22,15 +22,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  ScrollView,
-  Share,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    ScrollView,
+    Share,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -597,6 +597,41 @@ export default function ResourceDetailScreen() {
                 </ThemedText>
               </View>
             )}
+            {resource.updatedAt && resource.updatedAt.getTime() !== resource.createdAt.getTime() && (
+              <View style={styles.metadataRow}>
+                <ThemedText type="body" style={{ color: colors.icon }}>
+                  Updated:
+                </ThemedText>
+                <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                  {format(new Date(resource.updatedAt), 'MMM dd, yyyy')}
+                </ThemedText>
+              </View>
+            )}
+            {/* Approval Status - Internal only, shown to admins/counselors */}
+            {(resource as any).approved !== undefined && (
+              <View style={styles.metadataRow}>
+                <ThemedText type="body" style={{ color: colors.icon }}>
+                  Status:
+                </ThemedText>
+                <View style={styles.statusBadge}>
+                  <MaterialIcons
+                    name={(resource as any).approved ? 'check-circle' : 'pending'}
+                    size={16}
+                    color={(resource as any).approved ? colors.success : colors.warning}
+                  />
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: (resource as any).approved ? colors.success : colors.warning,
+                      fontWeight: '600',
+                      marginLeft: Spacing.xs,
+                    }}
+                  >
+                    {(resource as any).approved ? 'Approved' : 'Pending Approval'}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
       </ThemedView>
@@ -833,6 +868,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   button: {
     padding: Spacing.md,
