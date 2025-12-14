@@ -1,9 +1,11 @@
 import { OfflineIndicator } from "@/app/components/offline-indicator";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/app/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
+import { UserRole } from "@/lib/permissions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -20,7 +22,7 @@ export default function RootLayout() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     initializeAuth();
@@ -59,17 +61,29 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
+    const inWebRequired = segments[0] === 'web-required';
 
     if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
       // Redirect to login if not authenticated
       router.replace('/auth/login');
     } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      // Redirect to home if authenticated and in auth/onboarding
-      router.replace('/(tabs)');
+      // Load user role and redirect to appropriate default route
+      getCurrentUser().then(user => {
+        if (user) {
+          const role = user.role as UserRole;
+          const platform = isMobile ? 'mobile' : 'web';
+          const defaultRoute = getDefaultRoute(role, platform);
+          router.replace(defaultRoute as any);
+        } else {
+          router.replace('/(tabs)');
+        }
+      }).catch(() => {
+        router.replace('/(tabs)');
+      });
     }
   }, [isAuthenticated, segments, isInitialized]);
 
-  // Role-based navigation protection
+  // Comprehensive role-based navigation protection
   useEffect(() => {
     if (!isAuthenticated || !isInitialized) return;
 
@@ -78,18 +92,48 @@ export default function RootLayout() {
         const currentUser = await getCurrentUser();
         if (!currentUser) return;
 
-        const role = currentUser.role;
+        const role = currentUser.role as UserRole;
         setUserRole(role);
-        const currentRoute = segments[0];
+        const currentRoute = segments.join('/');
+        const platform = isMobile ? 'mobile' : 'web';
 
-        // Redirect students away from role-specific screens
-        if (role === 'student') {
-          const restrictedRoutes = ['admin', 'peer-educator', 'counselor', 'student-affairs', 'volunteer'];
-          if (restrictedRoutes.includes(currentRoute)) {
-            router.replace('/(tabs)');
+        // CRITICAL: Student Affairs mobile blocking
+        if (isStudentAffairsMobileBlocked(role, platform)) {
+          if (currentRoute !== 'web-required') {
+            console.log('[Role Guard] Student Affairs detected on mobile - redirecting to web-required');
+            router.replace('/web-required');
           }
+          return;
         }
-        // Add similar checks for other roles if needed
+
+        // Skip route checking for auth and onboarding
+        if (segments[0] === 'auth' || segments[0] === 'onboarding' || segments[0] === 'web-required') {
+          return;
+        }
+
+        // Check if current route is accessible
+        const routePath = '/' + currentRoute;
+        if (!canAccessRoute(role, routePath, platform)) {
+          // Redirect to default route for role
+          const defaultRoute = getDefaultRoute(role, platform);
+          console.log(`[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`);
+          router.replace(defaultRoute as any);
+          return;
+        }
+
+        // Special case: Counselors should not access general forum
+        if ((role === 'counselor' || role === 'life-coach') && currentRoute === '(tabs)/forum') {
+          console.log('[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard');
+          router.replace('/counselor/dashboard');
+          return;
+        }
+
+        // Special case: Student Affairs should not access forum/chat
+        if (role === 'student-affairs' && (currentRoute === '(tabs)/forum' || currentRoute === '(tabs)/chat')) {
+          console.log('[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard');
+          router.replace('/student-affairs/dashboard');
+          return;
+        }
       } catch (error) {
         console.error('Error checking role access:', error);
       }
@@ -104,41 +148,13 @@ export default function RootLayout() {
       const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
       setIsOnboardingComplete(onboardingValue === 'true');
 
-      // Check authentication status - getSession() will retrieve from AsyncStorage
+      // Check authentication status
       const session = await getSession();
-      console.log('[initializeAuth] Session check:', session ? 'Session found' : 'No session');
       setIsAuthenticated(!!session);
-      
-      // Load user role if authenticated
-      if (session) {
-        try {
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            setUserRole(currentUser.role);
-            console.log('[initializeAuth] User role loaded:', currentUser.role);
-          }
-        } catch (userError) {
-          console.error('[initializeAuth] Error loading user:', userError);
-          // If user can't be loaded, session might be invalid
-          setIsAuthenticated(false);
-        }
-      }
 
       // Listen to auth state changes
       const { data: { subscription } } = onAuthStateChange((event, session) => {
-        console.log('[initializeAuth] Auth state changed:', event, session ? 'Session present' : 'No session');
         setIsAuthenticated(!!session);
-        
-        // Update user role when session changes
-        if (session) {
-          getCurrentUser().then(user => {
-            if (user) {
-              setUserRole(user.role);
-            }
-          }).catch(err => console.error('Error loading user on auth change:', err));
-        } else {
-          setUserRole(null);
-        }
       });
 
       setIsInitialized(true);
@@ -147,7 +163,7 @@ export default function RootLayout() {
         subscription.unsubscribe();
       };
     } catch (error) {
-      console.error('[initializeAuth] Error initializing auth:', error);
+      console.error('Error initializing auth:', error);
       setIsAuthenticated(false);
       setIsOnboardingComplete(false);
       setIsInitialized(true);
@@ -187,13 +203,6 @@ export default function RootLayout() {
       />
       <Stack.Screen 
         name="post/[id]" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="topic/[category]" 
         options={{ 
           headerShown: false,
           presentation: 'card',
@@ -288,6 +297,13 @@ export default function RootLayout() {
         }} 
       />
       <Stack.Screen 
+        name="web-required" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
         name="peer-educator" 
         options={{ 
           headerShown: false,
@@ -307,35 +323,28 @@ export default function RootLayout() {
         }} 
       />
       <Stack.Screen 
-        name="badges" 
+        name="help" 
         options={{ 
           headerShown: false,
           presentation: 'card',
         }} 
       />
       <Stack.Screen 
-        name="rewards" 
+        name="privacy" 
         options={{ 
           headerShown: false,
           presentation: 'card',
         }} 
       />
       <Stack.Screen 
-        name="leaderboard" 
+        name="feedback" 
         options={{ 
           headerShown: false,
           presentation: 'card',
         }} 
       />
       <Stack.Screen 
-        name="search" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="resource/[id]" 
+        name="about" 
         options={{ 
           headerShown: false,
           presentation: 'card',

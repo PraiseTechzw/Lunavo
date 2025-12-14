@@ -66,9 +66,9 @@ export default function ProfileScreen() {
       // Load badges - only if user has a valid ID
       if (currentUser.id && currentUser.id.trim() !== '') {
         try {
-          const userBadges = await getUserBadges(currentUser.id);
-          setBadges(userBadges.slice(0, 6)); // Show first 6 badges
-          setBadgeCount(userBadges.length);
+      const userBadges = await getUserBadges(currentUser.id);
+      setBadges(userBadges.slice(0, 6)); // Show first 6 badges
+      setBadgeCount(userBadges.length);
         } catch (error) {
           console.error('Error loading badges:', error);
           setBadges([]);
@@ -81,50 +81,50 @@ export default function ProfileScreen() {
 
       // Load stats - only if user has a valid ID
       if (currentUser.id && currentUser.id.trim() !== '') {
-        const [allPosts, allReplies, points, checkInStreak, helpingStreak, engagementStreak] = await Promise.all([
-          getPosts(),
-          Promise.all((await getPosts()).map(p => getReplies(p.id))).then(replies => replies.flat()),
-          getUserPoints(currentUser.id),
-          getStreakInfo(currentUser.id, 'check-in'),
-          getStreakInfo(currentUser.id, 'helping'),
-          getStreakInfo(currentUser.id, 'engagement'),
-        ]);
+      const [allPosts, allReplies, points, checkInStreak, helpingStreak, engagementStreak] = await Promise.all([
+        getPosts(),
+        Promise.all((await getPosts()).map(p => getReplies(p.id))).then(replies => replies.flat()),
+        getUserPoints(currentUser.id),
+        getStreakInfo(currentUser.id, 'check-in'),
+        getStreakInfo(currentUser.id, 'helping'),
+        getStreakInfo(currentUser.id, 'engagement'),
+      ]);
 
-        const myPosts = allPosts.filter(p => p.authorId === currentUser.id);
-        const myReplies = allReplies.filter(r => r.authorId === currentUser.id);
-        const helpfulVotes = myReplies.reduce((sum, r) => sum + (r.isHelpful || 0), 0);
+      const myPosts = allPosts.filter(p => p.authorId === currentUser.id);
+      const myReplies = allReplies.filter(r => r.authorId === currentUser.id);
+      const helpfulVotes = myReplies.reduce((sum, r) => sum + (r.isHelpful || 0), 0);
 
-        setStats({
-          posts: myPosts.length,
-          replies: myReplies.length,
-          helpfulVotes,
-          points,
+      setStats({
+        posts: myPosts.length,
+        replies: myReplies.length,
+        helpfulVotes,
+        points,
           checkInStreak: { current: checkInStreak.current, longest: checkInStreak.longest },
           helpingStreak: { current: helpingStreak.current, longest: helpingStreak.longest },
           engagementStreak: { current: engagementStreak.current, longest: engagementStreak.longest },
-        });
+      });
 
-        // Load recent activity
-        const activity: any[] = [];
-        myPosts.slice(0, 5).forEach(post => {
-          activity.push({
-            type: 'post',
-            id: post.id,
-            title: post.title,
-            date: post.createdAt,
-          });
+      // Load recent activity
+      const activity: any[] = [];
+      myPosts.slice(0, 5).forEach(post => {
+        activity.push({
+          type: 'post',
+          id: post.id,
+          title: post.title,
+          date: post.createdAt,
         });
-        myReplies.slice(0, 5).forEach(reply => {
-          const post = allPosts.find(p => p.id === reply.postId);
-          activity.push({
-            type: 'reply',
-            id: reply.id,
-            title: post?.title || 'Post',
-            date: reply.createdAt,
-          });
+      });
+      myReplies.slice(0, 5).forEach(reply => {
+        const post = allPosts.find(p => p.id === reply.postId);
+        activity.push({
+          type: 'reply',
+          id: reply.id,
+          title: post?.title || 'Post',
+          date: reply.createdAt,
         });
-        activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setRecentActivity(activity.slice(0, 10));
+      });
+      activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecentActivity(activity.slice(0, 10));
       }
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -147,10 +147,10 @@ export default function ProfileScreen() {
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-        >
+      >
         {/* Profile Header */}
         <View style={[styles.profileHeader, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
@@ -185,17 +185,17 @@ export default function ProfileScreen() {
                 <View style={[styles.streakCard, { backgroundColor: colors.surface }]}>
                   <StreakDisplay current={stats.checkInStreak.current} longest={stats.checkInStreak.longest} type="check-in" />
                 </View>
-              )}
+            )}
               {stats.helpingStreak.current > 0 && (
                 <View style={[styles.streakCard, { backgroundColor: colors.surface }]}>
                   <StreakDisplay current={stats.helpingStreak.current} longest={stats.helpingStreak.longest} type="helping" />
                 </View>
-              )}
+            )}
               {stats.engagementStreak.current > 0 && (
                 <View style={[styles.streakCard, { backgroundColor: colors.surface }]}>
                   <StreakDisplay current={stats.engagementStreak.current} longest={stats.engagementStreak.longest} type="engagement" />
                 </View>
-              )}
+            )}
             </View>
           </View>
         )}

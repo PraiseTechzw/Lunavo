@@ -2,10 +2,11 @@
  * Gamification System - Badges, Streaks, Points, and Achievements
  */
 
-import { createStreak, createUserBadge, getPosts, getReplies, getStreak, getUserBadges, updateStreak } from './database';
+import { supabase } from './supabase';
+import { getUserBadges, createUserBadge, getStreak, updateStreak, createStreak, getReplies, getPosts } from './database';
 import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
 import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
-import { supabase } from './supabase';
+import { User } from '@/app/types';
 
 // ============================================
 // BADGE DEFINITIONS
@@ -40,7 +41,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'weekly-warrior',
     name: 'Weekly Warrior',
     description: 'Check in 7 days in a row',
-    icon: 'calendar-today',
+    icon: 'calendar-week',
     color: '#3B82F6',
     category: 'check-in',
     criteria: { type: 'check_in_streak', value: 7, description: '7-day check-in streak' },
@@ -49,7 +50,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'monthly-master',
     name: 'Monthly Master',
     description: 'Check in 30 days in a row',
-    icon: 'event',
+    icon: 'calendar-month',
     color: '#8B5CF6',
     category: 'check-in',
     criteria: { type: 'check_in_streak', value: 30, description: '30-day check-in streak' },
@@ -69,7 +70,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'helper-hero',
     name: 'Helper Hero',
     description: 'Help 10 students',
-    icon: 'person',
+    icon: 'superhero',
     color: '#EF4444',
     category: 'helping',
     criteria: { type: 'response_count', value: 10, description: 'Give 10 helpful responses' },
@@ -98,7 +99,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'community-champion',
     name: 'Community Champion',
     description: 'Be active for 30 days',
-    icon: 'emoji-events',
+    icon: 'trophy',
     color: '#F97316',
     category: 'engagement',
     criteria: { type: 'active_days', value: 30, description: 'Active for 30 days' },
@@ -118,7 +119,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'streak-master',
     name: 'Streak Master',
     description: 'Maintain a 100-day streak',
-    icon: 'local-fire-department',
+    icon: 'fire',
     color: '#DC2626',
     category: 'achievement',
     criteria: { type: 'max_streak', value: 100, description: '100-day streak' },
@@ -127,7 +128,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'quick-responder',
     name: 'Quick Responder',
     description: 'Respond within 1 hour, 10 times',
-    icon: 'bolt',
+    icon: 'flash',
     color: '#FBBF24',
     category: 'achievement',
     criteria: { type: 'quick_responses', value: 10, description: '10 quick responses' },

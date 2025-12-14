@@ -348,9 +348,9 @@ export default function ClubInfoScreen() {
           {nextMeeting && (
             <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
               <View style={styles.sectionHeader}>
-                <ThemedText type="h3" style={styles.sectionTitle}>
-                  Next Meeting
-                </ThemedText>
+              <ThemedText type="h3" style={styles.sectionTitle}>
+                Next Meeting
+              </ThemedText>
                 {clubStats.upcomingMeetings > 1 && (
                   <ThemedText type="small" style={{ color: colors.primary }}>
                     +{clubStats.upcomingMeetings - 1} more

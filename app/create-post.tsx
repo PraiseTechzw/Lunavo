@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -77,13 +77,6 @@ export default function CreatePostScreen() {
   const [hasTriggerWarning, setHasTriggerWarning] = useState(false);
   const [categoryConfidence, setCategoryConfidence] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [showLinkModal, setShowLinkModal] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  const contentInputRef = useRef<TextInput>(null);
-  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);

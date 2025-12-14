@@ -8,24 +8,26 @@ import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import {
-    getCheckInStreak,
-    getPosts,
-    getPseudonym,
-    hasCheckedInToday
+  getCheckInStreak,
+  getPosts,
+  getPseudonym,
+  hasCheckedInToday
 } from '@/app/utils/storage';
-import { getCurrentUser, getReplies } from '@/lib/database';
-import { getUserPoints } from '@/lib/points-system';
+import { getCurrentUser } from '@/lib/database';
+import { UserRole } from '@/lib/permissions';
+import { DrawerMenu } from '@/app/components/navigation/drawer-menu';
+import { DrawerHeader } from '@/app/components/navigation/drawer-header';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -61,16 +63,28 @@ export default function HomeScreen() {
   const [checkInStreak, setCheckInStreak] = useState(0);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [postCount, setPostCount] = useState(0);
-  const [replyCount, setReplyCount] = useState(0);
-  const [points, setPoints] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentQuote] = useState(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
-  }, []);
+    
+    // Redirect to role-specific dashboards if needed
+    if (userRole) {
+      if (userRole === 'counselor' || userRole === 'life-coach') {
+        // Counselors should use their dashboard, not student home
+        // But we'll show student home with counselor-specific content
+      } else if (userRole === 'admin') {
+        // Admin can access admin dashboard via sidebar
+      } else if (userRole === 'student-affairs') {
+        // Student Affairs should be redirected (handled in _layout.tsx)
+      }
+    }
+  }, [userRole]);
 
   useEffect(() => {
     // Rotate tips every 5 seconds
@@ -81,31 +95,25 @@ export default function HomeScreen() {
   }, []);
 
   const loadUserData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        loadUserInfo(),
-        loadStats(),
-      ]);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      setLoading(false);
-    }
+    await Promise.all([
+      loadUserInfo(),
+      loadStats(),
+    ]);
   };
 
   const loadUserInfo = async () => {
     try {
-      // Load user from backend first
       const currentUser = await getCurrentUser();
-      if (currentUser?.pseudonym) {
-        const name = currentUser.pseudonym.split(/(?=[A-Z])/)[0] || 'Student';
-        setUserName(name);
-        // Cache pseudonym locally for faster access
-        const { savePseudonym } = await import('@/app/utils/storage');
-        await savePseudonym(currentUser.pseudonym);
+      if (currentUser) {
+        setUser(currentUser);
+        setUserRole(currentUser.role as UserRole);
+        const savedPseudonym = await getPseudonym();
+        if (savedPseudonym) {
+          setUserName(savedPseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+        } else {
+          setUserName(currentUser.pseudonym || 'Student');
+        }
       } else {
-        // Fallback to cached pseudonym
         const pseudonym = await getPseudonym();
         if (pseudonym) {
           setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
@@ -113,7 +121,6 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error loading user info:', error);
-      // Fallback to cached pseudonym
       const pseudonym = await getPseudonym();
       if (pseudonym) {
         setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
@@ -122,30 +129,14 @@ export default function HomeScreen() {
   };
 
   const loadStats = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) return;
-
-      const [streak, checkedIn, allPosts, allReplies, userPoints] = await Promise.all([
-        getCheckInStreak(),
-        hasCheckedInToday(),
-        getPosts(),
-        Promise.all((await getPosts()).map(p => getReplies(p.id))).then(replies => replies.flat()),
-        getUserPoints(currentUser.id),
-      ]);
-
-      // Filter to user's posts and replies
-      const myPosts = allPosts.filter(p => p.authorId === currentUser.id);
-      const myReplies = allReplies.filter(r => r.authorId === currentUser.id);
-
-      setCheckInStreak(streak);
-      setHasCheckedIn(checkedIn);
-      setPostCount(myPosts.length);
-      setReplyCount(myReplies.length);
-      setPoints(userPoints);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
+    const [streak, checkedIn, posts] = await Promise.all([
+      getCheckInStreak(),
+      hasCheckedInToday(),
+      getPosts(),
+    ]);
+    setCheckInStreak(streak);
+    setHasCheckedIn(checkedIn);
+    setPostCount(posts.length);
   };
 
   const onRefresh = useCallback(async () => {
@@ -185,7 +176,17 @@ export default function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
-        {/* Fixed Header - Outside ScrollView */}
+        {/* Drawer Header - Mobile Only */}
+        <DrawerHeader
+          title={`${getGreeting()}, ${userName}`}
+          onMenuPress={() => setDrawerVisible(true)}
+          rightAction={{
+            icon: 'settings',
+            onPress: () => router.push('/profile-settings'),
+          }}
+        />
+        
+        {/* Fixed Header - Desktop/Web Only */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
@@ -206,6 +207,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        )}
 
         <ScrollView
         style={styles.scrollView}
@@ -215,97 +217,6 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText type="body" style={{ marginTop: Spacing.md, color: colors.icon }}>
-              Loading your dashboard...
-            </ThemedText>
-          </View>
-        ) : (
-          <>
-        {/* User Stats Cards */}
-        <View style={styles.statsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              { backgroundColor: colors.card },
-              createShadow(2, '#000', 0.1),
-            ]}
-            onPress={() => router.push('/(tabs)/profile')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.statIconContainer, { backgroundColor: '#A2D2FF' + '20' }]}>
-              <MaterialIcons name="forum" size={20} color="#A2D2FF" />
-            </View>
-            <ThemedText type="h3" style={[styles.statValue, { color: colors.text }]}>
-              {postCount}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-              Posts
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              { backgroundColor: colors.card },
-              createShadow(2, '#000', 0.1),
-            ]}
-            onPress={() => router.push('/(tabs)/profile')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.statIconContainer, { backgroundColor: '#BDE0FE' + '20' }]}>
-              <MaterialIcons name="comment" size={20} color="#BDE0FE" />
-            </View>
-            <ThemedText type="h3" style={[styles.statValue, { color: colors.text }]}>
-              {replyCount}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-              Replies
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              { backgroundColor: colors.card },
-              createShadow(2, '#000', 0.1),
-            ]}
-            onPress={() => router.push('/rewards')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.statIconContainer, { backgroundColor: '#FBBF24' + '20' }]}>
-              <MaterialIcons name="stars" size={20} color="#FBBF24" />
-            </View>
-            <ThemedText type="h3" style={[styles.statValue, { color: colors.text }]}>
-              {points}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-              Points
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              { backgroundColor: colors.card },
-              createShadow(2, '#000', 0.1),
-            ]}
-            onPress={() => router.push('/check-in')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.statIconContainer, { backgroundColor: '#10B981' + '20' }]}>
-              <MaterialIcons name="local-fire-department" size={20} color="#10B981" />
-            </View>
-            <ThemedText type="h3" style={[styles.statValue, { color: colors.text }]}>
-              {checkInStreak}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-              Day Streak
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
 
         {/* Urgent Support Card */}
         <View style={[
@@ -443,72 +354,73 @@ export default function HomeScreen() {
           <MaterialIcons name="arrow-forward-ios" size={20} color={colors.icon} />
         </TouchableOpacity>
 
-        {/* Motivational Quote Card */}
-        <View style={[
-          styles.quoteCard,
-          { backgroundColor: colors.card },
-          createShadow(2, '#000', 0.08),
-        ]}>
-          <View style={styles.quoteHeader}>
-            <MaterialIcons name="format-quote" size={24} color={colors.primary} />
-            <ThemedText type="small" style={[styles.quoteLabel, { color: colors.icon }]}>
-              Daily Inspiration
-            </ThemedText>
-          </View>
-          <ThemedText type="body" style={[styles.quoteText, { color: colors.text }]}>
-            "{currentQuote}"
-          </ThemedText>
-        </View>
-
-        {/* Quick Tip Card */}
-        <View style={[
-          styles.tipCard,
-          { backgroundColor: colors.card },
-          createShadow(2, '#000', 0.08),
-        ]}>
-          <View style={styles.tipHeader}>
-            <View style={styles.tipTitleContainer}>
-              <MaterialIcons name="lightbulb-outline" size={20} color="#FBBF24" />
-              <ThemedText type="body" style={[styles.tipTitle, { color: colors.text, marginLeft: Spacing.xs }]}>
-                Wellness Tip
+        {/* Peer Educator Dashboard Card - Only for Peer Educators */}
+        {(userRole === 'peer-educator' || userRole === 'peer-educator-executive') && (
+          <TouchableOpacity
+            style={[
+              styles.resourceCard,
+              { backgroundColor: colors.primary + '10', borderWidth: 2, borderColor: colors.primary + '30' },
+              createShadow(2, colors.primary, 0.15),
+            ]}
+            onPress={() => router.push('/peer-educator/dashboard' as any)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="volunteer-activism" size={32} color={colors.primary} />
+            <View style={styles.resourceContent}>
+              <ThemedText type="body" style={[styles.cardTitle, { color: colors.primary, fontWeight: '700' }]}>
+                Peer Educator Dashboard
+              </ThemedText>
+              <ThemedText type="small" style={[styles.cardDescription, { color: colors.icon }]}>
+                View posts needing support and manage your responses
               </ThemedText>
             </View>
-            <View style={styles.tipIndicators}>
-              {quickTips.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.tipDot,
-                    {
-                      width: index === currentTipIndex ? 8 : 6,
-                      height: 6,
-                      backgroundColor: index === currentTipIndex ? colors.primary : colors.icon + '40',
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-          <View style={styles.tipContent}>
-            <View style={[styles.tipIconContainer, { backgroundColor: currentTip.iconName === 'water-outline' ? '#3B82F6' + '20' : currentTip.iconName === 'leaf-outline' ? '#10B981' + '20' : currentTip.iconName === 'body-outline' ? '#8B5CF6' + '20' : currentTip.iconName === 'document-text-outline' ? '#F97316' + '20' : currentTip.iconName === 'walk-outline' ? '#EC4899' + '20' : '#6366F1' + '20' }]}>
-              <Ionicons name={currentTip.iconName as any} size={28} color={currentTip.iconName === 'water-outline' ? '#3B82F6' : currentTip.iconName === 'leaf-outline' ? '#10B981' : currentTip.iconName === 'body-outline' ? '#8B5CF6' : currentTip.iconName === 'document-text-outline' ? '#F97316' : currentTip.iconName === 'walk-outline' ? '#EC4899' : '#6366F1'} />
-            </View>
-            <View style={styles.tipTextContainer}>
-              <ThemedText type="body" style={[styles.tipHeading, { color: colors.text }]}>
-                {currentTip.title}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.tipDescription, { color: colors.icon }]}>
-                {currentTip.tip}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
+            <MaterialIcons name="arrow-forward-ios" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
 
         {/* Bottom Spacing */}
         <View style={{ height: Spacing.xl }} />
-        </>
-        )}
       </ScrollView>
+
+      {/* Floating Action Button - Role-based */}
+      {userRole === 'peer-educator' || userRole === 'peer-educator-executive' ? (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { backgroundColor: colors.primary },
+            createShadow(8, colors.primary, 0.3),
+          ]}
+          onPress={() => router.push('/peer-educator/posts' as any)}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="reply" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
+            Respond
+          </ThemedText>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { backgroundColor: '#136dec' },
+            createShadow(8, '#136dec', 0.3),
+          ]}
+          onPress={() => router.push('/create-post')}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="add" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
+            Ask for Help
+          </ThemedText>
+        </TouchableOpacity>
+      )}
+      
+      {/* Drawer Menu */}
+      <DrawerMenu
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        role={userRole || undefined}
+      />
       </ThemedView>
     </SafeAreaView>
   );
@@ -530,7 +442,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   header: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
@@ -550,8 +462,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconCircle: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -565,7 +477,6 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontWeight: '700',
-    fontSize: 22,
   },
   dateText: {
     marginTop: 2,
@@ -575,69 +486,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
-    marginTop: Spacing.sm,
   },
   statCard: {
     flex: 1,
     padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    minHeight: 110,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  statIconContainer: {
-    width: 44,
-    height: 44,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    minHeight: 100,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   statValue: {
     fontWeight: '700',
     marginBottom: 4,
-    fontSize: 20,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    minHeight: 200,
   },
   quoteCard: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
     borderLeftWidth: 4,
-    borderLeftColor: '#A2D2FF',
+    borderLeftColor: Colors.light.primary,
   },
-  quoteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  quoteLabel: {
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  quoteIcon: {
+    marginBottom: Spacing.xs,
   },
   quoteText: {
     fontStyle: 'italic',
-    lineHeight: 24,
-    fontSize: 15,
+    lineHeight: 22,
   },
   tipCard: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.lg,
   },
   tipHeader: {
@@ -652,25 +541,24 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     fontWeight: '600',
-    fontSize: 16,
   },
   tipIndicators: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
     alignItems: 'center',
   },
   tipDot: {
-    borderRadius: 3,
+    borderRadius: 4,
   },
   tipContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.md,
   },
   tipIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: BorderRadius.lg,
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -679,19 +567,16 @@ const styles = StyleSheet.create({
   },
   tipHeading: {
     fontWeight: '600',
-    marginBottom: 6,
-    fontSize: 16,
+    marginBottom: 4,
   },
   tipDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   urgentCard: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   urgentContent: {
     flexDirection: 'row',
@@ -711,12 +596,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   accessButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
     alignSelf: 'flex-start',
-    minWidth: 120,
-    alignItems: 'center',
   },
   sosContainer: {
     alignItems: 'center',
@@ -739,9 +622,8 @@ const styles = StyleSheet.create({
   },
   moodSectionTitle: {
     fontWeight: '700',
-    fontSize: 22,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.md,
+    fontSize: 24,
+    marginTop: Spacing.lg,
   },
   moodContainer: {
     flexDirection: 'row',
@@ -756,9 +638,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
-    minHeight: 52,
+    minHeight: 48,
     gap: Spacing.sm,
-    minWidth: 100,
   },
   moodChipLabel: {
     fontWeight: '500',
@@ -771,11 +652,11 @@ const styles = StyleSheet.create({
   },
   supportCard: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
-    minHeight: 160,
+    minHeight: 150,
     justifyContent: 'space-between',
   },
   supportCardContent: {
@@ -785,7 +666,7 @@ const styles = StyleSheet.create({
   resourceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.xl,
     gap: Spacing.md,
     marginTop: Spacing.md,
@@ -818,6 +699,19 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 96,
+    right: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    height: 56,
     justifyContent: 'center',
   },
 });

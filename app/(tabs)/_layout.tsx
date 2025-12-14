@@ -1,15 +1,52 @@
 /**
- * Tab navigation layout
+ * Tab navigation layout - Role-aware
+ * Different tabs shown based on user role
  */
 
 import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { getCurrentUser } from '@/lib/database';
+import { UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
+  useEffect(() => {
+    loadUserRole();
+  }, []);
+
+  const loadUserRole = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        setUserRole(user.role as UserRole);
+      }
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
+
+  // Determine which tabs to show based on role
+  const shouldShowTab = (tabName: string): boolean => {
+    if (!userRole) return true; // Show all tabs while loading
+    
+    // Counselors and Life Coaches should not see Forum
+    if (tabName === 'forum' && (userRole === 'counselor' || userRole === 'life-coach')) {
+      return false;
+    }
+    
+    // Student Affairs should not see Forum or Chat
+    if ((tabName === 'forum' || tabName === 'chat') && userRole === 'student-affairs') {
+      return false;
+    }
+    
+    return true;
+  };
 
   return (
     <Tabs
@@ -66,6 +103,8 @@ export default function TabLayout() {
             fontWeight: '500',
             fontSize: 12,
           },
+          // Hide forum tab for counselors and student affairs
+          ...(shouldShowTab('forum') ? {} : { href: null }),
         }}
       />
       <Tabs.Screen
@@ -84,6 +123,8 @@ export default function TabLayout() {
             fontWeight: '500',
             fontSize: 12,
           },
+          // Hide chat tab for student affairs
+          ...(shouldShowTab('chat') ? {} : { href: null }),
         }}
       />
       <Tabs.Screen
