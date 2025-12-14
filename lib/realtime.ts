@@ -415,7 +415,23 @@ export function subscribeToMessageUpdates(
       },
       async (payload) => {
         if (payload.eventType === 'DELETE') {
-          callback({ eventType: 'DELETE', message: null });
+          // For DELETE events, payload.old contains the deleted row data
+          // We need to pass the message ID so the UI can remove it
+          const deletedMessageId = payload.old?.id;
+          if (deletedMessageId) {
+            // Create a minimal message object with just the ID for deletion
+            const deletedMessage: Message = {
+              id: deletedMessageId,
+              conversationId: payload.old.conversation_id || conversationId,
+              senderId: payload.old.sender_id || '',
+              content: '',
+              messageType: 'text',
+              status: 'sent',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            callback({ eventType: 'DELETE', message: deletedMessage });
+          }
           return;
         }
 
