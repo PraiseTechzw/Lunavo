@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { WebCard, WebContainer } from '@/app/components/web';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -23,9 +24,13 @@ import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
 import { getResources } from '@/lib/database';
 import { Resource } from '@/app/types';
+import { getCurrentUser } from '@/lib/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform, Dimensions } from 'react-native';
 
 const FAVORITES_KEY = 'resource_favorites';
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 const categories = ['All', 'Articles', 'Videos', 'Coping Skills', 'Academic', 'Mental Health'];
 
@@ -104,7 +109,19 @@ export default function ResourcesScreen() {
   useEffect(() => {
     loadResources();
     loadFavorites();
+    loadUserRole();
   }, []);
+
+  const loadUserRole = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        setUserRole(user.role);
+      }
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
 
   useEffect(() => {
     filterResources();
@@ -200,23 +217,22 @@ export default function ResourcesScreen() {
     };
 
     return (
-      <TouchableOpacity
+      <WebCard
+        hoverable
+        onPress={() => router.push(`/resource/${item.id}`)}
         style={[
           styles.resourceCard,
           { backgroundColor: colors.card },
-          createShadow(2, '#000', 0.1),
         ]}
-        activeOpacity={0.8}
-        onPress={() => router.push(`/resource/${item.id}`)}
       >
         <View style={[styles.resourceImage, { backgroundColor: colors.primary + '20' }]}>
           <Ionicons name={getResourceIcon() as any} size={40} color={colors.primary} />
         </View>
         <View style={styles.resourceContent}>
-          <ThemedText type="body" style={styles.resourceTitle} numberOfLines={2}>
+          <ThemedText type="body" style={[styles.resourceTitle, { color: colors.text }]} numberOfLines={2}>
             {item.title}
           </ThemedText>
-          <ThemedText type="small" style={styles.resourceMeta}>
+          <ThemedText type="small" style={[styles.resourceMeta, { color: colors.icon }]}>
             {item.category} • {item.resourceType}
           </ThemedText>
         </View>
@@ -233,7 +249,7 @@ export default function ResourcesScreen() {
             color={isFavorite ? colors.primary : colors.icon}
           />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </WebCard>
     );
   };
 
@@ -263,15 +279,28 @@ export default function ResourcesScreen() {
     </TouchableOpacity>
   );
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
-      <ThemedView style={styles.container}>
-        <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search Bar */}
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Page Header - Web optimized */}
+      {(isWeb && isStudentAffairs) && (
+        <View style={styles.pageHeader}>
+          <View>
+            <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
+              Resource Library
+            </ThemedText>
+            <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+              Support resources and educational materials
+            </ThemedText>
+          </View>
+        </View>
+      )}
+
+      {/* Search Bar */}
+      <WebCard style={styles.searchCard}>
         <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
           <Ionicons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
           <TextInput
@@ -282,150 +311,153 @@ export default function ResourcesScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
+      </WebCard>
 
-        {/* Favorites Toggle */}
-        <TouchableOpacity
-          style={[
-            styles.favoritesToggle,
-            {
-              backgroundColor: showFavoritesOnly ? colors.primary : colors.surface,
-            },
-            createShadow(1, '#000', 0.05),
-          ]}
-          onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-        >
-          <MaterialIcons
-            name={showFavoritesOnly ? 'favorite' : 'favorite-border'}
-            size={20}
-            color={showFavoritesOnly ? '#FFFFFF' : colors.text}
-          />
-          <ThemedText
-            type="body"
-            style={{
-              color: showFavoritesOnly ? '#FFFFFF' : colors.text,
-              marginLeft: Spacing.sm,
-              fontWeight: '600',
-            }}
+      {/* Filters Section */}
+      <WebCard style={styles.filtersCard}>
+        <View style={styles.filtersRow}>
+          {/* Favorites Toggle */}
+          <TouchableOpacity
+            style={[
+              styles.favoritesToggle,
+              {
+                backgroundColor: showFavoritesOnly ? colors.primary : colors.surface,
+                borderColor: showFavoritesOnly ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
           >
-            {showFavoritesOnly ? 'Show All' : 'Show Favorites'}
-          </ThemedText>
-        </TouchableOpacity>
-
-        {/* Category Filters */}
-        <View style={styles.filtersContainer}>
-          <FlatList
-            horizontal
-            data={categories}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor:
-                      selectedCategory === item ? colors.primary : colors.surface,
-                  },
-                ]}
-                onPress={() => setSelectedCategory(item)}
-                activeOpacity={0.7}
-              >
-                <ThemedText
-                  type="small"
-                  style={{
-                    color: selectedCategory === item ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
-                  }}
-                >
-                  {item}
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContent}
-          />
-        </View>
-
-        {/* Resources List */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            {showFavoritesOnly ? 'Favorite Resources' : 'All Resources'} ({filteredResources.length})
-          </ThemedText>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ThemedText>Loading resources...</ThemedText>
-            </View>
-          ) : filteredResources.length > 0 ? (
-            <FlatList
-              data={filteredResources}
-              renderItem={renderResourceCard}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              contentContainerStyle={styles.gridList}
+            <MaterialIcons
+              name={showFavoritesOnly ? 'favorite' : 'favorite-border'}
+              size={20}
+              color={showFavoritesOnly ? '#FFFFFF' : colors.text}
             />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="inbox" size={48} color={colors.icon} />
-              <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
-                {showFavoritesOnly ? 'No favorite resources yet' : 'No resources found'}
-              </ThemedText>
-            </View>
-          )}
-        </View>
+            <ThemedText
+              type="body"
+              style={{
+                color: showFavoritesOnly ? '#FFFFFF' : colors.text,
+                marginLeft: Spacing.sm,
+                fontWeight: '600',
+              }}
+            >
+              {showFavoritesOnly ? 'Show All' : 'Favorites Only'}
+            </ThemedText>
+          </TouchableOpacity>
 
-        {/* Coping Strategies */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
+          {/* Category Filters */}
+          <View style={styles.filtersContainer}>
+            <FlatList
+              horizontal
+              data={categories}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor:
+                        selectedCategory === item ? colors.primary : colors.surface,
+                      borderColor: selectedCategory === item ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedCategory(item)}
+                  activeOpacity={0.7}
+                >
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: selectedCategory === item ? '#FFFFFF' : colors.text,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {item}
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContent}
+            />
+          </View>
+        </View>
+      </WebCard>
+
+      {/* Resources List */}
+      <WebCard style={styles.resourcesCard}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+              {showFavoritesOnly ? 'Favorite Resources' : 'All Resources'}
+            </ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              {filteredResources.length} {filteredResources.length === 1 ? 'resource' : 'resources'} available
+            </ThemedText>
+          </View>
+        </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <MaterialIcons name="hourglass-empty" size={48} color={colors.icon} />
+            <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+              Loading resources...
+            </ThemedText>
+          </View>
+        ) : filteredResources.length > 0 ? (
+          <View style={styles.resourcesGrid}>
+            {filteredResources.map((item) => (
+              <View key={item.id} style={styles.resourceCardWrapper}>
+                {renderResourceCard({ item })}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="inbox" size={48} color={colors.icon} />
+            <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+              {showFavoritesOnly ? 'No favorite resources yet' : 'No resources found'}
+            </ThemedText>
+          </View>
+        )}
+      </WebCard>
+
+      {/* Coping Strategies */}
+      <WebCard style={styles.copingCard}>
+        <View>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
             Coping Strategies
           </ThemedText>
+          <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+            Quick access to stress management resources
+          </ThemedText>
+        </View>
+        <View style={styles.copingList}>
           {copingStrategies.map((item) => (
-            <TouchableOpacity
+            <WebCard
               key={item.id}
+              hoverable
               style={[
-                styles.copingCard,
+                styles.copingCardItem,
                 { backgroundColor: colors.card },
-                createShadow(1, '#000', 0.05),
               ]}
-              activeOpacity={0.8}
             >
               <View style={[styles.copingIcon, { backgroundColor: item.color + '30' }]}>
                 <Ionicons name={item.iconName as any} size={28} color={item.color} />
               </View>
               <View style={styles.copingContent}>
-                <ThemedText type="body" style={styles.copingTitle}>
+                <ThemedText type="body" style={[styles.copingTitle, { color: colors.text }]}>
                   {item.title}
                 </ThemedText>
-                <ThemedText type="small" style={styles.copingMeta}>
+                <ThemedText type="small" style={{ color: colors.icon }}>
                   {item.duration || item.type}
                 </ThemedText>
               </View>
               <TouchableOpacity>
                 <Ionicons name="bookmark-outline" size={20} color={colors.icon} />
               </TouchableOpacity>
-            </TouchableOpacity>
+            </WebCard>
           ))}
         </View>
-
-        {/* Academic Support */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Academic Support
-          </ThemedText>
-          <FlatList
-            horizontal
-            data={academicResources}
-            renderItem={renderResourceCard}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
-      </ScrollView>
-      </ThemedView>
-    </SafeAreaView>
+      </WebCard>
+    </ScrollView>
   );
-}
 
 const styles = StyleSheet.create({
   safeAreaTop: {
@@ -433,19 +465,38 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
+  },
+  pageHeader: {
+    marginBottom: Spacing.xl,
+    ...(isWeb ? {
+      marginTop: Spacing.lg,
+    } : {}),
+  },
+  pageTitle: {
+    fontWeight: '700',
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
+  },
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
+  searchCard: {
+    marginBottom: Spacing.lg,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
   },
   searchIcon: {
     marginRight: Spacing.sm,
@@ -455,8 +506,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     fontSize: 16,
   },
-  filtersContainer: {
+  filtersCard: {
     marginBottom: Spacing.lg,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    flexWrap: 'wrap',
+  },
+  filtersContainer: {
+    flex: 1,
+    minWidth: 200,
   },
   filtersContent: {
     gap: Spacing.sm,
@@ -466,22 +527,51 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
+    borderWidth: 1,
+    ...getCursorStyle(),
   },
-  section: {
-    marginBottom: Spacing.xl,
+  favoritesToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    ...getCursorStyle(),
+  },
+  sectionHeader: {
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    marginBottom: Spacing.md,
     fontWeight: '700',
+    fontSize: isWeb ? 20 : 18,
   },
-  horizontalList: {
-    gap: Spacing.md,
+  resourcesCard: {
+    marginBottom: Spacing.xl,
+  },
+  resourcesGrid: {
+    ...(isWeb ? {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+      gap: Spacing.lg,
+    } : {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.md,
+    }),
+  },
+  resourceCardWrapper: {
+    ...(isWeb ? {} : {
+      width: '47%',
+    }),
   },
   resourceCard: {
-    width: 200,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    marginRight: Spacing.md,
+    height: '100%',
+    ...(isWeb ? {
+      minHeight: 200,
+    } : {}),
   },
   resourceImage: {
     width: '100%',
@@ -506,11 +596,17 @@ const styles = StyleSheet.create({
     right: Spacing.sm,
   },
   copingCard: {
+    marginBottom: Spacing.xl,
+  },
+  copingList: {
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  copingCardItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
   },
   copingIcon: {
     width: 50,
@@ -529,6 +625,16 @@ const styles = StyleSheet.create({
   },
   copingMeta: {
     opacity: 0.7,
+  },
+  loadingContainer: {
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
