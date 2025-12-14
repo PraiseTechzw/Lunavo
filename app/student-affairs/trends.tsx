@@ -1,30 +1,37 @@
 /**
  * Trend Analysis - Student Affairs
- * Time-series charts and seasonal patterns
+ * Web-optimized time-series charts and seasonal patterns
  * All data is anonymized
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
+import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { PostCategory } from '@/app/types';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getEscalations, getPosts } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { format, parseISO, subDays } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
+  Alert,
+  Dimensions,
+  Platform,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPosts, getEscalations } from '@/lib/database';
-import { PostCategory, EscalationLevel } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { format, subDays, startOfDay, parseISO } from 'date-fns';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default function TrendsAnalysisScreen() {
   const router = useRouter();
@@ -127,13 +134,35 @@ export default function TrendsAnalysisScreen() {
     setRefreshing(false);
   };
 
+  const handleExport = () => {
+    if (Platform.OS === 'web') {
+      const data = {
+        timeRange,
+        dailyPosts,
+        categoryTrends,
+        escalationTrends,
+        seasonalPatterns,
+        exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trend-analysis-${timeRange}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      Alert.alert('Export', 'Export functionality available on web.');
+    }
+  };
+
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText>Loading...</ThemedText>
-        </ThemedView>
-      </SafeAreaView>
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
     );
   }
 
@@ -142,138 +171,194 @@ export default function TrendsAnalysisScreen() {
     .slice(-14); // Last 14 days
 
   const maxDailyPosts = Math.max(...dailyPostsArray.map((d) => d[1]), 1);
+  const totalEscalations = Object.values(escalationTrends).reduce((a, b) => a + b, 0);
+  const maxSeasonal = Math.max(...Object.values(seasonalPatterns), 1);
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-          }
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+      }
+    >
+      {/* Page Header */}
+      <View style={styles.pageHeader}>
+        <View>
+          <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
+            Trend Analysis
+          </ThemedText>
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+            Time-series analysis and seasonal patterns
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          onPress={handleExport}
+          style={[styles.exportButton, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <ThemedText type="h2" style={styles.headerTitle}>
-              Trend Analysis
-            </ThemedText>
-            <View style={{ width: 24 }} />
-          </View>
+          <MaterialIcons name="download" size={20} color={colors.primary} />
+          <ThemedText type="body" style={[styles.exportText, { color: colors.primary }]}>
+            Export
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
 
-          {/* Time Range Selector */}
-          <View style={styles.timeRangeContainer}>
-            {(['7d', '30d', '90d', 'all'] as const).map((range) => (
-              <TouchableOpacity
-                key={range}
-                style={[
-                  styles.timeRangeButton,
-                  {
-                    backgroundColor: timeRange === range ? colors.primary : colors.surface,
-                  },
-                ]}
-                onPress={() => setTimeRange(range)}
+      {/* Time Range Selector */}
+      <WebCard style={styles.timeRangeCard}>
+        <View style={styles.timeRangeHeader}>
+          <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+            Time Range
+          </ThemedText>
+        </View>
+        <View style={styles.timeRangeContainer}>
+          {(['7d', '30d', '90d', 'all'] as const).map((range) => (
+            <TouchableOpacity
+              key={range}
+              style={[
+                styles.timeRangeButton,
+                {
+                  backgroundColor: timeRange === range ? colors.primary : colors.surface,
+                  borderColor: timeRange === range ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setTimeRange(range)}
+            >
+              <ThemedText
+                type="body"
+                style={{
+                  color: timeRange === range ? '#FFFFFF' : colors.text,
+                  fontWeight: '600',
+                }}
               >
-                <ThemedText
-                  type="small"
-                  style={{
-                    color: timeRange === range ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
-                  }}
-                >
-                  {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '90 Days' : 'All Time'}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
+                {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '90 Days' : 'All Time'}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </WebCard>
 
-          {/* Daily Posts Trend */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Daily Posts Trend
-            </ThemedText>
-            <View style={styles.chartContainer}>
-              {dailyPostsArray.map(([date, count]) => {
-                const dateObj = parseISO(date);
-                const dayLabel = format(dateObj, 'MMM dd');
-                return (
-                  <View key={date} style={styles.barChartItem}>
-                    <View style={styles.barContainer}>
+      {/* Daily Posts Trend */}
+      <WebCard style={styles.chartCard}>
+        <View>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Daily Posts Trend
+          </ThemedText>
+          <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+            Last 14 days of activity
+          </ThemedText>
+        </View>
+        <View style={styles.chartContainer}>
+          {dailyPostsArray.length > 0 ? (
+            dailyPostsArray.map(([date, count]) => {
+              const dateObj = parseISO(date);
+              const dayLabel = format(dateObj, 'MMM dd');
+              return (
+                <View key={date} style={styles.barChartItem}>
+                  <View style={styles.barContainer}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: `${(count / maxDailyPosts) * 100}%`,
+                          backgroundColor: colors.primary,
+                          minHeight: count > 0 ? 4 : 0,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <ThemedText type="small" style={{ color: colors.icon, fontSize: 11, marginTop: Spacing.xs }}>
+                    {dayLabel}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: colors.text, fontWeight: '600', fontSize: 11 }}>
+                    {count}
+                  </ThemedText>
+                </View>
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="bar-chart" size={48} color={colors.icon} />
+              <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                No data available for selected time range
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      </WebCard>
+
+      {/* Category Trends */}
+      <WebCard style={styles.categoryTrendsCard}>
+        <View>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Category Trends Over Time
+          </ThemedText>
+          <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+            Last 7 days by category
+          </ThemedText>
+        </View>
+        <View style={styles.categoryTrendsList}>
+          {Object.entries(categoryTrends)
+            .slice(0, 5)
+            .map(([category, trends]) => {
+              const categoryInfo = CATEGORIES[category as PostCategory];
+              const total = Object.values(trends).reduce((a, b) => a + b, 0);
+              const trendEntries = Object.entries(trends).sort((a, b) => a[0].localeCompare(b[0])).slice(-7);
+              const maxInCategory = Math.max(...trendEntries.map((t) => t[1]), 1);
+              return (
+                <View key={category} style={styles.categoryTrendItem}>
+                  <View style={styles.categoryTrendHeader}>
+                    <View style={styles.categoryTrendInfo}>
+                      <View style={[styles.categoryDot, { backgroundColor: categoryInfo?.color || colors.primary }]} />
+                      <View>
+                        <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                          {categoryInfo?.name || category}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: colors.icon }}>
+                          {total} posts total
+                        </ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.miniChart}>
+                    {trendEntries.map(([date, count]) => (
                       <View
+                        key={date}
                         style={[
-                          styles.bar,
+                          styles.miniBar,
                           {
-                            height: `${(count / maxDailyPosts) * 100}%`,
-                            backgroundColor: colors.primary,
-                            minHeight: count > 0 ? 4 : 0,
+                            height: `${(count / maxInCategory) * 100}%`,
+                            backgroundColor: categoryInfo?.color || colors.primary,
+                            minHeight: count > 0 ? 2 : 0,
                           },
                         ]}
                       />
-                    </View>
-                    <ThemedText type="small" style={{ color: colors.icon, fontSize: 10 }}>
-                      {dayLabel}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.text, fontWeight: '600', fontSize: 10 }}>
-                      {count}
-                    </ThemedText>
+                    ))}
                   </View>
-                );
-              })}
-            </View>
-          </View>
+                </View>
+              );
+            })}
+        </View>
+      </WebCard>
 
-          {/* Category Trends */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Category Trends Over Time
-            </ThemedText>
-            {Object.entries(categoryTrends)
-              .slice(0, 5)
-              .map(([category, trends]) => {
-                const categoryInfo = CATEGORIES.find((c) => c.id === category);
-                const total = Object.values(trends).reduce((a, b) => a + b, 0);
-                const trendEntries = Object.entries(trends).sort((a, b) => a[0].localeCompare(b[0])).slice(-7);
-                const maxInCategory = Math.max(...trendEntries.map((t) => t[1]), 1);
-                return (
-                  <View key={category} style={styles.categoryTrendItem}>
-                    <View style={styles.categoryTrendHeader}>
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
-                        {categoryInfo?.name || category}
-                      </ThemedText>
-                      <ThemedText type="small" style={{ color: colors.icon }}>
-                        {total} posts
-                      </ThemedText>
-                    </View>
-                    <View style={styles.miniChart}>
-                      {trendEntries.map(([date, count]) => (
-                        <View
-                          key={date}
-                          style={[
-                            styles.miniBar,
-                            {
-                              height: `${(count / maxInCategory) * 100}%`,
-                              backgroundColor: categoryInfo?.color || colors.primary,
-                              minHeight: count > 0 ? 2 : 0,
-                            },
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-          </View>
-
-          {/* Escalation Trends */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
+      {/* Bottom Grid */}
+      <View style={styles.bottomGrid}>
+        {/* Escalation Trends */}
+        <WebCard style={styles.escalationCard}>
+          <View>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
               Escalation Trends
             </ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              Distribution by severity level
+            </ThemedText>
+          </View>
+          <View style={styles.escalationTrendsList}>
             {Object.entries(escalationTrends)
               .filter(([level]) => level !== 'none')
+              .sort((a, b) => {
+                const order = { critical: 0, high: 1, medium: 2, low: 3 };
+                return (order[a[0] as keyof typeof order] ?? 99) - (order[b[0] as keyof typeof order] ?? 99);
+              })
               .map(([level, count]) => {
                 const levelColors: Record<string, string> = {
                   critical: '#EF4444',
@@ -281,7 +366,7 @@ export default function TrendsAnalysisScreen() {
                   medium: '#3B82F6',
                   low: '#10B981',
                 };
-                const total = Object.values(escalationTrends).reduce((a, b) => a + b, 0);
+                const percentage = totalEscalations > 0 ? ((count / totalEscalations) * 100).toFixed(1) : '0';
                 return (
                   <View key={level} style={styles.escalationTrendRow}>
                     <View style={styles.escalationTrendInfo}>
@@ -291,70 +376,97 @@ export default function TrendsAnalysisScreen() {
                           { backgroundColor: levelColors[level] || colors.primary },
                         ]}
                       />
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginLeft: Spacing.sm }}>
-                        {level.toUpperCase()}
-                      </ThemedText>
+                      <View>
+                        <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                          {level.toUpperCase()}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: colors.icon }}>
+                          {percentage}%
+                        </ThemedText>
+                      </View>
                     </View>
                     <View style={styles.trendBar}>
                       <View
                         style={[
                           styles.trendFill,
                           {
-                            width: `${total > 0 ? (count / total) * 100 : 0}%`,
+                            width: `${percentage}%`,
                             backgroundColor: levelColors[level] || colors.primary,
                           },
                         ]}
                       />
                     </View>
-                    <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm, minWidth: 40 }}>
+                    <ThemedText type="h3" style={{ color: colors.text, fontWeight: '700', minWidth: 50, textAlign: 'right' }}>
                       {count}
                     </ThemedText>
                   </View>
                 );
               })}
           </View>
+        </WebCard>
 
-          {/* Seasonal Patterns */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
+        {/* Seasonal Patterns */}
+        <WebCard style={styles.seasonalCard}>
+          <View>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
               Seasonal Patterns
             </ThemedText>
-            <View style={styles.seasonalContainer}>
-              {Object.entries(seasonalPatterns)
-                .sort((a, b) => {
-                  const monthOrder = [
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                  ];
-                  return monthOrder.indexOf(a[0]) - monthOrder.indexOf(b[0]);
-                })
-                .map(([month, count]) => {
-                  const maxSeasonal = Math.max(...Object.values(seasonalPatterns), 1);
-                  return (
-                    <View key={month} style={styles.seasonalRow}>
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, minWidth: 100 }}>
-                        {month}
-                      </ThemedText>
-                      <View style={styles.seasonalBar}>
-                        <View
-                          style={[
-                            styles.seasonalFill,
-                            {
-                              width: `${(count / maxSeasonal) * 100}%`,
-                              backgroundColor: colors.primary,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm, minWidth: 40 }}>
-                        {count}
-                      </ThemedText>
-                    </View>
-                  );
-                })}
-            </View>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              Monthly activity distribution
+            </ThemedText>
           </View>
-        </ScrollView>
+          <View style={styles.seasonalList}>
+            {Object.entries(seasonalPatterns)
+              .sort((a, b) => {
+                const monthOrder = [
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+                return monthOrder.indexOf(a[0]) - monthOrder.indexOf(b[0]);
+              })
+              .map(([month, count]) => (
+                <View key={month} style={styles.seasonalRow}>
+                  <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, minWidth: 120 }}>
+                    {month}
+                  </ThemedText>
+                  <View style={styles.seasonalBar}>
+                    <View
+                      style={[
+                        styles.seasonalFill,
+                        {
+                          width: `${(count / maxSeasonal) * 100}%`,
+                          backgroundColor: colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.md, minWidth: 50, textAlign: 'right' }}>
+                    {count}
+                  </ThemedText>
+                </View>
+              ))}
+          </View>
+        </WebCard>
+      </View>
+    </ScrollView>
+  );
+
+  // Web layout with container
+  if (isWeb) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1600} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile layout
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        {content}
       </ThemedView>
     </SafeAreaView>
   );
@@ -366,134 +478,210 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 80,
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
   },
-  header: {
+  pageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xl,
+    ...(isWeb ? {
+      marginTop: Spacing.lg,
+    } : {}),
   },
-  headerTitle: {
+  pageTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
   },
-  timeRangeContainer: {
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
+  exportButton: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  timeRangeButton: {
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.sm,
+    ...getCursorStyle(),
   },
-  section: {
-    padding: Spacing.lg,
+  exportText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  timeRangeCard: {
+    marginBottom: Spacing.xl,
+  },
+  timeRangeHeader: {
+    marginBottom: Spacing.md,
+  },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    flexWrap: 'wrap',
+  },
+  timeRangeButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    ...getCursorStyle(),
+  },
+  chartCard: {
+    marginBottom: Spacing.xl,
   },
   sectionTitle: {
     fontWeight: '700',
-    marginBottom: Spacing.md,
+    fontSize: isWeb ? 20 : 18,
   },
   chartContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'flex-end',
-    height: 200,
-    marginTop: Spacing.md,
+    height: isWeb ? 300 : 200,
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.sm,
   },
   barChartItem: {
     flex: 1,
     alignItems: 'center',
     gap: Spacing.xs,
+    maxWidth: 60,
   },
   barContainer: {
     flex: 1,
     width: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    minHeight: 200,
   },
   bar: {
     width: '80%',
     borderRadius: BorderRadius.sm,
+    transition: 'height 0.3s ease',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xxl,
+    height: 200,
+  },
+  categoryTrendsCard: {
+    marginBottom: Spacing.xl,
+  },
+  categoryTrendsList: {
+    gap: Spacing.lg,
+    marginTop: Spacing.lg,
   },
   categoryTrendItem: {
-    marginBottom: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
   categoryTrendHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-  },
-  miniChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 40,
-    gap: 2,
-  },
-  miniBar: {
-    flex: 1,
-    borderRadius: 2,
-  },
-  escalationTrendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  escalationTrendInfo: {
+  categoryTrendInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 100,
+    gap: Spacing.sm,
   },
-  levelDot: {
+  categoryDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
   },
+  miniChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 60,
+    gap: 4,
+    paddingHorizontal: Spacing.xs,
+  },
+  miniBar: {
+    flex: 1,
+    borderRadius: 2,
+    transition: 'height 0.3s ease',
+  },
+  bottomGrid: {
+    ...(isWeb ? {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: Spacing.xl,
+    } : {
+      gap: Spacing.lg,
+    }),
+  },
+  escalationCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  seasonalCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  escalationTrendsList: {
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  escalationTrendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  escalationTrendInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minWidth: 120,
+  },
+  levelDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
   trendBar: {
     flex: 1,
-    height: 24,
+    height: 32,
     backgroundColor: '#E0E0E0',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
-    marginHorizontal: Spacing.sm,
   },
   trendFill: {
     height: '100%',
     borderRadius: BorderRadius.sm,
+    transition: 'width 0.3s ease',
   },
-  seasonalContainer: {
+  seasonalList: {
     gap: Spacing.md,
+    marginTop: Spacing.lg,
   },
   seasonalRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
   },
   seasonalBar: {
     flex: 1,
-    height: 24,
+    height: 32,
     backgroundColor: '#E0E0E0',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
-    marginHorizontal: Spacing.sm,
   },
   seasonalFill: {
     height: '100%',
     borderRadius: BorderRadius.sm,
+    transition: 'width 0.3s ease',
   },
 });
-
-

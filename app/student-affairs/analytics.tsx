@@ -1,28 +1,36 @@
 /**
  * Detailed Analytics - Student Affairs
- * All data is anonymized (no user IDs, only pseudonyms)
+ * Web-optimized comprehensive analytics view
+ * All data is anonymized (no user IDs, only aggregated data)
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { WebCard, WebContainer } from '@/app/components/web';
+import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { EscalationLevel, PostCategory } from '@/app/types';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getEscalations, getPosts, getReplies } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
+  Alert,
+  Dimensions,
+  Platform,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPosts, getEscalations, getReplies } from '@/lib/database';
-import { PostCategory, EscalationLevel } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default function DetailedAnalyticsScreen() {
   const router = useRouter();
@@ -117,13 +125,38 @@ export default function DetailedAnalyticsScreen() {
     setRefreshing(false);
   };
 
+  const handleExport = () => {
+    if (Platform.OS === 'web') {
+      const data = {
+        postsByCategory,
+        escalationTrends,
+        responseTimes: {
+          average: avgResponseTime,
+          count: responseTimes.length,
+        },
+        engagementMetrics,
+        peakUsage,
+        exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `detailed-analytics-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      Alert.alert('Export', 'Export functionality available on web.');
+    }
+  };
+
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText>Loading...</ThemedText>
-        </ThemedView>
-      </SafeAreaView>
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ThemedText>Loading...</ThemedText>
+      </ThemedView>
     );
   }
 
@@ -135,54 +168,77 @@ export default function DetailedAnalyticsScreen() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-          }
-        >
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <ThemedText type="h2" style={styles.headerTitle}>
-              Detailed Analytics
-            </ThemedText>
-            <View style={{ width: 24 }} />
-          </View>
+  const totalPosts = Object.values(postsByCategory).reduce((a, b) => a + b, 0);
+  const maxPeakCount = peakHours.length > 0 ? Math.max(...peakHours.map((h) => h[1])) : 1;
 
-          {/* Posts by Category */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Posts by Category
-            </ThemedText>
+  const content = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+      }
+    >
+      {/* Page Header */}
+      <View style={styles.pageHeader}>
+        <View>
+          <ThemedText type="h1" style={[styles.pageTitle, { color: colors.text }]}>
+            Detailed Analytics
+          </ThemedText>
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: colors.icon }]}>
+            Comprehensive insights and metrics
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          onPress={handleExport}
+          style={[styles.exportButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <MaterialIcons name="download" size={20} color={colors.primary} />
+          <ThemedText type="body" style={[styles.exportText, { color: colors.primary }]}>
+            Export
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      {/* Main Grid */}
+      <View style={styles.mainGrid}>
+        {/* Posts by Category */}
+        <WebCard style={styles.categoryCard}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+                Posts by Category
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                Distribution across support categories
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.categoryList}>
             {Object.entries(postsByCategory)
               .sort((a, b) => b[1] - a[1])
               .map(([category, count]) => {
-                const categoryInfo = CATEGORIES.find((c) => c.id === category);
-                const total = Object.values(postsByCategory).reduce((a, b) => a + b, 0);
-                const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                const categoryInfo = CATEGORIES[category as PostCategory];
+                const percentage = totalPosts > 0 ? ((count / totalPosts) * 100).toFixed(1) : '0';
                 return (
                   <View key={category} style={styles.categoryRow}>
                     <View style={styles.categoryInfo}>
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
-                        {categoryInfo?.name || category}
-                      </ThemedText>
-                      <ThemedText type="small" style={{ color: colors.icon }}>
-                        {count} posts ({percentage}%)
-                      </ThemedText>
+                      <View style={[styles.categoryDot, { backgroundColor: categoryInfo?.color || colors.primary }]} />
+                      <View style={styles.categoryText}>
+                        <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                          {categoryInfo?.name || category}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: colors.icon }}>
+                          {count} posts • {percentage}%
+                        </ThemedText>
+                      </View>
                     </View>
                     <View style={styles.progressBar}>
                       <View
                         style={[
                           styles.progressFill,
                           {
-                            width: `${total > 0 ? (count / total) * 100 : 0}%`,
+                            width: `${percentage}%`,
                             backgroundColor: categoryInfo?.color || colors.primary,
                           },
                         ]}
@@ -192,14 +248,25 @@ export default function DetailedAnalyticsScreen() {
                 );
               })}
           </View>
+        </WebCard>
 
-          {/* Escalation Trends */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
+        {/* Escalation Trends */}
+        <WebCard style={styles.escalationCard}>
+          <View>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
               Escalation Trends
             </ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              Escalation levels distribution
+            </ThemedText>
+          </View>
+          <View style={styles.escalationList}>
             {Object.entries(escalationTrends)
               .filter(([level]) => level !== 'none')
+              .sort((a, b) => {
+                const order = { critical: 0, high: 1, medium: 2, low: 3 };
+                return (order[a[0] as keyof typeof order] ?? 99) - (order[b[0] as keyof typeof order] ?? 99);
+              })
               .map(([level, count]) => {
                 const levelColors: Record<string, string> = {
                   critical: '#EF4444',
@@ -207,6 +274,10 @@ export default function DetailedAnalyticsScreen() {
                   medium: '#3B82F6',
                   low: '#10B981',
                 };
+                const totalEscalations = Object.values(escalationTrends)
+                  .filter((_, idx) => Object.keys(escalationTrends)[idx] !== 'none')
+                  .reduce((a, b) => a + b, 0);
+                const percentage = totalEscalations > 0 ? ((count / totalEscalations) * 100).toFixed(1) : '0';
                 return (
                   <View key={level} style={styles.escalationRow}>
                     <View style={styles.escalationInfo}>
@@ -216,87 +287,109 @@ export default function DetailedAnalyticsScreen() {
                           { backgroundColor: levelColors[level] || colors.primary },
                         ]}
                       />
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginLeft: Spacing.sm }}>
-                        {level.toUpperCase()}
-                      </ThemedText>
+                      <View>
+                        <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                          {level.toUpperCase()}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: colors.icon }}>
+                          {percentage}% of escalations
+                        </ThemedText>
+                      </View>
                     </View>
-                    <ThemedText type="h3" style={{ color: colors.text }}>
+                    <ThemedText type="h2" style={{ color: colors.text, fontWeight: '700' }}>
                       {count}
                     </ThemedText>
                   </View>
                 );
               })}
           </View>
+        </WebCard>
+      </View>
 
-          {/* Response Times */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Response Times
-            </ThemedText>
-            <View style={styles.metricRow}>
-              <View style={styles.metric}>
-                <ThemedText type="h2" style={{ color: colors.primary }}>
-                  {avgResponseTime}h
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Average Response Time
-                </ThemedText>
-              </View>
-              <View style={styles.metric}>
-                <ThemedText type="h2" style={{ color: colors.text }}>
-                  {responseTimes.length}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Resolved Escalations
-                </ThemedText>
-              </View>
+      {/* Metrics Grid */}
+      <View style={styles.metricsGrid}>
+        {/* Response Times */}
+        <WebCard style={styles.metricCard}>
+          <View style={styles.metricHeader}>
+            <View style={[styles.metricIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <MaterialIcons name="schedule" size={24} color={colors.primary} />
+            </View>
+            <View>
+              <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+                Response Times
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Average resolution time
+              </ThemedText>
             </View>
           </View>
+          <View style={styles.metricContent}>
+            <ThemedText type="h1" style={{ color: colors.primary, fontWeight: '700', fontSize: isWeb ? 36 : 28 }}>
+              {avgResponseTime}h
+            </ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              {responseTimes.length} resolved escalations
+            </ThemedText>
+          </View>
+        </WebCard>
 
-          {/* Engagement Metrics */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
+        {/* Engagement Metrics */}
+        <WebCard style={styles.engagementCard}>
+          <View>
+            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
               Engagement Metrics
             </ThemedText>
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricCard}>
-                <MaterialIcons name="chat-bubble-outline" size={32} color={colors.primary} />
-                <ThemedText type="h2" style={{ color: colors.text, marginTop: Spacing.sm }}>
-                  {engagementMetrics.avgRepliesPerPost.toFixed(1)}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Avg Replies/Post
-                </ThemedText>
-              </View>
-              <View style={styles.metricCard}>
-                <MaterialIcons name="thumb-up" size={32} color={colors.primary} />
-                <ThemedText type="h2" style={{ color: colors.text, marginTop: Spacing.sm }}>
-                  {engagementMetrics.avgUpvotesPerPost.toFixed(1)}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Avg Upvotes/Post
-                </ThemedText>
-              </View>
-              <View style={styles.metricCard}>
-                <MaterialIcons name="forum" size={32} color={colors.primary} />
-                <ThemedText type="h2" style={{ color: colors.text, marginTop: Spacing.sm }}>
-                  {engagementMetrics.totalReplies}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Total Replies
-                </ThemedText>
-              </View>
+            <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+              Community interaction statistics
+            </ThemedText>
+          </View>
+          <View style={styles.engagementGrid}>
+            <View style={styles.engagementItem}>
+              <MaterialIcons name="chat-bubble-outline" size={28} color={colors.primary} />
+              <ThemedText type="h2" style={{ color: colors.text, fontWeight: '700', marginTop: Spacing.sm }}>
+                {engagementMetrics.avgRepliesPerPost.toFixed(1)}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Avg Replies/Post
+              </ThemedText>
+            </View>
+            <View style={styles.engagementItem}>
+              <MaterialIcons name="thumb-up" size={28} color={colors.secondary} />
+              <ThemedText type="h2" style={{ color: colors.text, fontWeight: '700', marginTop: Spacing.sm }}>
+                {engagementMetrics.avgUpvotesPerPost.toFixed(1)}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Avg Upvotes/Post
+              </ThemedText>
+            </View>
+            <View style={styles.engagementItem}>
+              <MaterialIcons name="forum" size={28} color={colors.success} />
+              <ThemedText type="h2" style={{ color: colors.text, fontWeight: '700', marginTop: Spacing.sm }}>
+                {engagementMetrics.totalReplies}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Total Replies
+              </ThemedText>
             </View>
           </View>
+        </WebCard>
+      </View>
 
-          {/* Peak Usage Times */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Peak Usage Times
-            </ThemedText>
-            {peakHours.map(([hour, count]) => (
+      {/* Peak Usage Times */}
+      <WebCard>
+        <View>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            Peak Usage Times
+          </ThemedText>
+          <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+            Most active hours of the day
+          </ThemedText>
+        </View>
+        <View style={styles.peakList}>
+          {peakHours.length > 0 ? (
+            peakHours.map(([hour, count]) => (
               <View key={hour} style={styles.peakRow}>
-                <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, minWidth: 60 }}>
+                <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, minWidth: 80 }}>
                   {hour}
                 </ThemedText>
                 <View style={styles.peakBar}>
@@ -304,19 +397,46 @@ export default function DetailedAnalyticsScreen() {
                     style={[
                       styles.peakFill,
                       {
-                        width: `${(count / Math.max(...peakHours.map((h) => h[1]))) * 100}%`,
+                        width: `${(count / maxPeakCount) * 100}%`,
                         backgroundColor: colors.primary,
                       },
                     ]}
                   />
                 </View>
-                <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.sm, minWidth: 40 }}>
+                <ThemedText type="body" style={{ color: colors.text, marginLeft: Spacing.md, minWidth: 50, textAlign: 'right' }}>
                   {count}
                 </ThemedText>
               </View>
-            ))}
-          </View>
-        </ScrollView>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="schedule" size={48} color={colors.icon} />
+              <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                No usage data available
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      </WebCard>
+    </ScrollView>
+  );
+
+  // Web layout with container
+  if (isWeb) {
+    return (
+      <ThemedView style={styles.container}>
+        <WebContainer maxWidth={1600} padding={32}>
+          {content}
+        </WebContainer>
+      </ThemedView>
+    );
+  }
+
+  // Mobile layout
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        {content}
       </ThemedView>
     </SafeAreaView>
   );
@@ -328,41 +448,93 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 80,
+    padding: isWeb ? 0 : Spacing.md,
+    paddingBottom: isWeb ? Spacing.xxl : 80,
   },
-  header: {
+  pageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xl,
+    ...(isWeb ? {
+      marginTop: Spacing.lg,
+    } : {}),
   },
-  headerTitle: {
+  pageTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: isWeb ? 32 : 24,
+    marginBottom: Spacing.xs,
   },
-  section: {
-    padding: Spacing.lg,
+  pageSubtitle: {
+    fontSize: isWeb ? 16 : 14,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.sm,
+    ...getCursorStyle(),
+  },
+  exportText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  mainGrid: {
+    ...(isWeb ? {
+      display: 'grid',
+      gridTemplateColumns: '2fr 1fr',
+      gap: Spacing.xl,
+      marginBottom: Spacing.xl,
+    } : {
+      gap: Spacing.lg,
+      marginBottom: Spacing.lg,
+    }),
+  },
+  categoryCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  escalationCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  sectionHeader: {
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
     fontWeight: '700',
-    marginBottom: Spacing.md,
+    fontSize: isWeb ? 20 : 18,
+  },
+  categoryList: {
+    gap: Spacing.md,
   },
   categoryRow: {
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   categoryInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.sm,
     marginBottom: Spacing.xs,
+  },
+  categoryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  categoryText: {
+    flex: 1,
   },
   progressBar: {
     height: 8,
@@ -373,63 +545,106 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: BorderRadius.full,
+    transition: 'width 0.3s ease',
+  },
+  escalationList: {
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
   },
   escalationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   escalationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
   },
   levelIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  metric: {
-    flex: 1,
-    alignItems: 'center',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
   },
   metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
+    ...(isWeb ? {
+      display: 'grid',
+      gridTemplateColumns: '1fr 2fr',
+      gap: Spacing.xl,
+      marginBottom: Spacing.xl,
+    } : {
+      gap: Spacing.lg,
+      marginBottom: Spacing.lg,
+    }),
   },
   metricCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  engagementCard: {
+    ...(isWeb ? {} : {
+      marginBottom: Spacing.lg,
+    }),
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  metricIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  metricContent: {
+    alignItems: 'center',
+  },
+  engagementGrid: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    marginTop: Spacing.lg,
+    ...(isWeb ? {} : {
+      flexWrap: 'wrap',
+    }),
+  },
+  engagementItem: {
     flex: 1,
-    minWidth: '30%',
     alignItems: 'center',
     padding: Spacing.md,
     backgroundColor: '#F5F5F5',
     borderRadius: BorderRadius.md,
+    minWidth: 120,
+  },
+  peakList: {
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
   },
   peakRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
   peakBar: {
     flex: 1,
-    height: 24,
+    height: 32,
     backgroundColor: '#E0E0E0',
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
-    marginHorizontal: Spacing.sm,
   },
   peakFill: {
     height: '100%',
     borderRadius: BorderRadius.sm,
+    transition: 'width 0.3s ease',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xxl,
   },
 });
-
-

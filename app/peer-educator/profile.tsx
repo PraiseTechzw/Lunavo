@@ -2,26 +2,26 @@
  * Peer Educator Profile - Expertise, stats, badges, availability
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { PostCategory } from '@/app/types';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getCurrentUser, getPosts, getReplies, getUser } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
   Switch,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getReplies, getPosts, getCurrentUser, getUser } from '@/lib/database';
-import { PostCategory } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function PeerEducatorProfileScreen() {
   const router = useRouter();
@@ -227,7 +227,7 @@ export default function PeerEducatorProfileScreen() {
             ) : (
               <View style={styles.expertiseGrid}>
                 {expertiseAreas.map((category) => {
-                  const categoryInfo = CATEGORIES.find((c) => c.id === category);
+                  const categoryInfo = CATEGORIES[category as PostCategory];
                   return (
                     <View
                       key={category}

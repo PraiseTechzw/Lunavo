@@ -9,22 +9,22 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createInputStyle, createShadow } from '@/app/utils/platform-styles';
 import { useToast } from '@/app/utils/useToast';
 import { signUp } from '@/lib/auth';
-import { checkEmailAvailability, checkUsernameAvailability } from '@/lib/database';
+import { checkEmailAvailability, checkStudentNumberAvailability, checkUsernameAvailability } from '@/lib/database';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -69,6 +69,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
+  const [studentNumberStatus, setStudentNumberStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const studentNumberCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -185,6 +187,45 @@ export default function RegisterScreen() {
     };
   }, [username]);
 
+  // Real-time student number availability check
+  useEffect(() => {
+    if (studentNumberCheckTimeout.current) {
+      clearTimeout(studentNumberCheckTimeout.current);
+    }
+
+    if (!studentNumber || !studentNumber.trim()) {
+      setStudentNumberStatus('idle');
+      return;
+    }
+
+    // Validate CUT student number format: Letter + 8 digits + Letter
+    const normalizedStudentNumber = studentNumber.trim().toUpperCase();
+    const studentNumberRegex = /^[A-Z]\d{8}[A-Z]$/;
+    if (!studentNumberRegex.test(normalizedStudentNumber)) {
+      setStudentNumberStatus('invalid');
+      return;
+    }
+
+    setStudentNumberStatus('checking');
+    studentNumberCheckTimeout.current = setTimeout(async () => {
+      try {
+        const isAvailable = await checkStudentNumberAvailability(normalizedStudentNumber);
+        console.log('Student number check result:', normalizedStudentNumber, 'available:', isAvailable);
+        setStudentNumberStatus(isAvailable ? 'available' : 'taken');
+      } catch (error) {
+        console.error('Error checking student number availability:', error);
+        // On error, set to taken to prevent proceeding with potentially invalid student number
+        setStudentNumberStatus('taken');
+      }
+    }, 500);
+
+    return () => {
+      if (studentNumberCheckTimeout.current) {
+        clearTimeout(studentNumberCheckTimeout.current);
+      }
+    };
+  }, [studentNumber]);
+
   const getPasswordStrength = (pwd: string): { strength: number; label: string; color: string } => {
     if (pwd.length === 0) return { strength: 0, label: '', color: '#FFFFFF' };
     if (pwd.length < 6) return { strength: 1, label: 'Weak', color: '#EF4444' };
@@ -226,7 +267,8 @@ export default function RegisterScreen() {
            password.length >= 8 &&
            passwordStrength.strength >= 3 &&
            studentNumber.trim() &&
-           isValidStudentNumber(studentNumber);
+           isValidStudentNumber(studentNumber) &&
+           studentNumberStatus === 'available';
   };
 
   const canProceedToStep3 = () => {
@@ -283,6 +325,18 @@ export default function RegisterScreen() {
       }
       if (!isValidStudentNumber(studentNumber)) {
         showToast('Invalid student number format. Must start with a letter, have 8 digits, and end with a letter (e.g., C23155538O)', 'error');
+        return;
+      }
+      if (studentNumberStatus === 'checking') {
+        showToast('Please wait while we check student number availability', 'info');
+        return;
+      }
+      if (studentNumberStatus === 'taken') {
+        showToast('This student number is already registered. Please use a different student number or contact support if this is an error.', 'error');
+        return;
+      }
+      if (studentNumberStatus !== 'available') {
+        showToast('Please wait for student number validation to complete', 'warning');
         return;
       }
       if (canProceedToStep2()) {
@@ -406,6 +460,22 @@ export default function RegisterScreen() {
     }
     if (!studentNumber.trim()) {
       showToast('Please enter your CUT student number', 'warning');
+      return;
+    }
+    if (!isValidStudentNumber(studentNumber)) {
+      showToast('Invalid student number format. Must start with a letter, have 8 digits, and end with a letter (e.g., C23155538O)', 'error');
+      return;
+    }
+    if (studentNumberStatus === 'checking') {
+      showToast('Please wait while we check student number availability', 'info');
+      return;
+    }
+    if (studentNumberStatus === 'taken') {
+      showToast('This student number is already registered. Please contact support if this is an error.', 'error');
+      return;
+    }
+    if (studentNumberStatus !== 'available') {
+      showToast('Please wait for student number validation to complete', 'warning');
       return;
     }
     if (!phone.trim()) {
@@ -814,9 +884,13 @@ export default function RegisterScreen() {
                             borderColor:
                               focusedInput === 'studentNumber'
                                 ? '#8B5CF6'
+                                : studentNumberStatus === 'taken'
+                                ? '#EF4444'
+                                : studentNumberStatus === 'available'
+                                ? '#10B981'
                                 : studentNumber.length > 0 && !isValidStudentNumber(studentNumber)
                                 ? '#EF4444'
-                                : isValidStudentNumber(studentNumber)
+                                : isValidStudentNumber(studentNumber) && studentNumberStatus === 'idle'
                                 ? '#10B981'
                                 : '#FFFFFF20',
                             borderWidth: focusedInput === 'studentNumber' ? 2 : 1,
@@ -841,11 +915,20 @@ export default function RegisterScreen() {
                           onFocus={() => setFocusedInput('studentNumber')}
                           onBlur={() => setFocusedInput(null)}
                         />
-                        {isValidStudentNumber(studentNumber) && (
+                        {studentNumberStatus === 'checking' && (
+                          <ActivityIndicator size="small" color="#8B5CF6" style={styles.statusIcon} />
+                        )}
+                        {studentNumberStatus === 'available' && (
                           <Ionicons name="checkmark-circle" size={24} color="#10B981" style={styles.statusIcon} />
                         )}
-                        {studentNumber.length > 0 && !isValidStudentNumber(studentNumber) && (
+                        {studentNumberStatus === 'taken' && (
                           <Ionicons name="close-circle" size={24} color="#EF4444" style={styles.statusIcon} />
+                        )}
+                        {studentNumber.length > 0 && !isValidStudentNumber(studentNumber) && studentNumberStatus === 'idle' && (
+                          <Ionicons name="close-circle" size={24} color="#EF4444" style={styles.statusIcon} />
+                        )}
+                        {isValidStudentNumber(studentNumber) && studentNumberStatus === 'idle' && (
+                          <Ionicons name="checkmark-circle" size={24} color="#10B981" style={styles.statusIcon} />
                         )}
                       </View>
                       {studentNumber.length > 0 && !isValidStudentNumber(studentNumber) && (
@@ -853,7 +936,22 @@ export default function RegisterScreen() {
                           Format: Letter + 8 digits + Letter (e.g., C23155538O)
                         </ThemedText>
                       )}
-                      {isValidStudentNumber(studentNumber) && (
+                      {studentNumberStatus === 'checking' && (
+                        <ThemedText type="small" style={{ color: '#8B5CF6', marginTop: Spacing.xs }}>
+                          Checking availability...
+                        </ThemedText>
+                      )}
+                      {studentNumberStatus === 'taken' && (
+                        <ThemedText type="small" style={{ color: '#EF4444', marginTop: Spacing.xs }}>
+                          ✗ This student number is already registered. Please contact support if this is an error.
+                        </ThemedText>
+                      )}
+                      {studentNumberStatus === 'available' && (
+                        <ThemedText type="small" style={{ color: '#10B981', marginTop: Spacing.xs }}>
+                          ✓ Valid and available student number
+                        </ThemedText>
+                      )}
+                      {isValidStudentNumber(studentNumber) && studentNumberStatus === 'idle' && (
                         <ThemedText type="small" style={{ color: '#10B981', marginTop: Spacing.xs }}>
                           ✓ Valid CUT student number
                         </ThemedText>

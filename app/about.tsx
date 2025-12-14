@@ -42,8 +42,9 @@ export default function AboutScreen() {
     },
     {
       title: 'Contact Support',
-      url: 'mailto:support@lunavo.edu',
-      icon: 'email' as const,
+      url: 'tel:+263786223289',
+      icon: 'phone' as const,
+      subtitle: 'Praise Masunga - +263 786 223 289',
     },
   ];
 

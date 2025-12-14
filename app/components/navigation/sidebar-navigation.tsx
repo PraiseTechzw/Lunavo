@@ -7,6 +7,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -83,11 +84,11 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
 
   return (
     <ThemedView style={[styles.sidebar, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header - Only toggle button on web since logo is in top header */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         {!isCollapsed && (
           <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
-            Lunavo
+            Menu
           </ThemedText>
         )}
         <TouchableOpacity
@@ -119,8 +120,13 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
                   onPress={() => handleNavigate(item.route)}
                   style={[
                     styles.navItem,
-                    active && { backgroundColor: colors.primary + '15' },
+                    active && { 
+                      backgroundColor: colors.primary + '15',
+                      borderLeftColor: colors.primary,
+                      borderLeftWidth: 3,
+                    },
                     isCollapsed && styles.navItemCollapsed,
+                    getCursorStyle(),
                   ]}
                   activeOpacity={0.7}
                 >
@@ -182,14 +188,15 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? {
       height: '100vh',
       position: 'fixed' as any,
+      top: 70, // Below header
     } : {
       height: '100%',
     }),
     borderRightWidth: 1,
     flexDirection: 'column',
     left: 0,
-    top: 0,
-    zIndex: 100,
+    zIndex: 999,
+    ...createShadow(2, '#000', 0.05),
   },
   header: {
     flexDirection: 'row',
@@ -197,11 +204,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    minHeight: 56,
   },
   logo: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 18,
   },
   toggleButton: {
     width: 32,
@@ -229,6 +236,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xs,
     overflow: 'hidden',
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
+    ...(Platform.OS === 'web' ? {
+      transition: 'all 0.2s ease',
+    } : {}),
   },
   navItemCollapsed: {
     justifyContent: 'center',

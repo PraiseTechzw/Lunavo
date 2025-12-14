@@ -31,7 +31,7 @@ export interface SignInData {
 export async function signUp(userData: SignUpData): Promise<{ user: any; error: any }> {
   try {
     // Check if email already exists before attempting signup
-    const { checkEmailAvailability } = await import('./database');
+    const { checkEmailAvailability, checkStudentNumberAvailability } = await import('./database');
     const emailAvailable = await checkEmailAvailability(userData.email);
     
     if (!emailAvailable) {
@@ -41,7 +41,18 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       };
     }
 
-    // Sign up with Supabase Auth
+    // Check if student number already exists before attempting signup
+    const normalizedStudentNumber = userData.studentNumber.trim().toUpperCase();
+    const studentNumberAvailable = await checkStudentNumberAvailability(normalizedStudentNumber);
+    
+    if (!studentNumberAvailable) {
+      return { 
+        user: null, 
+        error: new Error('This student number is already registered. Please contact support if this is an error.') 
+      };
+    }
+
+    // Sign up with Supabase Auth (creates auth user)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
@@ -70,21 +81,38 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     // Create user record in database
     // Pass the auth user ID directly to avoid session timing issues
     // Note: Password is handled by Supabase Auth, not stored in users table
-    const dbUser = await createUser({
-      email: userData.email,
-      username: userData.username ? userData.username.toLowerCase().trim() : undefined,
-      student_number: userData.studentNumber,
-      phone: userData.phone,
-      emergency_contact_name: userData.emergencyContactName,
-      emergency_contact_phone: userData.emergencyContactPhone,
-      location: userData.location,
-      preferred_contact_method: userData.preferredContactMethod,
-      role: userData.role || 'student',
-      pseudonym,
-      profile_data: userData.profileData || {},
-    }, authData.user.id); // Pass the auth user ID directly
+    try {
+      const dbUser = await createUser({
+        email: userData.email,
+        username: userData.username ? userData.username.toLowerCase().trim() : undefined,
+        student_number: normalizedStudentNumber, // Use normalized student number
+        phone: userData.phone,
+        emergency_contact_name: userData.emergencyContactName,
+        emergency_contact_phone: userData.emergencyContactPhone,
+        location: userData.location,
+        preferred_contact_method: userData.preferredContactMethod,
+        role: userData.role || 'student',
+        pseudonym,
+        profile_data: userData.profileData || {},
+      }, authData.user.id); // Pass the auth user ID directly
 
-    return { user: dbUser, error: null };
+      return { user: dbUser, error: null };
+    } catch (dbError: any) {
+      // If user creation fails, we should clean up the auth user
+      // However, Supabase Auth doesn't provide a direct way to delete users from client
+      // The auth user will remain but won't have a corresponding user record
+      // This is acceptable as the user can't log in without a user record
+      
+      // Check if error is related to student number
+      if (dbError.message?.includes('student number') || dbError.message?.includes('student_number')) {
+        return { 
+          user: null, 
+          error: new Error('This student number is already registered. Please contact support if this is an error.') 
+        };
+      }
+      
+      return { user: null, error: dbError };
+    }
   } catch (error: any) {
     return { user: null, error };
   }

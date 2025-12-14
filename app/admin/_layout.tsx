@@ -5,6 +5,7 @@
  */
 
 import { SidebarNavigation } from '@/app/components/navigation/sidebar-navigation';
+import { WebHeader } from '@/app/components/web';
 import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
@@ -35,15 +36,68 @@ export default function AdminLayout() {
     }
   };
 
+  // Mobile layout
+  if (Platform.OS !== 'web') {
+    return (
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+        }}
+      >
+        <Stack.Screen 
+          name="dashboard" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="analytics" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="escalations" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="reports" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="moderation" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+      </Stack>
+    );
+  }
+
+  // Web layout
   return (
     <View style={styles.container}>
+      {/* Header - Web Only */}
+      <WebHeader />
+      
       {/* Sidebar Navigation - Web Only */}
-      {Platform.OS === 'web' && userRole === 'admin' && (
+      {userRole === 'admin' && (
         <SidebarNavigation role="admin" />
       )}
       
       {/* Main Content Area */}
-      <View style={[styles.content, Platform.OS === 'web' && styles.webContent]}>
+      <View style={[
+        styles.content, 
+        styles.webContent,
+        { marginTop: 70 } // Account for header
+      ]}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -51,9 +105,7 @@ export default function AdminLayout() {
               backgroundColor: colors.background,
             },
             // Web-specific optimizations
-            ...(Platform.OS === 'web' && {
-              animation: 'none', // Faster transitions on web
-            }),
+            animation: 'none', // Faster transitions on web
           }}
         >
       <Stack.Screen 

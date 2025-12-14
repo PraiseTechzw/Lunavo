@@ -9,7 +9,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export interface Column<T> {
   key: keyof T | string;

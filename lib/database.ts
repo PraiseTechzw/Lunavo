@@ -37,13 +37,22 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
     userId = authUser.id;
   }
 
+  // Normalize student number to uppercase
+  const normalizedStudentNumber = userData.student_number.trim().toUpperCase();
+
+  // Check if student number already exists before creating
+  const existingUser = await getUserByStudentNumber(normalizedStudentNumber);
+  if (existingUser) {
+    throw new Error('This student number is already registered. Please contact support if this is an error.');
+  }
+
   const { data, error } = await supabase
     .from('users')
     .insert({
       id: userId, // Use the auth user's ID
       email: userData.email,
       username: userData.username || null, // Anonymous username
-      student_number: userData.student_number, // Required
+      student_number: normalizedStudentNumber, // Required - normalized to uppercase
       phone: userData.phone, // Required for crisis contact
       emergency_contact_name: userData.emergency_contact_name, // Required
       emergency_contact_phone: userData.emergency_contact_phone, // Required
@@ -58,7 +67,13 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Check for unique constraint violation on student_number
+    if (error.code === '23505' && error.message?.includes('student_number')) {
+      throw new Error('This student number is already registered. Please contact support if this is an error.');
+    }
+    throw error;
+  }
 
   return mapUserFromDB(data);
 }
@@ -102,6 +117,23 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 
   if (error) {
     if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return mapUserFromDB(data);
+}
+
+export async function getUserByStudentNumber(studentNumber: string): Promise<User | null> {
+  const normalizedStudentNumber = studentNumber.trim().toUpperCase();
+  
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('student_number', normalizedStudentNumber)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
     throw error;
   }
 
@@ -197,6 +229,54 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
     return data === true;
   } catch (error: any) {
     console.error('Error checking email availability:', error);
+    // On error, assume taken to be safe
+    return false;
+  }
+}
+
+/**
+ * Check if student number is available (real-time)
+ * Ensures student numbers are unique across the platform
+ * Uses a database function to bypass RLS and avoid infinite recursion
+ */
+export async function checkStudentNumberAvailability(studentNumber: string): Promise<boolean> {
+  if (!studentNumber || !studentNumber.trim()) {
+    return false;
+  }
+
+  const normalizedStudentNumber = studentNumber.trim().toUpperCase();
+
+  // Validate CUT student number format: Letter + 8 digits + Letter
+  const studentNumberRegex = /^[A-Z]\d{8}[A-Z]$/;
+  if (!studentNumberRegex.test(normalizedStudentNumber)) {
+    return false;
+  }
+
+  try {
+    // Use the database function to check availability (bypasses RLS)
+    const { data, error } = await supabase.rpc('check_student_number_available', {
+      check_student_number: normalizedStudentNumber
+    });
+
+    if (error) {
+      // Fallback to direct query if function doesn't exist yet
+      console.warn('Function check_student_number_available not found, using direct query:', error);
+      const { data: queryData, error: queryError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('student_number', normalizedStudentNumber)
+        .maybeSingle();
+
+      if (queryError && queryError.code !== 'PGRST116') {
+        throw queryError;
+      }
+
+      return !queryData;
+    }
+
+    return data === true;
+  } catch (error: any) {
+    console.error('Error checking student number availability:', error);
     // On error, assume taken to be safe
     return false;
   }

@@ -1,8 +1,10 @@
 /**
  * Tab navigation layout - Role-aware
  * Different tabs shown based on user role
+ * Uses top navigation on web, bottom tabs on mobile
  */
 
+import { WebHeader, WebTopNav } from '@/app/components/web';
 import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
@@ -10,6 +12,7 @@ import { UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -47,6 +50,47 @@ export default function TabLayout() {
     
     return true;
   };
+
+  // On web, use top navigation instead of bottom tabs
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1, paddingTop: 126 }}> {/* 70px header + 56px top nav */}
+        <WebHeader showSearch />
+        <WebTopNav />
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: { display: 'none' }, // Hide bottom tabs on web
+          }}
+        >
+          <Tabs.Screen
+            name="index"
+            options={{ href: null }}
+          />
+          <Tabs.Screen
+            name="forum"
+            options={{ 
+              href: shouldShowTab('forum') ? undefined : null 
+            }}
+          />
+          <Tabs.Screen
+            name="chat"
+            options={{ 
+              href: shouldShowTab('chat') ? undefined : null 
+            }}
+          />
+          <Tabs.Screen
+            name="resources"
+            options={{ href: null }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{ href: null }}
+          />
+        </Tabs>
+      </View>
+    );
+  }
 
   return (
     <Tabs

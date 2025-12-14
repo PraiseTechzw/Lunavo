@@ -66,9 +66,17 @@ export default function WebRequiredScreen() {
             </View>
           </View>
           
-          <ThemedText type="small" style={[styles.footer, { color: colors.icon }]}>
-            For assistance, please contact the IT support team.
-          </ThemedText>
+          <View style={styles.contactContainer}>
+            <ThemedText type="small" style={[styles.footer, { color: colors.icon }]}>
+              For assistance, please contact:
+            </ThemedText>
+            <ThemedText type="body" style={[styles.contactInfo, { color: colors.primary }]}>
+              Praise Masunga
+            </ThemedText>
+            <ThemedText type="body" style={[styles.contactInfo, { color: colors.primary }]}>
+              +263 786 223 289
+            </ThemedText>
+          </View>
         </View>
       </ThemedView>
     </SafeAreaView>
@@ -143,9 +151,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
+  contactContainer: {
+    marginTop: Spacing.lg,
+    alignItems: 'center',
+  },
   footer: {
     textAlign: 'center',
-    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
     fontSize: 14,
+  },
+  contactInfo: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: Spacing.xs,
+    textAlign: 'center',
   },
 });

@@ -65,22 +65,22 @@ export default function HelpScreen() {
 
   const contactOptions = [
     {
+      title: 'Contact Support',
+      description: 'Praise Masunga - +263 786 223 289',
+      icon: 'phone' as const,
+      action: () => Linking.openURL('tel:+263786223289'),
+    },
+    {
       title: 'Email Support',
-      description: 'support@lunavo.edu',
+      description: 'praisesamasunga04@gmail.com',
       icon: 'email' as const,
-      action: () => Linking.openURL('mailto:support@lunavo.edu'),
+      action: () => Linking.openURL('mailto:praisesamasunga04@gmail.com'),
     },
     {
       title: 'Emergency Hotline',
       description: 'Call 24/7 crisis support',
-      icon: 'phone' as const,
-      action: () => Linking.openURL('tel:+1234567890'),
-    },
-    {
-      title: 'Visit Website',
-      description: 'lunavo.edu/support',
-      icon: 'language' as const,
-      action: () => Linking.openURL('https://lunavo.edu/support'),
+      icon: 'emergency' as const,
+      action: () => Linking.openURL('tel:10111'),
     },
   ];
 
