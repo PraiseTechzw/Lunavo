@@ -613,7 +613,7 @@ export default function HomeScreen() {
               { backgroundColor: '#4CAF50' + '10', borderWidth: 2, borderColor: '#4CAF50' + '30' },
               createShadow(2, '#4CAF50', 0.15),
             ]}
-            onPress={() => router.push('/peer-educator/club-info' as any)}
+            onPress={() => router.push('/join-peer-educator' as any)}
             activeOpacity={0.8}
           >
             <MaterialIcons name="people" size={32} color="#4CAF50" />

@@ -6,7 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createInputStyle } from '@/utils/platform-styles';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { signIn } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -123,7 +123,235 @@ export default function LoginScreen() {
 
   const headerColor = '#1E40AF'; // Always dark blue
   const waveColor = '#60A5FA'; // Always light blue
+  const isWeb = Platform.OS === 'web';
 
+  // Web-specific login UI
+  if (isWeb) {
+    return (
+      <ThemedView style={[styles.container, styles.webContainer]}>
+        <View style={[styles.webBackground, { backgroundColor: colors.background }]}>
+          {/* Decorative gradient background */}
+          <View style={styles.webGradientOverlay} />
+          
+          <ScrollView
+            contentContainerStyle={styles.webScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View
+              style={[
+                styles.webContent,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              {/* Logo/Brand Section */}
+              <View style={styles.webLogoSection}>
+                <ThemedText type="h1" style={[styles.webLogoText, { color: colors.primary }]}>
+                  Lunavo
+                </ThemedText>
+                <ThemedText type="body" style={[styles.webTagline, { color: colors.icon }]}>
+                  Anonymous Peer Support Platform
+                </ThemedText>
+              </View>
+
+              {/* Login Card */}
+              <View style={[styles.webCard, { backgroundColor: colors.card, borderColor: colors.border }, createShadow(8, '#000', 0.1)]}>
+                <View style={styles.webCardHeader}>
+                  <ThemedText type="h2" style={[styles.webCardTitle, { color: colors.text }]}>
+                    Welcome Back
+                  </ThemedText>
+                  <ThemedText type="caption" style={[styles.webCardSubtitle, { color: colors.icon }]}>
+                    Sign in to continue to your account
+                  </ThemedText>
+                </View>
+
+                {/* Email/Username Input */}
+                <View style={styles.webInputContainer}>
+                  <ThemedText type="caption" style={[styles.webInputLabel, { color: colors.text }]}>
+                    Email or Username
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.webInputWrapper,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: focusedInput === 'email' ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Ionicons 
+                      name={emailOrUsername.includes('@') ? "mail-outline" : "person-outline"} 
+                      size={20} 
+                      color={focusedInput === 'email' ? colors.primary : colors.icon} 
+                      style={styles.webInputIcon} 
+                    />
+                    <TextInput
+                      style={[styles.webInput, { color: colors.text }, createInputStyle()]}
+                      placeholder="Enter your email or username"
+                      placeholderTextColor={colors.icon}
+                      value={emailOrUsername}
+                      onChangeText={setEmailOrUsername}
+                      keyboardType="default"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                      onFocus={() => setFocusedInput('email')}
+                      onBlur={() => setFocusedInput(null)}
+                      returnKeyType="next"
+                      onSubmitEditing={() => {
+                        // Focus password field on web
+                        if (Platform.OS === 'web') {
+                          // Password field will be focused automatically
+                        }
+                      }}
+                    />
+                  </View>
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.webInputContainer}>
+                  <ThemedText type="caption" style={[styles.webInputLabel, { color: colors.text }]}>
+                    Password
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.webInputWrapper,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: focusedInput === 'password' ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Ionicons 
+                      name="lock-closed-outline" 
+                      size={20} 
+                      color={focusedInput === 'password' ? colors.primary : colors.icon} 
+                      style={styles.webInputIcon} 
+                    />
+                    <TextInput
+                      style={[styles.webInput, { color: colors.text }, createInputStyle()]}
+                      placeholder="Enter your password"
+                      placeholderTextColor={colors.icon}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                      onFocus={() => setFocusedInput('password')}
+                      onBlur={() => setFocusedInput(null)}
+                      onSubmitEditing={handleLogin}
+                      returnKeyType="go"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.webEyeIcon}
+                      disabled={loading}
+                      {...getCursorStyle()}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                        size={20}
+                        color={colors.icon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Remember Me & Forgot Password */}
+                <View style={styles.webOptionsRow}>
+                  <TouchableOpacity
+                    style={styles.webRememberMeContainer}
+                    onPress={() => setRememberMe(!rememberMe)}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                    {...getCursorStyle()}
+                  >
+                    <View
+                      style={[
+                        styles.webCheckbox,
+                        {
+                          backgroundColor: rememberMe ? colors.primary : 'transparent',
+                          borderColor: rememberMe ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                    </View>
+                    <ThemedText type="caption" style={[styles.webRememberMeText, { color: colors.text }]}>
+                      Remember me
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => router.push('/auth/forgot-password')}
+                    disabled={loading}
+                    {...getCursorStyle()}
+                  >
+                    <ThemedText type="caption" style={[styles.webForgotPasswordText, { color: colors.primary }]}>
+                      Forgot password?
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Login Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.webLoginButton,
+                    { backgroundColor: colors.primary },
+                    loading && styles.webButtonDisabled,
+                    createShadow(4, colors.primary, 0.3),
+                  ]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                  {...getCursorStyle()}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <ThemedText type="body" style={styles.webButtonText} numberOfLines={1}>
+                      Sign in
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+
+                {/* Divider */}
+                <View style={styles.webDivider}>
+                  <View style={[styles.webDividerLine, { backgroundColor: colors.border }]} />
+                  <ThemedText type="caption" style={[styles.webDividerText, { color: colors.icon }]}>
+                    OR
+                  </ThemedText>
+                  <View style={[styles.webDividerLine, { backgroundColor: colors.border }]} />
+                </View>
+
+                {/* Sign Up Link */}
+                <View style={styles.webSignUpContainer}>
+                  <ThemedText type="body" style={[styles.webSignUpText, { color: colors.text }]}>
+                    Don't have an account?{' '}
+                  </ThemedText>
+                  <TouchableOpacity
+                    onPress={() => router.push('/auth/register')}
+                    disabled={loading}
+                    {...getCursorStyle()}
+                  >
+                    <ThemedText type="body" style={[styles.webSignUpLink, { color: colors.primary }]}>
+                      Sign up
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  // Mobile login UI (existing design)
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -333,6 +561,191 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Web-specific styles
+  webContainer: {
+    minHeight: '100vh',
+    ...(Platform.OS === 'web' ? {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    } : {}),
+  },
+  webBackground: {
+    flex: 1,
+    width: '100%',
+    minHeight: '100vh',
+    position: 'relative',
+  },
+  webGradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)',
+    opacity: 0.05,
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)',
+    } : {}),
+  },
+  webScrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    minHeight: '100vh',
+  },
+  webContent: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+  },
+  webLogoSection: {
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
+  },
+  webLogoText: {
+    fontSize: 42,
+    fontWeight: '800',
+    letterSpacing: -1,
+    marginBottom: Spacing.xs,
+  },
+  webTagline: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  webCard: {
+    width: '100%',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    borderWidth: 1,
+    ...(Platform.OS === 'web' ? {
+      transition: 'all 0.3s ease',
+    } : {}),
+  },
+  webCardHeader: {
+    marginBottom: Spacing.xl,
+    alignItems: 'center',
+  },
+  webCardTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  webCardSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  webInputContainer: {
+    marginBottom: Spacing.lg,
+    width: '100%',
+  },
+  webInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  webInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    height: 52,
+    borderWidth: 1.5,
+    ...(Platform.OS === 'web' ? {
+      transition: 'all 0.2s ease',
+    } : {}),
+  },
+  webInputIcon: {
+    marginRight: Spacing.sm,
+  },
+  webInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+    fontWeight: '400',
+  },
+  webEyeIcon: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  webOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    width: '100%',
+  },
+  webRememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  webCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  webRememberMeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  webForgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  webLoginButton: {
+    height: 52,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+    width: '100%',
+  },
+  webButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  webButtonDisabled: {
+    opacity: 0.6,
+  },
+  webDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    width: '100%',
+  },
+  webDividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  webDividerText: {
+    marginHorizontal: Spacing.md,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  webSignUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  webSignUpText: {
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  webSignUpLink: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  // Mobile styles
   safeArea: {
     flex: 1,
   },

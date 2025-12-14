@@ -256,10 +256,10 @@ export default function JoinPeerEducatorScreen() {
             )}
 
             {membershipRequest?.status === 'rejected' && (
-              <View style={[styles.statusCard, { backgroundColor: colors.error + '20', borderColor: colors.error + '40' }]}>
-                <MaterialIcons name="cancel" size={32} color={colors.error} />
+              <View style={[styles.statusCard, { backgroundColor: '#F44336' + '20', borderColor: '#F44336' + '40' }]}>
+                <MaterialIcons name="cancel" size={32} color="#F44336" />
                 <View style={styles.statusContent}>
-                  <ThemedText type="body" style={[styles.statusTitle, { color: colors.error }]}>
+                  <ThemedText type="body" style={[styles.statusTitle, { color: '#F44336' }]}>
                     Application Rejected
                   </ThemedText>
                   <ThemedText type="small" style={[styles.statusText, { color: colors.icon }]}>
@@ -297,12 +297,12 @@ export default function JoinPeerEducatorScreen() {
                   {/* Motivation - Required */}
                   <View style={styles.inputGroup}>
                     <ThemedText type="body" style={[styles.label, { color: colors.text }]}>
-                      Why do you want to join? <ThemedText style={{ color: colors.error }}>*</ThemedText>
+                      Why do you want to join? <ThemedText style={{ color: colors.danger }}>*</ThemedText>
                     </ThemedText>
                     <TextInput
                       style={[
                         styles.textArea,
-                        createInputStyle(colors),
+                        createInputStyle(),
                         { color: colors.text, minHeight: 120 },
                       ]}
                       placeholder="Please explain your motivation for joining the Peer Educator Club (minimum 50 characters)..."
@@ -347,7 +347,7 @@ export default function JoinPeerEducatorScreen() {
                     <TextInput
                       style={[
                         styles.textArea,
-                        createInputStyle(colors),
+                        createInputStyle(),
                         { color: colors.text, minHeight: 80 },
                       ]}
                       placeholder="Your availability for meetings and activities..."
@@ -368,7 +368,7 @@ export default function JoinPeerEducatorScreen() {
                     <TextInput
                       style={[
                         styles.textArea,
-                        createInputStyle(colors),
+                        createInputStyle(),
                         { color: colors.text, minHeight: 80 },
                       ]}
                       placeholder="Any other information you'd like to share..."

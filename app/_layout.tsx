@@ -475,6 +475,13 @@ export default function RootLayout() {
           presentation: 'card',
         }} 
       />
+      <Stack.Screen 
+        name="join-peer-educator" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
       </Stack>
       </View>
     </>

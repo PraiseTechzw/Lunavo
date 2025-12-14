@@ -486,7 +486,13 @@ export default function ProfileScreen() {
               { backgroundColor: colors.card },
               createShadow(2, '#000', 0.1),
             ]}
-            onPress={() => router.push('/peer-educator/club-info')}
+            onPress={() => {
+              if (user?.role === 'peer-educator' || user?.role === 'peer-educator-executive' || user?.role === 'admin') {
+                router.push('/peer-educator/club-info');
+              } else {
+                router.push('/join-peer-educator');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Ionicons 
