@@ -15,8 +15,8 @@ import { createResource } from '@/lib/database';
 import { canCreateResources, UserRole } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
 import * as DocumentPicker from 'expo-document-picker';
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -258,12 +258,14 @@ export default function CreateResourceScreen() {
     const needsUrl = ['article', 'short-article', 'video', 'short-video', 'link'].includes(selectedResourceType);
     const needsFile = ['pdf', 'infographic', 'image'].includes(selectedResourceType);
 
-    if (needsUrl && !url.trim() && !uploadedFile) {
+    const hasFile = uploadedFile || uploadedImages.length > 0;
+
+    if (needsUrl && !url.trim() && !hasFile) {
       Alert.alert('Validation Error', 'Please provide a URL or upload a file');
       return;
     }
 
-    if (needsFile && !uploadedFile && !url.trim()) {
+    if (needsFile && !hasFile && !url.trim()) {
       Alert.alert('Validation Error', 'Please upload a file or provide a URL');
       return;
     }
@@ -995,7 +997,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successModalContent: {
-    borderRadius: BorderRadius.xl || 20,
+    borderRadius: 20,
     padding: Spacing.xl,
     alignItems: 'center',
     minWidth: 280,
