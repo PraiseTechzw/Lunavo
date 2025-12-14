@@ -62,6 +62,7 @@ export default function CreateResourceScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [uploadedImages, setUploadedImages] = useState<Array<{ uri: string; name: string }>>([]);
+  const [videoThumbnailUri, setVideoThumbnailUri] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnimation] = useState(new Animated.Value(0));
@@ -156,6 +157,12 @@ export default function CreateResourceScreen() {
     } else {
       setUploadedFile(null);
     }
+  };
+
+  // Clear video thumbnail when file is removed
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    setVideoThumbnailUri(null);
   };
 
   const handlePickVideo = async () => {
@@ -405,6 +412,23 @@ export default function CreateResourceScreen() {
             filePath = uploadedUrl;
             if (uploadedFile.type.startsWith('image/')) {
               thumbnailUrl = uploadedUrl;
+            } else if (uploadedFile.type.startsWith('video/') && videoThumbnailUri) {
+              // Upload video thumbnail if available
+              try {
+                setUploadProgress(50);
+                const thumbnailUploadedUrl = await uploadFile(
+                  videoThumbnailUri,
+                  `thumbnail_${Date.now()}.jpg`,
+                  'image/jpeg',
+                  (progress) => setUploadProgress(50 + (progress * 0.2)) // 50-70%
+                );
+                if (thumbnailUploadedUrl) {
+                  thumbnailUrl = thumbnailUploadedUrl;
+                }
+              } catch (thumbnailError: any) {
+                console.warn('Failed to upload video thumbnail:', thumbnailError);
+                // Continue without thumbnail if upload fails
+              }
             }
           }
         } catch (uploadError: any) {
@@ -476,6 +500,7 @@ export default function CreateResourceScreen() {
         resourceType: dbResourceType as 'article' | 'video' | 'pdf' | 'link' | 'training',
         url: url.trim() || filePath || undefined,
         filePath: filePath,
+        thumbnailUrl: thumbnailUrl,
         tags: resourceTags,
         createdBy: user.id,
       };
@@ -876,18 +901,26 @@ export default function CreateResourceScreen() {
                     {uploadedFile ? (
                       <View style={styles.uploadedFileContainer}>
                         <View style={[styles.uploadIconContainer, { backgroundColor: colors.success + '15' }]}>
-                          <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                          {videoThumbnailUri ? (
+                            <ExpoImage
+                              source={{ uri: videoThumbnailUri }}
+                              style={{ width: 56, height: 56, borderRadius: BorderRadius.md }}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                          )}
                         </View>
                         <View style={styles.uploadedFileInfo}>
                           <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }} numberOfLines={1}>
                             {uploadedFile.name}
                           </ThemedText>
                           <ThemedText type="small" style={{ color: colors.icon, marginTop: 2 }}>
-                            Video file selected
+                            Video file selected{videoThumbnailUri ? ' (thumbnail generated)' : ''}
                           </ThemedText>
                         </View>
                         <TouchableOpacity
-                          onPress={() => setUploadedFile(null)}
+                          onPress={clearUploadedFile}
                           style={styles.removeFileButton}
                         >
                           <Ionicons name="close-circle" size={24} color={colors.danger} />
@@ -930,7 +963,7 @@ export default function CreateResourceScreen() {
                           </ThemedText>
                         </View>
                         <TouchableOpacity
-                          onPress={() => setUploadedFile(null)}
+                          onPress={clearUploadedFile}
                           style={styles.removeFileButton}
                         >
                           <Ionicons name="close-circle" size={24} color={colors.danger} />

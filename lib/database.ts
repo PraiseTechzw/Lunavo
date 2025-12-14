@@ -1368,6 +1368,7 @@ export interface CreateResourceData {
   resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
   url?: string;
   filePath?: string;
+  thumbnailUrl?: string;
   tags?: string[];
   createdBy: string;
 }
@@ -1382,6 +1383,7 @@ export async function createResource(resourceData: CreateResourceData): Promise<
       resource_type: resourceData.resourceType,
       url: resourceData.url || null,
       file_path: resourceData.filePath || null,
+      thumbnail_url: resourceData.thumbnailUrl || null,
       tags: resourceData.tags || [],
       created_by: resourceData.createdBy,
     })
@@ -1451,6 +1453,7 @@ export async function updateResource(resourceId: string, updates: Partial<Create
   if (updates.resourceType) updateData.resource_type = updates.resourceType;
   if (updates.url !== undefined) updateData.url = updates.url || null;
   if (updates.filePath !== undefined) updateData.file_path = updates.filePath || null;
+  if (updates.thumbnailUrl !== undefined) updateData.thumbnail_url = updates.thumbnailUrl || null;
   if (updates.tags) updateData.tags = updates.tags;
 
   const { data, error } = await supabase

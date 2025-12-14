@@ -5,21 +5,24 @@
  */
 
 import { ThemedText } from '@/components/themed-text';
-import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useEvent } from 'expo';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Modal,
   Platform,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,6 +40,15 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const settingsOpacity = useRef(new Animated.Value(0)).current;
+  const [showThumbnail, setShowThumbnail] = useState(!!thumbnailUri);
+  
+  // Get colors for styling (fix potential undefined)
+  const primaryColor = colors?.primary || '#6366F1';
 
   // Create video player
   const player = useVideoPlayer(uri, (player) => {
@@ -77,8 +89,22 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
   const progress = duration && duration > 0 ? currentTime / duration : 0;
 
   useEffect(() => {
+    // Animate controls fade in/out
+    Animated.timing(controlsOpacity, {
+      toValue: showControls ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate settings menu
+    Animated.timing(settingsOpacity, {
+      toValue: showSettings ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+
     // Auto-hide controls after 3 seconds when playing
-    if (isPlaying && showControls) {
+    if (isPlaying && showControls && !showSettings) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
       }, 3000);
@@ -89,15 +115,37 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [isPlaying, showControls]);
+  }, [isPlaying, showControls, showSettings, controlsOpacity, settingsOpacity]);
+
+  useEffect(() => {
+    // Hide thumbnail when video starts playing
+    if (isPlaying && showThumbnail) {
+      setShowThumbnail(false);
+    }
+  }, [isPlaying, showThumbnail]);
 
   const togglePlayPause = () => {
     if (isPlaying) {
       player.pause();
     } else {
       player.play();
+      setShowThumbnail(false);
     }
     setShowControls(true);
+  };
+
+  const changePlaybackRate = (rate: number) => {
+    player.playbackRate = rate;
+    setPlaybackRate(rate);
+    setShowSettings(false);
+  };
+
+  const seekForward = () => {
+    seekTo(Math.min(currentTime + 10, duration));
+  };
+
+  const seekBackward = () => {
+    seekTo(Math.max(currentTime - 10, 0));
   };
 
   const toggleFullscreen = async () => {
@@ -153,9 +201,25 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
             onFullscreenEnter={() => setIsFullscreen(true)}
             onFullscreenExit={() => setIsFullscreen(false)}
             onFirstFrameRender={() => {
-              // Video loaded successfully
+              setShowThumbnail(false);
             }}
           />
+
+          {/* Thumbnail overlay (shown when paused) */}
+          {showThumbnail && thumbnailUri && !isPlaying && (
+            <View style={styles.thumbnailOverlay}>
+              <ExpoImage
+                source={{ uri: thumbnailUri }}
+                style={styles.thumbnailImage}
+                contentFit="cover"
+                transition={200}
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.3)']}
+                style={styles.thumbnailGradient}
+              />
+            </View>
+          )}
 
           {isLoading && !hasError && (
             <View style={styles.loadingOverlay}>
@@ -197,88 +261,209 @@ export function VideoPlayer({ uri, thumbnailUri, title, onClose }: VideoPlayerPr
             </View>
           )}
 
-          {showControls && !isLoading && !hasError && (
-            <View style={styles.controlsOverlay}>
-              {/* Top Controls */}
-              <View style={styles.topControls}>
-                {onClose && (
+          {!isLoading && !hasError && (
+            <Animated.View
+              style={[
+                styles.controlsOverlay,
+                {
+                  opacity: controlsOpacity,
+                  pointerEvents: showControls ? 'auto' : 'none',
+                },
+              ]}
+            >
+              {/* Top Controls with Gradient */}
+              <LinearGradient
+                colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'transparent']}
+                style={styles.topControlsGradient}
+              >
+                <View style={styles.topControls}>
+                  {onClose && (
+                    <TouchableOpacity
+                      style={[styles.controlButton, styles.controlButtonGlass]}
+                      onPress={onClose}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="close" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  )}
+                  {title && (
+                    <View style={styles.titleContainer}>
+                      <ThemedText
+                        type="body"
+                        style={[styles.videoTitle, { color: '#FFFFFF' }]}
+                        numberOfLines={1}
+                      >
+                        {title}
+                      </ThemedText>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }} />
                   <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={onClose}
+                    style={[styles.controlButton, styles.controlButtonGlass]}
+                    onPress={() => setShowSettings(!showSettings)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="close" size={28} color="#FFFFFF" />
+                    <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
                   </TouchableOpacity>
-                )}
-                {title && (
-                  <ThemedText
-                    type="body"
-                    style={[styles.videoTitle, { color: '#FFFFFF' }]}
-                    numberOfLines={1}
+                  <TouchableOpacity
+                    style={[styles.controlButton, styles.controlButtonGlass]}
+                    onPress={toggleFullscreen}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    {title}
+                    <Ionicons
+                      name={isFullscreen ? 'contract' : 'expand'}
+                      size={24}
+                      color="#FFFFFF"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+
+              {/* Settings Menu */}
+              {showSettings && (
+                <Animated.View
+                  style={[
+                    styles.settingsMenu,
+                    {
+                      opacity: settingsOpacity,
+                      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    },
+                  ]}
+                >
+                  <ThemedText style={[styles.settingsTitle, { color: '#FFFFFF' }]}>
+                    Playback Speed
                   </ThemedText>
-                )}
-                <View style={{ flex: 1 }} />
+                  <View style={styles.speedOptions}>
+                    {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                      <TouchableOpacity
+                        key={speed}
+                        style={[
+                          styles.speedButton,
+                          playbackRate === speed && styles.speedButtonActive,
+                          playbackRate === speed && { borderColor: primaryColor },
+                        ]}
+                        onPress={() => changePlaybackRate(speed)}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.speedButtonText,
+                            {
+                              color: playbackRate === speed ? primaryColor : '#FFFFFF',
+                              fontWeight: playbackRate === speed ? '700' : '400',
+                            },
+                          ]}
+                        >
+                          {speed}x
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Animated.View>
+              )}
+
+              {/* Center Controls with Gesture Buttons */}
+              <View style={styles.centerControls}>
                 <TouchableOpacity
-                  style={styles.controlButton}
-                  onPress={toggleFullscreen}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.seekButton}
+                  onPress={seekBackward}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                 >
-                  <Ionicons
-                    name={isFullscreen ? 'contract' : 'expand'}
-                    size={28}
-                    color="#FFFFFF"
-                  />
+                  <Ionicons name="play-back" size={32} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={[styles.seekLabel, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                    10s
+                  </ThemedText>
                 </TouchableOpacity>
-              </View>
 
-              {/* Center Play/Pause Button */}
-              <TouchableOpacity
-                style={styles.centerPlayButton}
-                onPress={togglePlayPause}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <MaterialIcons
-                  name={isPlaying ? 'pause-circle-filled' : 'play-circle-filled'}
-                  size={80}
-                  color="rgba(255, 255, 255, 0.9)"
-                />
-              </TouchableOpacity>
-
-              {/* Bottom Controls */}
-              <View style={styles.bottomControls}>
-                <ThemedText style={[styles.timeText, { color: '#FFFFFF' }]}>
-                  {formatTime(currentTime)}
-                </ThemedText>
-
-                {/* Progress Bar */}
                 <TouchableOpacity
-                  style={styles.progressBarContainer}
-                  onPress={(e) => {
-                    if (!duration) return;
-                    const { locationX } = e.nativeEvent;
-                    const width = Dimensions.get('window').width - 120;
-                    const newPosition = (locationX / width) * duration;
-                    seekTo(newPosition);
-                  }}
-                  activeOpacity={1}
+                  style={styles.centerPlayButton}
+                  onPress={togglePlayPause}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                 >
-                  <View style={[styles.progressBarBackground, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        { width: `${progress * 100}%`, backgroundColor: colors.primary },
-                      ]}
+                  <View style={styles.playButtonGlow}>
+                    <MaterialIcons
+                      name={isPlaying ? 'pause-circle-filled' : 'play-circle-filled'}
+                      size={80}
+                      color="#FFFFFF"
                     />
                   </View>
                 </TouchableOpacity>
 
-                <ThemedText style={[styles.timeText, { color: '#FFFFFF' }]}>
-                  {formatTime(duration || 0)}
-                </ThemedText>
+                <TouchableOpacity
+                  style={styles.seekButton}
+                  onPress={seekForward}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
+                  <Ionicons name="play-forward" size={32} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={[styles.seekLabel, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                    10s
+                  </ThemedText>
+                </TouchableOpacity>
               </View>
-            </View>
+
+              {/* Bottom Controls with Gradient */}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+                style={styles.bottomControlsGradient}
+              >
+                <View style={styles.bottomControls}>
+                  <ThemedText style={[styles.timeText, { color: '#FFFFFF' }]}>
+                    {formatTime(currentTime)}
+                  </ThemedText>
+
+                  {/* Enhanced Progress Bar */}
+                  <View style={styles.progressBarContainer}>
+                    <TouchableOpacity
+                      style={styles.progressBarTouchable}
+                      onPress={(e) => {
+                        if (!duration) return;
+                        const { locationX } = e.nativeEvent;
+                        const width = Dimensions.get('window').width - 120;
+                        const newPosition = (locationX / width) * duration;
+                        seekTo(newPosition);
+                      }}
+                      activeOpacity={1}
+                    >
+                      <View
+                        style={[
+                          styles.progressBarBackground,
+                          { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${progress * 100}%`,
+                              backgroundColor: primaryColor,
+                            },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.progressBarThumb,
+                            {
+                              left: `${progress * 100}%`,
+                              backgroundColor: primaryColor,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                    {isSeeking && (
+                      <View style={styles.seekPreview}>
+                        <ThemedText style={[styles.seekPreviewText, { color: '#FFFFFF' }]}>
+                          {formatTime((currentTime / duration) * duration || 0)}
+                        </ThemedText>
+                      </View>
+                    )}
+                  </View>
+
+                  <ThemedText style={[styles.timeText, { color: '#FFFFFF' }]}>
+                    {formatTime(duration || 0)}
+                  </ThemedText>
+                </View>
+              </LinearGradient>
+            </Animated.View>
           )}
         </TouchableOpacity>
       </SafeAreaView>
@@ -409,5 +594,141 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 45,
     textAlign: 'right',
+  },
+  thumbnailOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '30%',
+  },
+  topControlsGradient: {
+    paddingTop: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
+  },
+  controlButtonGlass: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: BorderRadius.full,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...PlatformStyles.shadow,
+  },
+  titleContainer: {
+    flex: 1,
+    marginHorizontal: Spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  centerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xl,
+  },
+  seekButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.sm,
+  },
+  seekLabel: {
+    fontSize: 10,
+    marginTop: Spacing.xs,
+    fontWeight: '600',
+  },
+  playButtonGlow: {
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  bottomControlsGradient: {
+    paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
+  },
+  progressBarTouchable: {
+    flex: 1,
+    height: 40,
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  progressBarThumb: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginLeft: -8,
+    top: '50%',
+    marginTop: -8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  seekPreview: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  seekPreviewText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  settingsMenu: {
+    position: 'absolute',
+    top: 70,
+    right: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    minWidth: 200,
+    ...PlatformStyles.cardShadow,
+  },
+  settingsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  speedOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  speedButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  speedButtonActive: {
+    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+    borderWidth: 1,
+  },
+  speedButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
