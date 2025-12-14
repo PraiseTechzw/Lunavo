@@ -2,32 +2,34 @@
  * Home Dashboard Screen - Enhanced Version
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  RefreshControl,
+  getCheckInStreak,
+  getPosts,
+  getPseudonym,
+  hasCheckedInToday
+} from '@/app/utils/storage';
+import { getCurrentUser } from '@/lib/database';
+import { UserRole } from '@/lib/permissions';
+import { DrawerMenu } from '@/app/components/navigation/drawer-menu';
+import { DrawerHeader } from '@/app/components/navigation/drawer-header';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
   Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { 
-  getPseudonym, 
-  getPosts, 
-  getCheckInStreak, 
-  hasCheckedInToday,
-  getCheckIns 
-} from '@/app/utils/storage';
-import { getCursorStyle, createShadow } from '@/app/utils/platform-styles';
 
 const { width } = Dimensions.get('window');
 
@@ -64,10 +66,25 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentQuote] = useState(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
-  }, []);
+    
+    // Redirect to role-specific dashboards if needed
+    if (userRole) {
+      if (userRole === 'counselor' || userRole === 'life-coach') {
+        // Counselors should use their dashboard, not student home
+        // But we'll show student home with counselor-specific content
+      } else if (userRole === 'admin') {
+        // Admin can access admin dashboard via sidebar
+      } else if (userRole === 'student-affairs') {
+        // Student Affairs should be redirected (handled in _layout.tsx)
+      }
+    }
+  }, [userRole]);
 
   useEffect(() => {
     // Rotate tips every 5 seconds
@@ -85,9 +102,29 @@ export default function HomeScreen() {
   };
 
   const loadUserInfo = async () => {
-    const pseudonym = await getPseudonym();
-    if (pseudonym) {
-      setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        setUserRole(currentUser.role as UserRole);
+        const savedPseudonym = await getPseudonym();
+        if (savedPseudonym) {
+          setUserName(savedPseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+        } else {
+          setUserName(currentUser.pseudonym || 'Student');
+        }
+      } else {
+        const pseudonym = await getPseudonym();
+        if (pseudonym) {
+          setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user info:', error);
+      const pseudonym = await getPseudonym();
+      if (pseudonym) {
+        setUserName(pseudonym.split(/(?=[A-Z])/)[0] || 'Student');
+      }
     }
   };
 
@@ -139,7 +176,17 @@ export default function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
-        {/* Fixed Header - Outside ScrollView */}
+        {/* Drawer Header - Mobile Only */}
+        <DrawerHeader
+          title={`${getGreeting()}, ${userName}`}
+          onMenuPress={() => setDrawerVisible(true)}
+          rightAction={{
+            icon: 'settings',
+            onPress: () => router.push('/profile-settings'),
+          }}
+        />
+        
+        {/* Fixed Header - Desktop/Web Only */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
@@ -160,6 +207,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        )}
 
         <ScrollView
         style={styles.scrollView}
@@ -306,25 +354,73 @@ export default function HomeScreen() {
           <MaterialIcons name="arrow-forward-ios" size={20} color={colors.icon} />
         </TouchableOpacity>
 
+        {/* Peer Educator Dashboard Card - Only for Peer Educators */}
+        {(userRole === 'peer-educator' || userRole === 'peer-educator-executive') && (
+          <TouchableOpacity
+            style={[
+              styles.resourceCard,
+              { backgroundColor: colors.primary + '10', borderWidth: 2, borderColor: colors.primary + '30' },
+              createShadow(2, colors.primary, 0.15),
+            ]}
+            onPress={() => router.push('/peer-educator/dashboard' as any)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="volunteer-activism" size={32} color={colors.primary} />
+            <View style={styles.resourceContent}>
+              <ThemedText type="body" style={[styles.cardTitle, { color: colors.primary, fontWeight: '700' }]}>
+                Peer Educator Dashboard
+              </ThemedText>
+              <ThemedText type="small" style={[styles.cardDescription, { color: colors.icon }]}>
+                View posts needing support and manage your responses
+              </ThemedText>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
+
         {/* Bottom Spacing */}
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
 
-      {/* Floating Help Button */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          { backgroundColor: '#136dec' },
-          createShadow(8, '#136dec', 0.3),
-        ]}
-        onPress={() => Alert.alert('Need Help?', 'How can we assist you?')}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons name="help-outline" size={20} color="#FFFFFF" />
-        <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
-          Need Help?
-        </ThemedText>
-      </TouchableOpacity>
+      {/* Floating Action Button - Role-based */}
+      {userRole === 'peer-educator' || userRole === 'peer-educator-executive' ? (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { backgroundColor: colors.primary },
+            createShadow(8, colors.primary, 0.3),
+          ]}
+          onPress={() => router.push('/peer-educator/posts' as any)}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="reply" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
+            Respond
+          </ThemedText>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { backgroundColor: '#136dec' },
+            createShadow(8, '#136dec', 0.3),
+          ]}
+          onPress={() => router.push('/create-post')}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="add" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
+            Ask for Help
+          </ThemedText>
+        </TouchableOpacity>
+      )}
+      
+      {/* Drawer Menu */}
+      <DrawerMenu
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        role={userRole || undefined}
+      />
       </ThemedView>
     </SafeAreaView>
   );

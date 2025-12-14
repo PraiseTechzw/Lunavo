@@ -35,6 +35,7 @@ export interface Escalation {
 export interface User {
   id: string;
   pseudonym: string;
+  username?: string; // Anonymous username (unique)
   isAnonymous: boolean;
   role: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
   createdAt: Date;
@@ -159,6 +160,30 @@ export interface MeetingAttendance {
   attended: boolean;
   attendedAt?: Date;
   notes?: string;
+}
+
+export interface Resource {
+  id: string;
+  title: string;
+  description?: string;
+  category: PostCategory;
+  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  url?: string;
+  filePath?: string;
+  tags: string[];
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  createdBy: string;
+  createdAt: Date;
+  scheduledFor?: Date;
+  isPublished: boolean;
 }
 
 

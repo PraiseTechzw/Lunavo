@@ -1,50 +1,83 @@
-# Welcome to your Expo app 👋
+# Lunavo Platform
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A comprehensive student support platform designed for the Chinhoyi University of Technology (CUT). Lunavo provides peer support, professional counseling, crisis detection, and resource management for students.
 
-## Get started
+## 🚀 Quick Start
 
-1. Install dependencies
-
+1. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
+2. **Set up environment variables**
+   - Create `.env` file with Supabase credentials
+   - See [Wiki - Supabase Setup](wiki/Getting-Started/Supabase-Setup.md)
 
+3. **Run database migrations**
+   - See [Wiki - Database Migration](wiki/Getting-Started/Database-Migration.md)
+
+4. **Start the app**
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+## 📚 Documentation
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Comprehensive documentation is available in the [Wiki](wiki/Home.md)**
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Quick Links
 
-## Get a fresh project
+- [Installation & Setup](wiki/Getting-Started/Installation-and-Setup.md)
+- [Quick Start Guide](wiki/Getting-Started/Quick-Start.md)
+- [Developer Guide](wiki/Development/Developer-Guide.md)
+- [Architecture Overview](wiki/Development/Architecture.md)
+- [Authentication System](wiki/Features/Authentication.md)
+- [Role-Based Navigation](wiki/Features/Role-Based-Navigation.md)
+- [Escalation System](wiki/Features/Escalation-System.md)
 
-When you're ready, run:
+## 🎯 Features
 
-```bash
-npm run reset-project
-```
+- **Peer Support**: Connect students with peer educators
+- **Professional Counseling**: Access to counselors and life coaches
+- **Crisis Detection**: Automatic detection and escalation of concerning posts
+- **Resource Management**: Educational resources and support materials
+- **Analytics**: Anonymized analytics for Student Affairs
+- **Gamification**: Points, badges, and engagement features
+- **Real-time Updates**: Live notifications and updates
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🔐 User Roles
 
-## Learn more
+The platform supports 8 distinct user roles:
 
-To learn more about developing your project with Expo, look at the following resources:
+1. **Student** - Base user with access to core features
+2. **Peer Educator** - Provides peer support to students
+3. **Peer Educator Executive** - Manages peer educators
+4. **Moderator** - Content moderation and reporting
+5. **Counselor** - Professional mental health support
+6. **Life Coach** - Life coaching and guidance
+7. **Student Affairs** - Analytics and trend analysis (Web-only)
+8. **Admin** - Full system access and management
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🛠️ Technology Stack
 
-## Join the community
+- **Frontend**: React Native with Expo
+- **Backend**: Supabase (PostgreSQL, Authentication, Real-time)
+- **Language**: TypeScript
+- **Navigation**: Expo Router
+- **UI Components**: React Native Paper
 
-Join our community of developers creating universal apps.
+## 📖 Learn More
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Wiki Documentation](wiki/Home.md) - Complete documentation
+- [Expo Documentation](https://docs.expo.dev/)
+- [Supabase Documentation](https://supabase.com/docs)
+
+## 📝 Project Status
+
+**Current Status**: 85% Complete - Production Ready
+
+See [Implementation Status](wiki/Implementation-Status/Current-Status.md) for details.
+
+---
+
+**For detailed setup instructions, see the [Wiki](wiki/Home.md)**

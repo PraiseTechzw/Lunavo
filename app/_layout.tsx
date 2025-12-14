@@ -1,12 +1,16 @@
+import { OfflineIndicator } from "@/app/components/offline-indicator";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/app/utils/navigation";
+import { getSession, onAuthStateChange } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/database";
+import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
+import { UserRole } from "@/lib/permissions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState, useRef } from "react";
-import { onAuthStateChange, getSession } from "@/lib/auth";
-import * as Notifications from 'expo-notifications';
-import { registerForPushNotifications, addNotificationResponseListener } from "@/lib/notifications";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
 
 const ONBOARDING_KEY = "@lunavo:onboarding_complete";
 
@@ -18,6 +22,7 @@ export default function RootLayout() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     initializeAuth();
@@ -35,11 +40,11 @@ export default function RootLayout() {
         
         // Navigate based on notification data
         if (data?.postId) {
-          router.push(`/post/${data.postId}`);
+          router.push(`/post/${data.postId}` as any);
         } else if (data?.meetingId) {
-          router.push(`/meetings/${data.meetingId}`);
-        } else if (data?.screen) {
-          router.push(data.screen);
+          router.push(`/meetings/${data.meetingId}` as any);
+        } else if (data?.screen && typeof data.screen === 'string') {
+          router.push(data.screen as any);
         }
       });
 
@@ -56,14 +61,85 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
+    const inWebRequired = segments[0] === 'web-required';
 
     if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
       // Redirect to login if not authenticated
       router.replace('/auth/login');
     } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      // Redirect to home if authenticated and in auth/onboarding
-      router.replace('/(tabs)');
+      // Load user role and redirect to appropriate default route
+      getCurrentUser().then(user => {
+        if (user) {
+          const role = user.role as UserRole;
+          const platform = isMobile ? 'mobile' : 'web';
+          const defaultRoute = getDefaultRoute(role, platform);
+          router.replace(defaultRoute as any);
+        } else {
+          router.replace('/(tabs)');
+        }
+      }).catch(() => {
+        router.replace('/(tabs)');
+      });
     }
+  }, [isAuthenticated, segments, isInitialized]);
+
+  // Comprehensive role-based navigation protection
+  useEffect(() => {
+    if (!isAuthenticated || !isInitialized) return;
+
+    const checkRoleAccess = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) return;
+
+        const role = currentUser.role as UserRole;
+        setUserRole(role);
+        const currentRoute = segments.join('/');
+        const platform = isMobile ? 'mobile' : 'web';
+
+        // CRITICAL: Student Affairs mobile blocking
+        if (isStudentAffairsMobileBlocked(role, platform)) {
+          if (currentRoute !== 'web-required') {
+            console.log('[Role Guard] Student Affairs detected on mobile - redirecting to web-required');
+            router.replace('/web-required');
+          }
+          return;
+        }
+
+        // Skip route checking for auth and onboarding
+        if (segments[0] === 'auth' || segments[0] === 'onboarding' || segments[0] === 'web-required') {
+          return;
+        }
+
+        // Check if current route is accessible
+        const routePath = '/' + currentRoute;
+        if (!canAccessRoute(role, routePath, platform)) {
+          // Redirect to default route for role
+          const defaultRoute = getDefaultRoute(role, platform);
+          console.log(`[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`);
+          router.replace(defaultRoute as any);
+          return;
+        }
+
+        // Special case: Counselors should not access general forum
+        if ((role === 'counselor' || role === 'life-coach') && currentRoute === '(tabs)/forum') {
+          console.log('[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard');
+          router.replace('/counselor/dashboard');
+          return;
+        }
+
+        // Special case: Student Affairs should not access forum/chat
+        if (role === 'student-affairs' && (currentRoute === '(tabs)/forum' || currentRoute === '(tabs)/chat')) {
+          console.log('[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard');
+          router.replace('/student-affairs/dashboard');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking role access:', error);
+      }
+    };
+
+    checkRoleAccess();
   }, [isAuthenticated, segments, isInitialized]);
 
   const initializeAuth = async () => {
@@ -101,14 +177,16 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: colors.background,
-          },
-        }}
-      >
+      <View style={{ flex: 1 }}>
+        <OfflineIndicator />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: colors.background,
+            },
+          }}
+        >
       {!isOnboardingComplete && (
         <Stack.Screen 
           name="onboarding" 
@@ -219,6 +297,13 @@ export default function RootLayout() {
         }} 
       />
       <Stack.Screen 
+        name="web-required" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
         name="peer-educator" 
         options={{ 
           headerShown: false,
@@ -230,7 +315,43 @@ export default function RootLayout() {
           headerShown: false,
         }} 
       />
+      <Stack.Screen 
+        name="accessibility-settings" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="help" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="privacy" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="feedback" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="about" 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+        }} 
+      />
       </Stack>
+      </View>
     </>
   );
 }

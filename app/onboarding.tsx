@@ -15,12 +15,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Dimensions,
+    Dimensions,
   Image,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -121,7 +121,7 @@ export default function OnboardingScreen() {
     if (page !== currentPage) {
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
-      setCurrentPage(page);
+    setCurrentPage(page);
     }
   };
 
@@ -193,16 +193,16 @@ export default function OnboardingScreen() {
                   createShadow(8, '#000', 0.1),
                 ]}
               >
-                {item.illustrationType === 'image' ? (
+              {item.illustrationType === 'image' ? (
                   typeof item.illustration === 'string' ? (
                     <ExpoImage
-                      source={{ uri: item.illustration }}
-                      style={styles.illustrationImage}
-                      contentFit="cover"
+                  source={{ uri: item.illustration }}
+                  style={styles.illustrationImage}
+                  contentFit="cover"
                       transition={300}
                       cachePolicy="memory-disk"
-                    />
-                  ) : (
+                />
+              ) : (
                     <Image
                       source={item.illustration}
                       style={styles.illustrationImage}
@@ -217,30 +217,30 @@ export default function OnboardingScreen() {
                       color={item.iconColor}
                     />
                   </View>
-                )}
+              )}
                 
                 {/* Decorative Elements */}
                 <View style={[styles.decorativeCircle1, { backgroundColor: item.iconColor + '15' }]} />
                 <View style={[styles.decorativeCircle2, { backgroundColor: item.iconColor + '10' }]} />
-              </View>
+            </View>
 
               {/* Content */}
-              <View style={styles.content}>
+            <View style={styles.content}>
                 <View style={styles.titleContainer}>
-                  <ThemedText type="h1" style={styles.title}>
-                    {item.title}
-                  </ThemedText>
+              <ThemedText type="h1" style={styles.title}>
+                {item.title}
+              </ThemedText>
                   <View style={[styles.titleUnderline, { backgroundColor: colors.primary + '30' }]} />
                 </View>
 
                 <ThemedText type="h2" style={[styles.subtitle, { color: colors.primary }]}>
-                  {item.subtitle}
-                </ThemedText>
+                {item.subtitle}
+              </ThemedText>
 
                 <ThemedText type="body" style={[styles.description, { color: colors.icon }]}>
-                  {item.description}
-                </ThemedText>
-              </View>
+                {item.description}
+              </ThemedText>
+            </View>
             </Animated.View>
           </View>
         ))}
@@ -264,43 +264,43 @@ export default function OnboardingScreen() {
               }}
               activeOpacity={0.7}
             >
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      index === currentPage ? colors.primary : colors.border,
+            <View
+              style={[
+                styles.dot,
+                {
+                  backgroundColor:
+                    index === currentPage ? colors.primary : colors.border,
                     width: index === currentPage ? 32 : 8,
                     height: 8,
-                  },
-                ]}
-              />
+                },
+              ]}
+            />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
+        <TouchableOpacity
             style={[
               styles.nextButton,
               { backgroundColor: colors.primary },
               createShadow(4, colors.primary, 0.3),
             ]}
-            onPress={handleNext}
-            activeOpacity={0.8}
-          >
-            <ThemedText type="body" style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
+          onPress={handleNext}
+          activeOpacity={0.8}
+        >
+          <ThemedText type="body" style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
               {currentPage === onboardingData.length - 1 ? 'Get Started' : 'Continue'}
-            </ThemedText>
+          </ThemedText>
             <Ionicons
               name={currentPage === onboardingData.length - 1 ? 'checkmark-circle' : 'arrow-forward'}
               size={22}
               color="#FFFFFF"
               style={{ marginLeft: Spacing.xs }}
             />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
+      </View>
       </SafeAreaView>
     </ThemedView>
   );

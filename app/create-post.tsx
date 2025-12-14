@@ -1,47 +1,306 @@
 /**
- * Create post screen - allows users to ask for help
+ * Create post screen - Ask for Help
+ * Enhanced UI with dynamic categories based on existing topics
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { CategoryBadge } from '@/app/components/category-badge';
-import { PostCategory, Post } from '@/app/types';
+import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES, CATEGORY_LIST } from '@/app/constants/categories';
 import { checkEscalation } from '@/app/constants/escalation';
-import { generatePseudonym, sanitizeContent, containsIdentifyingInfo } from '@/app/utils/anonymization';
-import { addPost, getPseudonym, savePseudonym, getUser } from '@/app/utils/storage';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getContainerStyle } from '@/app/utils/platform-styles';
+import { useDebounce } from '@/app/hooks/use-debounce';
+import { PostCategory } from '@/app/types';
+import { containsIdentifyingInfo, generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
+import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { getPseudonym, savePseudonym } from '@/app/utils/storage';
+import { analyzePost } from '@/lib/ai-utils';
+import { createPost as createPostDB, getCurrentUser, getTopicStats } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const DRAFT_KEY = 'post_draft';
+
+// Icon mapping for categories
+const getCategoryIconName = (category: PostCategory): string => {
+  const iconMap: Record<PostCategory, string> = {
+    'mental-health': 'medical-outline',
+    'crisis': 'warning',
+    'substance-abuse': 'medkit',
+    'sexual-health': 'heart',
+    'stis-hiv': 'heart-circle',
+    'family-home': 'home-outline',
+    'academic': 'library-outline',
+    'social': 'people',
+    'relationships': 'heart-circle',
+    'campus': 'school',
+    'general': 'chatbubbles',
+  };
+  return iconMap[category] || 'help-circle';
+};
 
 export default function CreatePostScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string }>();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<PostCategory>('general');
+  const [availableCategories, setAvailableCategories] = useState<PostCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<PostCategory>('mental-health');
+  const [suggestedCategory, setSuggestedCategory] = useState<PostCategory | null>(null);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [pseudonym, setPseudonym] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [hasTriggerWarning, setHasTriggerWarning] = useState(false);
+  const [categoryConfidence, setCategoryConfidence] = useState(0);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  const debouncedTitle = useDebounce(title, 500);
+  const debouncedContent = useDebounce(content, 500);
+
+  // Helper function to insert text at cursor position
+  const insertTextAtCursor = (textToInsert: string) => {
+    const { start, end } = contentSelection;
+    const newContent = content.substring(0, start) + textToInsert + content.substring(end);
+    setContent(newContent);
+    
+    // Update cursor position after insertion
+    setTimeout(() => {
+      const newCursorPos = start + textToInsert.length;
+      contentInputRef.current?.setNativeProps({
+        selection: { start: newCursorPos, end: newCursorPos },
+      });
+    }, 0);
+  };
+
+  // Helper function to wrap selected text with markdown
+  const wrapTextWithMarkdown = (before: string, after: string) => {
+    const { start, end } = contentSelection;
+    const selectedText = content.substring(start, end);
+    
+    if (selectedText) {
+      // Wrap selected text
+      const newContent = 
+        content.substring(0, start) + 
+        before + selectedText + after + 
+        content.substring(end);
+      setContent(newContent);
+      
+      // Update cursor position
+      setTimeout(() => {
+        const newCursorPos = start + before.length + selectedText.length + after.length;
+        contentInputRef.current?.setNativeProps({
+          selection: { start: newCursorPos, end: newCursorPos },
+        });
+      }, 0);
+    } else {
+      // Insert markdown at cursor position
+      insertTextAtCursor(before + after);
+      // Move cursor between the markdown tags
+      setTimeout(() => {
+        const newCursorPos = start + before.length;
+        contentInputRef.current?.setNativeProps({
+          selection: { start: newCursorPos, end: newCursorPos },
+        });
+      }, 0);
+    }
+  };
+
+  const handleBold = () => {
+    wrapTextWithMarkdown('**', '**');
+  };
+
+  const handleItalic = () => {
+    wrapTextWithMarkdown('*', '*');
+  };
+
+  const handleLink = () => {
+    setShowLinkModal(true);
+  };
+
+  const insertLink = () => {
+    if (!linkUrl.trim()) {
+      Alert.alert('Error', 'Please enter a URL');
+      return;
+    }
+    
+    const linkMarkdown = `[${linkText.trim() || linkUrl.trim()}](${linkUrl.trim()})`;
+    insertTextAtCursor(linkMarkdown);
+    setShowLinkModal(false);
+    setLinkUrl('');
+    setLinkText('');
+  };
+
+  const handleImage = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant permission to access your photos.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [4, 3],
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      const imageUri = result.assets[0].uri;
+      await uploadAndInsertImage(imageUri);
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const uploadAndInsertImage = async (imageUri: string) => {
+    setUploadingImage(true);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'Please log in to upload images.');
+        setUploadingImage(false);
+        return;
+      }
+
+      // Read the image file
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Generate unique filename with proper extension
+      const uriParts = imageUri.split('.');
+      const fileExt = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const filePath = `post-images/${fileName}`;
+
+      // Determine content type
+      const contentType = fileExt === 'png' ? 'image/png' : 
+                         fileExt === 'gif' ? 'image/gif' : 
+                         fileExt === 'webp' ? 'image/webp' : 'image/jpeg';
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(filePath, blob, {
+          contentType: contentType,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        // If bucket doesn't exist, create it or use public URL
+        console.error('Upload error:', uploadError);
+        Alert.alert('Error', 'Failed to upload image. Please try again.');
+        setUploadingImage(false);
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(filePath);
+
+      const imageUrl = urlData.publicUrl;
+      const imageMarkdown = `![Image](${imageUrl})`;
+      insertTextAtCursor(imageMarkdown);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   useEffect(() => {
     loadPseudonym();
+    loadDraft();
+    loadAvailableCategories();
   }, []);
+
+  useEffect(() => {
+    // Set category from params if provided
+    if (params.category && availableCategories.includes(params.category as PostCategory)) {
+      setSelectedCategory(params.category as PostCategory);
+    }
+  }, [params.category, availableCategories]);
+
+  useEffect(() => {
+    // Auto-save draft
+    saveDraft();
+  }, [title, content, selectedCategory, selectedTags]);
+
+  useEffect(() => {
+    // Analyze content for category and tag suggestions
+    if ((debouncedTitle.trim() || debouncedContent.trim()) && debouncedContent.trim().length > 10) {
+      analyzeContent();
+    }
+  }, [debouncedTitle, debouncedContent]);
+
+  const loadAvailableCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      // Get topic stats to see which categories have posts
+      const stats = await getTopicStats();
+      
+      // Filter to only categories that have at least 1 post
+      // Always include 'general' as a fallback option
+      const categoriesWithPosts = stats
+        .filter(stat => stat.postCount > 0 || stat.category === 'general')
+        .map(stat => stat.category)
+        .sort((a, b) => {
+          const statA = stats.find(s => s.category === a);
+          const statB = stats.find(s => s.category === b);
+          return (statB?.postCount || 0) - (statA?.postCount || 0);
+        });
+
+      // If no categories have posts yet, show all categories
+      if (categoriesWithPosts.length === 0) {
+        setAvailableCategories(CATEGORY_LIST.map(c => c.id));
+      } else {
+        setAvailableCategories(categoriesWithPosts);
+      }
+
+      // Set initial selected category
+      if (categoriesWithPosts.length > 0 && !params.category) {
+        setSelectedCategory(categoriesWithPosts[0]);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      // Fallback to all categories
+      setAvailableCategories(CATEGORY_LIST.map(c => c.id));
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const loadPseudonym = async () => {
     let savedPseudonym = await getPseudonym();
@@ -52,18 +311,89 @@ export default function CreatePostScreen() {
     setPseudonym(savedPseudonym);
   };
 
-  const handleSubmit = async () => {
+  const loadDraft = async () => {
+    try {
+      const draftJson = await AsyncStorage.getItem(DRAFT_KEY);
+      if (draftJson) {
+        const draft = JSON.parse(draftJson);
+        setTitle(draft.title || '');
+        setContent(draft.content || '');
+        if (draft.category && availableCategories.includes(draft.category)) {
+          setSelectedCategory(draft.category);
+        }
+        setSelectedTags(draft.tags || []);
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+    }
+  };
+
+  const saveDraft = async () => {
+    try {
+      const draft = {
+        title,
+        content,
+        category: selectedCategory,
+        tags: selectedTags,
+        savedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
+  };
+
+  const clearDraft = async () => {
+    try {
+      await AsyncStorage.removeItem(DRAFT_KEY);
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+    }
+  };
+
+  const analyzeContent = async () => {
+    try {
+      if (!title.trim() && !content.trim()) return;
+
+      const analysis = analyzePost(title, content, selectedCategory);
+      
+      // Update suggested category if confidence is high and category is available
+      if (analysis.categorization.confidence > 0.6 && availableCategories.includes(analysis.categorization.category)) {
+        setSuggestedCategory(analysis.categorization.category);
+        setCategoryConfidence(analysis.categorization.confidence);
+        
+        // Auto-select if confidence is very high
+        if (analysis.categorization.confidence > 0.8) {
+          setSelectedCategory(analysis.categorization.category);
+        }
+      }
+
+      // Update suggested tags
+      if (analysis.suggestedTags.length > 0) {
+        setSuggestedTags(analysis.suggestedTags.slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Error analyzing content:', error);
+    }
+  };
+
+  const handlePostButton = () => {
     if (!title.trim() || !content.trim()) {
       Alert.alert('Missing Information', 'Please provide both a title and content for your post.');
       return;
     }
 
+    // Show review/preview screen first
+    setShowReview(true);
+  };
+
+  const handleSubmitFromReview = async () => {
     if (containsIdentifyingInfo(content)) {
       Alert.alert(
         'Privacy Warning',
         'Your post may contain identifying information. Please review and remove any personal details like email, phone numbers, or student IDs to protect your anonymity.',
         [
-          { text: 'Edit', style: 'cancel' },
+          { text: 'Edit', style: 'cancel', onPress: () => setShowReview(false) },
           { text: 'Post Anyway', onPress: () => submitPost() },
         ]
       );
@@ -76,45 +406,31 @@ export default function CreatePostScreen() {
   const submitPost = async () => {
     setIsSubmitting(true);
     try {
-      const user = await getUser();
-      if (!user && pseudonym) {
-        // Create a basic user record
-        const newUser = {
-          id: `user_${Date.now()}`,
-          pseudonym,
-          isAnonymous: true,
-          role: 'student' as const,
-          createdAt: new Date(),
-          lastActive: new Date(),
-        };
-        // In a real app, you'd save this user
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'Please log in to create a post.');
+        setIsSubmitting(false);
+        return;
       }
 
       // Check for escalation
       const escalation = checkEscalation(content, selectedCategory);
       const sanitizedContent = sanitizeContent(content);
 
-      const newPost: Post = {
-        id: `post_${Date.now()}`,
-        authorId: user?.id || `user_${Date.now()}`,
-        authorPseudonym: pseudonym || 'Anonymous',
+      // Create post using database function
+      await createPostDB({
+        authorId: user.id,
         category: selectedCategory,
         title: title.trim(),
         content: sanitizedContent,
-        status: escalation.level !== 'none' ? 'escalated' : 'active',
+        isAnonymous,
+        tags: selectedTags,
         escalationLevel: escalation.level,
         escalationReason: escalation.reason,
-        isAnonymous,
-        tags: [],
-        upvotes: 0,
-        replies: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        reportedCount: 0,
-        isFlagged: escalation.level !== 'none',
-      };
+      });
 
-      await addPost(newPost);
+      // Clear draft after successful post
+      await clearDraft();
 
       if (escalation.level !== 'none') {
         Alert.alert(
@@ -136,7 +452,7 @@ export default function CreatePostScreen() {
             text: 'OK',
             onPress: () => {
               router.back();
-              router.push('/(tabs)/forum');
+              router.push(`/topic/${selectedCategory}` as any);
             },
           },
         ]);
@@ -154,159 +470,486 @@ export default function CreatePostScreen() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ThemedView style={[styles.container, getContainerStyle()]}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ThemedText type="h2" style={styles.title}>
-            Ask for Help
-          </ThemedText>
-          <ThemedText type="caption" style={styles.subtitle}>
-            Share your concern anonymously. Our community and support team are here to help.
-          </ThemedText>
-
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Category
+        <ThemedView style={styles.container}>
+          {/* Header with X, Title, and Post Button */}
+          <View style={[styles.header, { backgroundColor: colors.background }]}>
+            <TouchableOpacity
+              style={[styles.closeButton, getCursorStyle()]}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <ThemedText type="h2" style={[styles.headerTitle, { color: colors.text }]}>
+              Create Post
             </ThemedText>
-            <View style={styles.categoryGrid}>
-              {CATEGORY_LIST.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  onPress={() => setSelectedCategory(category.id)}
-                  style={[
-                    styles.categoryOption,
-                    {
-                      backgroundColor:
-                        selectedCategory === category.id
-                          ? category.color + '20'
-                          : colors.surface,
-                      borderColor:
-                        selectedCategory === category.id ? category.color : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
-                  <ThemedText
-                    type="small"
-                    style={[
-                      styles.categoryName,
-                      {
-                        color:
-                          selectedCategory === category.id ? category.color : colors.text,
-                      },
-                    ]}
-                  >
-                    {category.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Title
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                createInputStyle(),
-                {
-                  backgroundColor: colors.surface,
-                  color: colors.text,
-                  borderColor: colors.border,
-                },
-              ]}
-              placeholder="Brief summary of your concern"
-              placeholderTextColor={colors.icon}
-              value={title}
-              onChangeText={setTitle}
-              maxLength={100}
-            />
-          </View>
-
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Your Message
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.textArea,
-                createInputStyle(),
-                {
-                  backgroundColor: colors.surface,
-                  color: colors.text,
-                  borderColor: colors.border,
-                },
-              ]}
-              placeholder="Share your thoughts, concerns, or questions. Remember to avoid including personal information."
-              placeholderTextColor={colors.icon}
-              value={content}
-              onChangeText={setContent}
-              multiline
-              numberOfLines={8}
-              textAlignVertical="top"
-            />
-            <ThemedText type="small" style={styles.hint}>
-              Your post will be anonymous. Avoid sharing email, phone numbers, or student IDs.
-            </ThemedText>
-          </View>
-
-          <View style={styles.section}>
             <TouchableOpacity
               style={[
-                styles.checkboxContainer,
-                { borderColor: colors.border },
+                styles.postButton,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: (!title.trim() || !content.trim() || isSubmitting) ? 0.5 : 1,
+                },
               ]}
-              onPress={() => setIsAnonymous(!isAnonymous)}
+              onPress={handlePostButton}
+              disabled={!title.trim() || !content.trim() || isSubmitting}
+              activeOpacity={0.8}
             >
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: isAnonymous ? colors.primary : 'transparent',
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                {isAnonymous && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <ThemedText type="body" style={styles.checkboxLabel}>
-                Post anonymously (recommended)
-              </ThemedText>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <ThemedText type="body" style={styles.postButtonText}>
+                  Post
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: isSubmitting ? 0.6 : 1,
-              },
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <ThemedText
-              type="body"
-              style={[styles.submitButtonText, { color: '#FFFFFF' }]}
-            >
-              {isSubmitting ? 'Posting...' : 'Post Request for Help'}
-            </ThemedText>
-          </TouchableOpacity>
+            {/* Topic Selection Section */}
+            <View style={styles.section}>
+              <ThemedText type="small" style={[styles.topicLabel, { color: colors.icon }]}>
+                SELECT TOPIC
+              </ThemedText>
+              {loadingCategories ? (
+                <View style={styles.loadingCategories}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.topicScrollContent}
+                >
+                  {availableCategories.map((categoryId) => {
+                    const category = CATEGORIES[categoryId];
+                    const isSelected = selectedCategory === categoryId;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={categoryId}
+                        onPress={() => setSelectedCategory(categoryId)}
+                        style={[
+                          styles.topicButton,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.surface,
+                            borderColor: isSelected ? colors.primary : colors.border,
+                          },
+                        ]}
+                        activeOpacity={0.7}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={[
+                            styles.topicButtonText,
+                            {
+                              color: isSelected ? '#FFFFFF' : colors.text,
+                              fontWeight: isSelected ? '700' : '600',
+                            },
+                          ]}
+                        >
+                          {category.name}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
 
-          <ThemedText type="small" style={styles.disclaimer}>
-            By posting, you agree that this is a supportive community space. In case of
-            emergencies, please contact emergency services immediately.
-          </ThemedText>
-        </ScrollView>
-      </ThemedView>
-    </KeyboardAvoidingView>
+            {/* Tag Suggestions */}
+            {suggestedTags.length > 0 && (
+              <View style={styles.section}>
+                <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+                  Suggested Tags
+                </ThemedText>
+                <View style={styles.tagsContainer}>
+                  {suggestedTags.map((tag, index) => {
+                    const isSelected = selectedTags.includes(tag);
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.tagChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.surface,
+                            borderColor: isSelected ? colors.primary : colors.border,
+                          },
+                        ]}
+                        onPress={() => {
+                          if (isSelected) {
+                            setSelectedTags(selectedTags.filter(t => t !== tag));
+                          } else {
+                            setSelectedTags([...selectedTags, tag]);
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: isSelected ? '#FFFFFF' : colors.text,
+                            fontWeight: '600',
+                          }}
+                        >
+                          {tag}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Title Input */}
+            <View style={styles.section}>
+              <TextInput
+                style={[
+                  styles.titleInput,
+                  createInputStyle(),
+                  {
+                    backgroundColor: 'transparent',
+                    color: colors.text,
+                  },
+                ]}
+                placeholder="Give your post a title..."
+                placeholderTextColor={colors.icon}
+                value={title}
+                onChangeText={setTitle}
+                maxLength={100}
+              />
+            </View>
+
+            {/* Content Input */}
+            <View style={styles.section}>
+              <TextInput
+                ref={contentInputRef}
+                style={[
+                  styles.contentInput,
+                  createInputStyle(),
+                  {
+                    backgroundColor: 'transparent',
+                    color: colors.text,
+                  },
+                ]}
+                placeholder="Share what's on your mind. This is a safe space..."
+                placeholderTextColor={colors.icon}
+                value={content}
+                onChangeText={setContent}
+                onSelectionChange={(e) => {
+                  setContentSelection({
+                    start: e.nativeEvent.selection.start,
+                    end: e.nativeEvent.selection.end,
+                  });
+                }}
+                multiline
+                numberOfLines={10}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Post Anonymously Toggle */}
+            <View style={styles.anonymousSection}>
+              <View style={styles.anonymousLeft}>
+                <Ionicons name="eye-off-outline" size={24} color={colors.text} style={styles.eyeIcon} />
+                <View>
+                  <ThemedText type="body" style={[styles.anonymousTitle, { color: colors.text }]}>
+                    Post Anonymously
+                  </ThemedText>
+                  <ThemedText type="small" style={[styles.anonymousSubtitle, { color: colors.icon }]}>
+                    Hide your username
+                  </ThemedText>
+                </View>
+              </View>
+              <Switch
+                value={isAnonymous}
+                onValueChange={setIsAnonymous}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={colors.border}
+              />
+            </View>
+
+            {/* Formatting Toolbar */}
+            <View style={[styles.toolbar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+              <View style={styles.toolbarLeft}>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={handleBold}
+                  activeOpacity={0.7}
+                >
+                  <ThemedText type="body" style={[styles.toolbarBold, { color: colors.text }]}>
+                    B
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={handleItalic}
+                  activeOpacity={0.7}
+                >
+                  <ThemedText type="body" style={[styles.toolbarItalic, { color: colors.text }]}>
+                    I
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={handleLink}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="link-outline" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={handleImage}
+                  disabled={uploadingImage}
+                  activeOpacity={0.7}
+                >
+                  {uploadingImage ? (
+                    <ActivityIndicator size="small" color={colors.text} />
+                  ) : (
+                    <Ionicons name="image-outline" size={20} color={colors.text} />
+                  )}
+                </TouchableOpacity>
+              </View>
+              <View style={styles.toolbarSeparator} />
+              <TouchableOpacity
+                style={[
+                  styles.triggerWarningButton,
+                  {
+                    backgroundColor: hasTriggerWarning ? '#FF6B35' : 'transparent',
+                    borderColor: '#FF6B35',
+                  },
+                ]}
+                onPress={() => setHasTriggerWarning(!hasTriggerWarning)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="warning-outline" size={16} color={hasTriggerWarning ? '#FFFFFF' : '#FF6B35'} />
+                <ThemedText
+                  type="small"
+                  style={[
+                    styles.triggerWarningText,
+                    { color: hasTriggerWarning ? '#FFFFFF' : '#FF6B35' },
+                  ]}
+                >
+                  TW
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Review/Preview Modal */}
+            {showReview && (
+              <View style={styles.reviewOverlay}>
+                <View style={[styles.reviewContainer, { backgroundColor: colors.background }]}>
+                  <View style={styles.reviewHeader}>
+                    <ThemedText type="h2" style={[styles.reviewTitle, { color: colors.text }]}>
+                      Review Your Post
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => setShowReview(false)}
+                      style={styles.reviewCloseButton}
+                    >
+                      <Ionicons name="close" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView style={styles.reviewScroll} showsVerticalScrollIndicator={false}>
+                    <View style={styles.reviewContent}>
+                      <View style={styles.reviewHeaderInfo}>
+                        <View style={[styles.reviewAvatar, { backgroundColor: colors.primary }]}>
+                          <ThemedText style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                            {pseudonym?.[0]?.toUpperCase() || 'A'}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.reviewUserInfo}>
+                          <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                            {isAnonymous ? pseudonym || 'Anonymous' : 'You'}
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: colors.icon }}>
+                            {CATEGORIES[selectedCategory].name}
+                          </ThemedText>
+                        </View>
+                      </View>
+
+                      {hasTriggerWarning && (
+                        <View style={[styles.triggerWarningBanner, { backgroundColor: '#FF6B3520' }]}>
+                          <Ionicons name="warning" size={20} color="#FF6B35" />
+                          <ThemedText type="small" style={{ color: '#FF6B35', marginLeft: Spacing.xs }}>
+                            This post contains a trigger warning
+                          </ThemedText>
+                        </View>
+                      )}
+
+                      <ThemedText type="h3" style={[styles.reviewPostTitle, { color: colors.text }]}>
+                        {title}
+                      </ThemedText>
+                      <ThemedText type="body" style={[styles.reviewPostContent, { color: colors.text }]}>
+                        {content}
+                      </ThemedText>
+
+                      {selectedTags.length > 0 && (
+                        <View style={styles.reviewTags}>
+                          {selectedTags.map((tag, index) => (
+                            <View key={index} style={[styles.reviewTag, { backgroundColor: colors.surface }]}>
+                              <ThemedText type="small" style={{ color: colors.primary }}>
+                                #{tag}
+                              </ThemedText>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </ScrollView>
+
+                  <View style={styles.reviewActions}>
+                    <TouchableOpacity
+                      style={[styles.reviewEditButton, { borderColor: colors.border }]}
+                      onPress={() => setShowReview(false)}
+                      activeOpacity={0.7}
+                    >
+                      <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                        Edit
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.reviewPostButton,
+                        {
+                          backgroundColor: colors.primary,
+                          opacity: isSubmitting ? 0.6 : 1,
+                        },
+                      ]}
+                      onPress={handleSubmitFromReview}
+                      disabled={isSubmitting}
+                      activeOpacity={0.8}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                          Post
+                        </ThemedText>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <ThemedText type="small" style={[styles.disclaimer, { color: colors.icon }]}>
+              By posting, you agree that this is a supportive community space. In case of
+              emergencies, please contact emergency services immediately.
+            </ThemedText>
+          </ScrollView>
+
+          {/* Link Insertion Modal */}
+          <Modal
+            visible={showLinkModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowLinkModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+                <View style={styles.modalHeader}>
+                  <ThemedText type="h2" style={[styles.modalTitle, { color: colors.text }]}>
+                    Insert Link
+                  </ThemedText>
+                  <TouchableOpacity
+                    onPress={() => setShowLinkModal(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalBody}>
+                  <View style={styles.modalInputContainer}>
+                    <ThemedText type="body" style={[styles.modalLabel, { color: colors.text }]}>
+                      Link Text (optional)
+                    </ThemedText>
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        {
+                          backgroundColor: colors.surface,
+                          color: colors.text,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      placeholder="Enter link text"
+                      placeholderTextColor={colors.icon}
+                      value={linkText}
+                      onChangeText={setLinkText}
+                    />
+                  </View>
+
+                  <View style={styles.modalInputContainer}>
+                    <ThemedText type="body" style={[styles.modalLabel, { color: colors.text }]}>
+                      URL *
+                    </ThemedText>
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        {
+                          backgroundColor: colors.surface,
+                          color: colors.text,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      placeholder="https://example.com"
+                      placeholderTextColor={colors.icon}
+                      value={linkUrl}
+                      onChangeText={setLinkUrl}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalCancelButton,
+                      { borderColor: colors.border },
+                    ]}
+                    onPress={() => {
+                      setShowLinkModal(false);
+                      setLinkUrl('');
+                      setLinkText('');
+                    }}
+                  >
+                    <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                      Cancel
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalInsertButton,
+                      {
+                        backgroundColor: colors.primary,
+                        opacity: !linkUrl.trim() ? 0.5 : 1,
+                      },
+                    ]}
+                    onPress={insertLink}
+                    disabled={!linkUrl.trim()}
+                  >
+                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                      Insert
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </ThemedView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -318,101 +961,360 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.md,
+  },
+  headerTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+    flex: 1,
+    textAlign: 'center',
+  },
+  postButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    minWidth: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
-  },
-  title: {
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    marginBottom: Spacing.lg,
-    opacity: 0.7,
+    padding: Spacing.lg,
+    paddingBottom: 100, // Space for toolbar
   },
   section: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    marginBottom: Spacing.sm,
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: Spacing.md,
   },
-  categoryGrid: {
+  topicLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+  },
+  topicScrollContent: {
+    paddingRight: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  topicButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginRight: Spacing.sm,
+  },
+  topicButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingCategories: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+  },
+  suggestionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  categoryOption: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    minWidth: 100,
+  tagChip: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
-  },
-  categoryName: {
-    textAlign: 'center',
+  titleInput: {
+    fontSize: 20,
     fontWeight: '600',
+    paddingVertical: Spacing.sm,
+    minHeight: 50,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+  contentInput: {
     fontSize: 16,
+    paddingVertical: Spacing.sm,
+    minHeight: 200,
+    lineHeight: 24,
   },
-  textArea: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: 16,
-    minHeight: 150,
-  },
-  hint: {
-    marginTop: Spacing.xs,
-    opacity: 0.6,
-  },
-  checkboxContainer: {
+  anonymousSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  anonymousLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  eyeIcon: {
+    marginRight: Spacing.md,
+  },
+  anonymousTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: Spacing.xs / 2,
+  },
+  anonymousSubtitle: {
+    fontSize: 12,
+  },
+  toolbar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
+  },
+  toolbarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  toolbarButton: {
     padding: Spacing.sm,
+    marginRight: Spacing.md,
+  },
+  toolbarBold: {
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  toolbarItalic: {
+    fontStyle: 'italic',
+    fontSize: 18,
+  },
+  toolbarSeparator: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: Spacing.sm,
+  },
+  triggerWarningButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
+    gap: Spacing.xs,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
+  triggerWarningText: {
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  reviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  reviewContainer: {
+    height: '90%',
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingTop: Spacing.lg,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  reviewTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  reviewCloseButton: {
+    padding: Spacing.xs,
+  },
+  reviewScroll: {
+    flex: 1,
+  },
+  reviewContent: {
+    padding: Spacing.lg,
+  },
+  reviewHeaderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: Spacing.sm,
+  },
+  reviewUserInfo: {
+    flex: 1,
+  },
+  triggerWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  reviewPostTitle: {
+    marginBottom: Spacing.md,
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  reviewPostContent: {
+    lineHeight: 24,
+    marginBottom: Spacing.md,
+    fontSize: 16,
+  },
+  reviewTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  reviewTag: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  reviewEditButton: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
+  reviewPostButton: {
     flex: 1,
-  },
-  submitButton: {
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  submitButtonText: {
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   disclaimer: {
     textAlign: 'center',
-    opacity: 0.6,
+    fontSize: 12,
+    lineHeight: 18,
     marginTop: Spacing.md,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingTop: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  modalCloseButton: {
+    padding: Spacing.xs,
+  },
+  modalBody: {
+    padding: Spacing.lg,
+  },
+  modalInputContainer: {
+    marginBottom: Spacing.lg,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    fontSize: 16,
+    minHeight: 50,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalInsertButton: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
-
-

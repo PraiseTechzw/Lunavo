@@ -2,34 +2,34 @@
  * Escalation Detail View - Full escalation management
  */
 
-import { useState, useEffect } from 'react';
+import { CategoryBadge } from '@/app/components/category-badge';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Escalation, EscalationLevel, Post } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
+    getCurrentUser,
+    getEscalationById,
+    getPost,
+    updateEscalation,
+} from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import {
-  getEscalationById,
-  getPost,
-  updateEscalation,
-  getCurrentUser,
-} from '@/lib/database';
-import { Escalation, Post, EscalationLevel } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
-import { CategoryBadge } from '@/app/components/category-badge';
 
 export default function EscalationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

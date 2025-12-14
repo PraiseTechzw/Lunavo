@@ -18,10 +18,14 @@ import { ThemedText } from '@/app/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getPosts, updatePost } from '@/app/utils/storage';
+import { getPosts, updatePost, deletePost } from '@/lib/database';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { Post } from '@/app/types';
 import { formatDistanceToNow } from 'date-fns';
+import { FlatList } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const MODERATION_HISTORY_KEY = 'moderation_history';
 
 export default function ModerationScreen() {
   const router = useRouter();
@@ -29,30 +33,83 @@ export default function ModerationScreen() {
   const colors = Colors[colorScheme];
   const [refreshing, setRefreshing] = useState(false);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
-  const [filter, setFilter] = useState<'all' | 'flagged' | 'reported' | 'escalated'>('all');
+  const [filter, setFilter] = useState<'all' | 'flagged' | 'reported' | 'escalated' | 'queue'>('queue');
+  const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [moderationHistory, setModerationHistory] = useState<any[]>([]);
 
   useEffect(() => {
     loadPosts();
+    loadModerationHistory();
   }, [filter]);
 
-  const loadPosts = async () => {
-    const posts = await getPosts();
-    let filtered = posts;
-    
-    switch (filter) {
-      case 'flagged':
-        filtered = posts.filter(p => p.isFlagged || p.reportedCount > 0);
-        break;
-      case 'reported':
-        filtered = posts.filter(p => p.reportedCount > 0);
-        break;
-      case 'escalated':
-        filtered = posts.filter(p => p.escalationLevel !== 'none');
-        break;
+  const loadModerationHistory = async () => {
+    try {
+      const historyJson = await AsyncStorage.getItem(MODERATION_HISTORY_KEY);
+      if (historyJson) {
+        setModerationHistory(JSON.parse(historyJson));
+      }
+    } catch (error) {
+      console.error('Error loading moderation history:', error);
     }
-    
-    filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    setAllPosts(filtered);
+  };
+
+  const saveModerationAction = async (action: {
+    postId: string;
+    action: 'approved' | 'removed' | 'escalated';
+    timestamp: string;
+    postTitle: string;
+  }) => {
+    try {
+      const history = [...moderationHistory, action].slice(-100); // Keep last 100 actions
+      setModerationHistory(history);
+      await AsyncStorage.setItem(MODERATION_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      console.error('Error saving moderation action:', error);
+    }
+  };
+
+  const loadPosts = async () => {
+    try {
+      const posts = await getPosts();
+      let filtered = posts;
+      
+      switch (filter) {
+        case 'queue':
+          // Moderation queue: prioritize by reported count, escalation level, and recency
+          filtered = posts
+            .filter(p => p.isFlagged || p.reportedCount > 0 || p.escalationLevel !== 'none')
+            .sort((a, b) => {
+              // Priority: critical escalations first, then by report count, then by recency
+              const levelOrder: Record<string, number> = { critical: 5, high: 4, medium: 3, low: 2, none: 0 };
+              const levelDiff = (levelOrder[b.escalationLevel] || 0) - (levelOrder[a.escalationLevel] || 0);
+              if (levelDiff !== 0) return levelDiff;
+              
+              const reportDiff = (b.reportedCount || 0) - (a.reportedCount || 0);
+              if (reportDiff !== 0) return reportDiff;
+              
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+          break;
+        case 'flagged':
+          filtered = posts.filter(p => p.isFlagged || p.reportedCount > 0);
+          break;
+        case 'reported':
+          filtered = posts.filter(p => p.reportedCount > 0);
+          break;
+        case 'escalated':
+          filtered = posts.filter(p => p.escalationLevel !== 'none');
+          break;
+      }
+      
+      if (filter !== 'queue') {
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+      
+      setAllPosts(filtered);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    }
   };
 
   const onRefresh = async () => {
@@ -62,21 +119,21 @@ export default function ModerationScreen() {
   };
 
   const handleApprove = async (postId: string) => {
-    Alert.alert(
-      'Approve Post',
-      'This post will remain visible to all users.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Approve',
-          onPress: async () => {
-            await updatePost(postId, { isFlagged: false, reportedCount: 0 });
-            await loadPosts();
-            Alert.alert('Success', 'Post approved and unflagged.');
-          },
-        },
-      ]
-    );
+    try {
+      const post = allPosts.find(p => p.id === postId);
+      await updatePost(postId, { isFlagged: false, reportedCount: 0 });
+      await saveModerationAction({
+        postId,
+        action: 'approved',
+        timestamp: new Date().toISOString(),
+        postTitle: post?.title || 'Unknown',
+      });
+      setSelectedPosts(new Set(selectedPosts).delete(postId) ? new Set(selectedPosts) : new Set(selectedPosts));
+      await loadPosts();
+    } catch (error) {
+      console.error('Error approving post:', error);
+      Alert.alert('Error', 'Failed to approve post.');
+    }
   };
 
   const handleRemove = async (postId: string) => {
@@ -89,20 +146,104 @@ export default function ModerationScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            await updatePost(postId, { status: 'archived' });
-            await loadPosts();
-            Alert.alert('Success', 'Post has been removed.');
+            try {
+              const post = allPosts.find(p => p.id === postId);
+              await updatePost(postId, { status: 'archived' });
+              await saveModerationAction({
+                postId,
+                action: 'removed',
+                timestamp: new Date().toISOString(),
+                postTitle: post?.title || 'Unknown',
+              });
+              setSelectedPosts(new Set(selectedPosts).delete(postId) ? new Set(selectedPosts) : new Set(selectedPosts));
+              await loadPosts();
+            } catch (error) {
+              console.error('Error removing post:', error);
+              Alert.alert('Error', 'Failed to remove post.');
+            }
           },
         },
       ]
     );
   };
 
-  const filters: Array<'all' | 'flagged' | 'reported' | 'escalated'> = [
+  const togglePostSelection = (postId: string) => {
+    const newSelected = new Set(selectedPosts);
+    if (newSelected.has(postId)) {
+      newSelected.delete(postId);
+    } else {
+      newSelected.add(postId);
+    }
+    setSelectedPosts(newSelected);
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedPosts.size === 0) {
+      Alert.alert('No Selection', 'Please select posts to approve.');
+      return;
+    }
+
+    Alert.alert(
+      'Bulk Approve',
+      `Approve ${selectedPosts.size} post(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Approve',
+          onPress: async () => {
+            try {
+              for (const postId of selectedPosts) {
+                await handleApprove(postId);
+              }
+              setSelectedPosts(new Set());
+              setBulkMode(false);
+              Alert.alert('Success', `${selectedPosts.size} post(s) approved.`);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to approve some posts.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkRemove = async () => {
+    if (selectedPosts.size === 0) {
+      Alert.alert('No Selection', 'Please select posts to remove.');
+      return;
+    }
+
+    Alert.alert(
+      'Bulk Remove',
+      `Remove ${selectedPosts.size} post(s)? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              for (const postId of selectedPosts) {
+                await handleRemove(postId);
+              }
+              setSelectedPosts(new Set());
+              setBulkMode(false);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove some posts.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const filters: Array<'all' | 'flagged' | 'reported' | 'escalated' | 'queue' | 'history'> = [
+    'queue',
     'all',
     'flagged',
     'reported',
     'escalated',
+    'history',
   ];
 
   return (
@@ -119,37 +260,101 @@ export default function ModerationScreen() {
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersScroll}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {filters.map((filterOption) => (
-            <TouchableOpacity
-              key={filterOption}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: filter === filterOption ? colors.primary : colors.surface,
-                },
-              ]}
-              onPress={() => setFilter(filterOption)}
-              activeOpacity={0.7}
-            >
-              <ThemedText
-                type="small"
-                style={{
-                  color: filter === filterOption ? '#FFFFFF' : colors.text,
-                  fontWeight: '600',
+        {/* Filters and Bulk Actions */}
+        <View style={[styles.filtersContainer, { backgroundColor: colors.background }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersScroll}
+            contentContainerStyle={styles.filtersContent}
+          >
+            {filters.map((filterOption) => (
+              <TouchableOpacity
+                key={filterOption}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: filter === filterOption ? colors.primary : colors.surface,
+                  },
+                ]}
+                onPress={() => {
+                  setFilter(filterOption);
+                  setBulkMode(false);
+                  setSelectedPosts(new Set());
+                }}
+                activeOpacity={0.7}
+              >
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: filter === filterOption ? '#FFFFFF' : colors.text,
+                    fontWeight: '600',
+                  }}
+                >
+                  {filterOption === 'all' ? 'All' : filterOption === 'queue' ? 'Queue' : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {filter !== 'history' && (
+            <View style={styles.bulkActionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.bulkModeButton,
+                  {
+                    backgroundColor: bulkMode ? colors.primary : colors.surface,
+                  },
+                ]}
+                onPress={() => {
+                  setBulkMode(!bulkMode);
+                  if (!bulkMode) {
+                    setSelectedPosts(new Set());
+                  }
                 }}
               >
-                {filterOption === 'all' ? 'All' : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <MaterialIcons
+                  name={bulkMode ? 'check-box' : 'check-box-outline-blank'}
+                  size={20}
+                  color={bulkMode ? '#FFFFFF' : colors.text}
+                />
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: bulkMode ? '#FFFFFF' : colors.text,
+                    marginLeft: Spacing.xs,
+                    fontWeight: '600',
+                  }}
+                >
+                  Select
+                </ThemedText>
+              </TouchableOpacity>
+              
+              {bulkMode && selectedPosts.size > 0 && (
+                <View style={styles.bulkActionButtons}>
+                  <TouchableOpacity
+                    style={[styles.bulkActionButton, { backgroundColor: colors.success }]}
+                    onPress={handleBulkApprove}
+                  >
+                    <MaterialIcons name="check" size={18} color="#FFFFFF" />
+                    <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs, fontWeight: '600' }}>
+                      Approve ({selectedPosts.size})
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.bulkActionButton, { backgroundColor: colors.danger }]}
+                    onPress={handleBulkRemove}
+                  >
+                    <MaterialIcons name="delete" size={18} color="#FFFFFF" />
+                    <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs, fontWeight: '600' }}>
+                      Remove ({selectedPosts.size})
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
 
         <ScrollView
           style={styles.scrollView}
@@ -158,7 +363,40 @@ export default function ModerationScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {allPosts.length === 0 ? (
+          {filter === 'history' ? (
+            moderationHistory.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+                <MaterialIcons name="history" size={64} color={colors.icon} />
+                <ThemedText type="h3" style={styles.emptyTitle}>
+                  No Moderation History
+                </ThemedText>
+                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+                  Your moderation actions will appear here
+                </ThemedText>
+              </View>
+            ) : (
+              moderationHistory.slice().reverse().map((action, index) => (
+                <View
+                  key={index}
+                  style={[styles.historyItem, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}
+                >
+                  <MaterialIcons
+                    name={action.action === 'approved' ? 'check-circle' : 'delete'}
+                    size={24}
+                    color={action.action === 'approved' ? colors.success : colors.danger}
+                  />
+                  <View style={styles.historyContent}>
+                    <ThemedText type="body" style={{ fontWeight: '600' }}>
+                      {action.action === 'approved' ? 'Approved' : 'Removed'}: {action.postTitle}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                      {formatDistanceToNow(new Date(action.timestamp), { addSuffix: true })}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))
+            )
+          ) : allPosts.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
               <MaterialIcons name="check-circle" size={64} color={colors.success} />
               <ThemedText type="h3" style={styles.emptyTitle}>
@@ -169,15 +407,39 @@ export default function ModerationScreen() {
               </ThemedText>
             </View>
           ) : (
-            allPosts.map((post) => (
-              <View
+            allPosts.map((post) => {
+              const isSelected = selectedPosts.has(post.id);
+              return (
+              <TouchableOpacity
                 key={post.id}
                 style={[
                   styles.postCard,
-                  { backgroundColor: colors.card },
+                  { 
+                    backgroundColor: colors.card,
+                    borderWidth: isSelected ? 2 : 0,
+                    borderColor: isSelected ? colors.primary : 'transparent',
+                  },
                   createShadow(3, '#000', 0.1),
                 ]}
+                onLongPress={() => {
+                  if (bulkMode) {
+                    togglePostSelection(post.id);
+                  }
+                }}
+                activeOpacity={0.7}
               >
+                {bulkMode && (
+                  <TouchableOpacity
+                    style={styles.checkbox}
+                    onPress={() => togglePostSelection(post.id)}
+                  >
+                    <MaterialIcons
+                      name={isSelected ? 'check-box' : 'check-box-outline-blank'}
+                      size={24}
+                      color={isSelected ? colors.primary : colors.icon}
+                    />
+                  </TouchableOpacity>
+                )}
                 <View style={styles.postHeader}>
                   <View style={styles.authorInfo}>
                     <MaterialIcons name="person" size={20} color={colors.icon} />
@@ -257,8 +519,9 @@ export default function ModerationScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            ))
+              </TouchableOpacity>
+            );
+            })
           )}
 
           <View style={{ height: Spacing.xl }} />
@@ -381,6 +644,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
+  },
+  filtersContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  bulkActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  bulkModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  bulkActionButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  bulkActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  checkbox: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    zIndex: 1,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+  },
+  historyContent: {
+    flex: 1,
+    marginLeft: Spacing.md,
   },
 });
 
