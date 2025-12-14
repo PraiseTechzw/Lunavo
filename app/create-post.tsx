@@ -77,6 +77,12 @@ export default function CreatePostScreen() {
   const [hasTriggerWarning, setHasTriggerWarning] = useState(false);
   const [categoryConfidence, setCategoryConfidence] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
+  const contentInputRef = useRef<TextInput>(null);
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
@@ -1038,15 +1044,54 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   topicButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    borderWidth: 2,
     marginRight: Spacing.sm,
+    minHeight: 44,
+    gap: Spacing.sm,
+  },
+  topicIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topicButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  inputLabelIcon: {
+    marginRight: 2,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    paddingHorizontal: Spacing.md,
+    minHeight: 52,
+  },
+  textAreaContainer: {
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.md,
+    minHeight: 200,
   },
   loadingCategories: {
     flexDirection: 'row',
