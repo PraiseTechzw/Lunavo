@@ -3,6 +3,7 @@
  */
 
 import { Post, PostCategory, User, Resource } from '@/app/types';
+import { mapResourceFromDB } from '@/app/utils/resource-utils';
 import { getPosts, getReplies, getResources, getUser } from './database';
 import { analyzePost, extractKeywords } from './ai-utils';
 
@@ -222,10 +223,13 @@ export async function getRecommendedResources(
   limit: number = 10
 ): Promise<ResourceRecommendation[]> {
   try {
-    const allResources = await getResources();
+    const allResourcesData = await getResources({ approved: true });
     const user = await getUser(userId);
 
     if (!user) return [];
+
+    // Map database resources to Resource interface
+    const allResources = allResourcesData.map((r: any) => mapResourceFromDB(r));
 
     // Get user's posts to understand needs
     const allPosts = await getPosts();

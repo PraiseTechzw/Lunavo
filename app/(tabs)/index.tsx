@@ -8,7 +8,9 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Resource } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel, mapResourceFromDB } from '@/app/utils/resource-utils';
 import {
   getCheckInStreak,
   getPosts,
@@ -16,8 +18,11 @@ import {
   hasCheckedInToday
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
+import { getRecommendedResources } from '@/lib/recommendations';
 import { UserRole } from '@/lib/permissions';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -91,6 +96,13 @@ export default function HomeScreen() {
   }, [userRole]);
 
   useEffect(() => {
+    // Reload recommendations when user changes
+    if (user?.id) {
+      loadRecommendedResources();
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     // Rotate tips every 5 seconds
     const tipInterval = setInterval(() => {
       setCurrentTipIndex((prev) => (prev + 1) % quickTips.length);
@@ -102,7 +114,28 @@ export default function HomeScreen() {
     await Promise.all([
       loadUserInfo(),
       loadStats(),
+      loadRecommendedResources(),
     ]);
+  };
+
+  const loadRecommendedResources = async () => {
+    try {
+      if (!user?.id) return;
+      
+      setLoadingRecommendations(true);
+      const recommendations = await getRecommendedResources(user.id, 6);
+      
+      // Extract resources from recommendations (they're already mapped in the recommendation function)
+      const mappedResources = recommendations.map((rec) => rec.resource);
+      
+      setRecommendedResources(mappedResources);
+    } catch (error) {
+      console.error('Error loading recommended resources:', error);
+      // Set empty array on error to prevent UI issues
+      setRecommendedResources([]);
+    } finally {
+      setLoadingRecommendations(false);
+    }
   };
 
   const loadUserInfo = async () => {
@@ -357,6 +390,110 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Recommended Resources Section */}
+        {recommendedResources.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <ThemedText type="h2" style={[styles.sectionTitle, { color: colors.text }]}>
+                  Recommended for You
+                </ThemedText>
+                <ThemedText type="small" style={[styles.sectionSubtitle, { color: colors.icon }]}>
+                  Based on your interests and activity
+                </ThemedText>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/resources')}
+                style={getCursorStyle()}
+              >
+                <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600' }}>
+                  See All
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedResourcesContent}
+            >
+              {recommendedResources.map((resource) => {
+                const typeColor = getResourceTypeColor(resource.resourceType, colors);
+                const isImageType = resource.resourceType === 'image' || resource.resourceType === 'infographic';
+                const isVideoType = resource.resourceType === 'video' || resource.resourceType === 'short-video';
+                const isPDF = resource.resourceType === 'pdf' && 
+                              !resource.tags?.some((tag: string) => tag.startsWith('type:image') || tag.startsWith('type:infographic'));
+                
+                const hasThumbnail = 
+                  !isPDF && 
+                  resource.thumbnailUrl && 
+                  (isImageType || isVideoType) &&
+                  (resource.thumbnailUrl.startsWith('http') || resource.thumbnailUrl.startsWith('file://') || resource.thumbnailUrl.startsWith('data:'));
+
+                return (
+                  <TouchableOpacity
+                    key={resource.id}
+                    style={[
+                      styles.recommendedResourceCard,
+                      { backgroundColor: colors.card },
+                      createShadow(2, '#000', 0.08),
+                    ]}
+                    onPress={() => router.push(`/resource/${resource.id}`)}
+                    activeOpacity={0.8}
+                  >
+                    {/* Thumbnail or Icon */}
+                    <View style={styles.recommendedResourceHeader}>
+                      {hasThumbnail ? (
+                        <ExpoImage
+                          source={{ uri: resource.thumbnailUrl! }}
+                          style={styles.recommendedResourceThumbnail}
+                          contentFit="cover"
+                          transition={200}
+                          cachePolicy="memory-disk"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={[typeColor + '20', typeColor + '10']}
+                          style={styles.recommendedResourceIconContainer}
+                        >
+                          <Ionicons name={getResourceIcon(resource.resourceType) as any} size={32} color={typeColor} />
+                        </LinearGradient>
+                      )}
+                      
+                      {/* Type Badge */}
+                      <View style={[styles.recommendedResourceBadge, { backgroundColor: typeColor }]}>
+                        <Ionicons name={getResourceIcon(resource.resourceType) as any} size={10} color="#FFFFFF" />
+                        <ThemedText type="small" style={styles.recommendedResourceBadgeText}>
+                          {getResourceTypeLabel(resource.resourceType)}
+                        </ThemedText>
+                      </View>
+                    </View>
+
+                    {/* Content */}
+                    <View style={styles.recommendedResourceContent}>
+                      <ThemedText 
+                        type="body" 
+                        style={[styles.recommendedResourceTitle, { color: colors.text }]} 
+                        numberOfLines={2}
+                      >
+                        {resource.title}
+                      </ThemedText>
+                      {resource.description && (
+                        <ThemedText 
+                          type="small" 
+                          style={[styles.recommendedResourceDescription, { color: colors.icon }]} 
+                          numberOfLines={2}
+                        >
+                          {resource.description}
+                        </ThemedText>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Resources Card */}
         <TouchableOpacity
@@ -745,5 +882,74 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     zIndex: 1000,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+  },
+  recommendedResourcesContent: {
+    gap: Spacing.md,
+    paddingRight: Spacing.md,
+  },
+  recommendedResourceCard: {
+    width: 200,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    marginRight: Spacing.md,
+  },
+  recommendedResourceHeader: {
+    position: 'relative',
+    width: '100%',
+    height: 120,
+  },
+  recommendedResourceThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  recommendedResourceIconContainer: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recommendedResourceBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    gap: 3,
+  },
+  recommendedResourceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  recommendedResourceContent: {
+    padding: Spacing.md,
+  },
+  recommendedResourceTitle: {
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  recommendedResourceDescription: {
+    fontSize: 11,
+    lineHeight: 15,
+    opacity: 0.7,
   },
 });
