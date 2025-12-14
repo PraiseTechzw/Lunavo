@@ -116,7 +116,7 @@ export default function CreateResourceScreen() {
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: true,
@@ -161,7 +161,7 @@ export default function CreateResourceScreen() {
   const handlePickVideo = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Videos,
+        mediaTypes: 'videos',
         allowsEditing: false,
         quality: 1,
         videoMaxDuration: 3600, // 1 hour max
@@ -1061,25 +1061,60 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
   label: {
     fontWeight: '600',
-    marginBottom: Spacing.sm,
+    fontSize: 16,
+  },
+  required: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  optional: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    paddingHorizontal: Spacing.md,
+    minHeight: 52,
+  },
+  inputIcon: {
+    marginRight: Spacing.sm,
   },
   input: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    flex: 1,
     fontSize: 16,
+    paddingVertical: Spacing.md,
     ...createInputStyle(),
   },
+  textAreaContainer: {
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.md,
+    minHeight: 120,
+  },
   textArea: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    flex: 1,
     fontSize: 16,
     minHeight: 100,
-    textAlignVertical: 'top',
+    width: '100%',
+    padding: 0,
     ...createInputStyle(),
+  },
+  charCountContainer: {
+    alignSelf: 'flex-end',
+    marginTop: Spacing.xs,
+  },
+  charCount: {
+    fontSize: 11,
   },
   typeScroll: {
     marginHorizontal: -Spacing.md,
@@ -1108,14 +1143,18 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     marginHorizontal: -Spacing.md,
+  },
+  categoryScrollContent: {
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   categoryChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
+    borderWidth: 2,
     marginRight: Spacing.sm,
+    minHeight: 40,
     ...getCursorStyle(),
   },
   uploadButton: {
@@ -1159,18 +1198,28 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
+  tagInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    paddingHorizontal: Spacing.md,
+    minHeight: 48,
+  },
+  tagInputIcon: {
+    marginRight: Spacing.sm,
+  },
   tagInput: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
     fontSize: 16,
+    paddingVertical: Spacing.md,
     ...createInputStyle(),
   },
   addTagButton: {
     width: 48,
     height: 48,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     ...getCursorStyle(),
@@ -1196,10 +1245,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     marginTop: Spacing.lg,
+    minHeight: 56,
     ...getCursorStyle(),
+  },
+  submitIconContainer: {
+    marginRight: 2,
   },
   progressContainer: {
     marginTop: Spacing.md,
