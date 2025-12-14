@@ -201,7 +201,7 @@ export default function ProfileSettingsScreen() {
     );
   }
 
-  if (!userData) {
+  if (!userData && !loading) {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
@@ -557,6 +557,9 @@ export default function ProfileSettingsScreen() {
 
   // Web layout with container for Student Affairs
   if (isWeb && isStudentAffairs) {
+    if (!userData) {
+      return null; // Don't render content if no user data
+    }
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
