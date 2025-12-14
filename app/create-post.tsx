@@ -165,7 +165,7 @@ export default function CreatePostScreen() {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         quality: 0.8,
         aspect: [4, 3],
@@ -274,12 +274,12 @@ export default function CreatePostScreen() {
       // Filter to only categories that have at least 1 post
       // Always include 'general' as a fallback option
       const categoriesWithPosts = stats
-        .filter(stat => stat.postCount > 0 || stat.category === 'general')
+        .filter(stat => stat.memberCount > 0 || stat.category === 'general')
         .map(stat => stat.category)
         .sort((a, b) => {
           const statA = stats.find(s => s.category === a);
           const statB = stats.find(s => s.category === b);
-          return (statB?.postCount || 0) - (statA?.postCount || 0);
+          return (statB?.memberCount || 0) - (statA?.memberCount || 0);
         });
 
       // If no categories have posts yet, show all categories
@@ -499,9 +499,12 @@ export default function CreatePostScreen() {
           >
             {/* Topic Selection Section */}
             <View style={styles.section}>
-              <ThemedText type="small" style={[styles.topicLabel, { color: colors.icon }]}>
-                SELECT TOPIC
-              </ThemedText>
+              <View style={styles.inputLabelContainer}>
+                <Ionicons name="pricetag-outline" size={18} color={colors.icon} style={styles.inputLabelIcon} />
+                <ThemedText type="small" style={[styles.inputLabel, { color: colors.icon }]}>
+                  SELECT TOPIC
+                </ThemedText>
+              </View>
               {loadingCategories ? (
                 <View style={styles.loadingCategories}>
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -515,6 +518,7 @@ export default function CreatePostScreen() {
                   {availableCategories.map((categoryId) => {
                     const category = CATEGORIES[categoryId];
                     const isSelected = selectedCategory === categoryId;
+                    const iconName = getCategoryIconName(categoryId);
                     
                     return (
                       <TouchableOpacity
@@ -529,6 +533,16 @@ export default function CreatePostScreen() {
                         ]}
                         activeOpacity={0.7}
                       >
+                        <View style={[
+                          styles.topicIconContainer,
+                          { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'transparent' }
+                        ]}>
+                          <Ionicons
+                            name={iconName as any}
+                            size={18}
+                            color={isSelected ? '#FFFFFF' : colors.icon}
+                          />
+                        </View>
                         <ThemedText
                           type="body"
                           style={[
@@ -594,49 +608,51 @@ export default function CreatePostScreen() {
 
             {/* Title Input */}
             <View style={styles.section}>
-              <TextInput
-                style={[
-                  styles.titleInput,
-                  createInputStyle(),
-                  {
-                    backgroundColor: 'transparent',
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="Give your post a title..."
-                placeholderTextColor={colors.icon}
-                value={title}
-                onChangeText={setTitle}
-                maxLength={100}
-              />
+              <View style={styles.inputLabelContainer}>
+                <Ionicons name="text-outline" size={18} color={colors.icon} style={styles.inputLabelIcon} />
+                <ThemedText type="small" style={[styles.inputLabel, { color: colors.icon }]}>
+                  Title {title.length > 0 && `(${title.length}/100)`}
+                </ThemedText>
+              </View>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.titleInput, { color: colors.text }]}
+                  placeholder="Give your post a title..."
+                  placeholderTextColor={colors.icon}
+                  value={title}
+                  onChangeText={setTitle}
+                  maxLength={100}
+                />
+              </View>
             </View>
 
             {/* Content Input */}
             <View style={styles.section}>
-              <TextInput
-                ref={contentInputRef}
-                style={[
-                  styles.contentInput,
-                  createInputStyle(),
-                  {
-                    backgroundColor: 'transparent',
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="Share what's on your mind. This is a safe space..."
-                placeholderTextColor={colors.icon}
-                value={content}
-                onChangeText={setContent}
-                onSelectionChange={(e) => {
-                  setContentSelection({
-                    start: e.nativeEvent.selection.start,
-                    end: e.nativeEvent.selection.end,
-                  });
-                }}
-                multiline
-                numberOfLines={10}
-                textAlignVertical="top"
-              />
+              <View style={styles.inputLabelContainer}>
+                <Ionicons name="document-text-outline" size={18} color={colors.icon} style={styles.inputLabelIcon} />
+                <ThemedText type="small" style={[styles.inputLabel, { color: colors.icon }]}>
+                  Content {content.length > 0 && `(${content.length} characters)`}
+                </ThemedText>
+              </View>
+              <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <TextInput
+                  ref={contentInputRef}
+                  style={[styles.contentInput, { color: colors.text }]}
+                  placeholder="Share what's on your mind. This is a safe space..."
+                  placeholderTextColor={colors.icon}
+                  value={content}
+                  onChangeText={setContent}
+                  onSelectionChange={(e) => {
+                    setContentSelection({
+                      start: e.nativeEvent.selection.start,
+                      end: e.nativeEvent.selection.end,
+                    });
+                  }}
+                  multiline
+                  numberOfLines={10}
+                  textAlignVertical="top"
+                />
+              </View>
             </View>
 
             {/* Post Anonymously Toggle */}
@@ -950,10 +966,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   closeButton: {
     width: 40,
@@ -961,20 +976,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: BorderRadius.md,
+    backgroundColor: 'transparent',
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: Spacing.sm,
   },
   headerTitle: {
     fontWeight: '700',
     fontSize: 20,
-    flex: 1,
-    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
   },
   postButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    minWidth: 70,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    minWidth: 80,
+    minHeight: 40,
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   postButtonText: {
     color: '#FFFFFF',
@@ -1043,16 +1073,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   titleInput: {
-    fontSize: 20,
+    flex: 1,
+    fontSize: 18,
     fontWeight: '600',
-    paddingVertical: Spacing.sm,
-    minHeight: 50,
+    paddingVertical: Spacing.md,
+    ...createInputStyle(),
   },
   contentInput: {
+    flex: 1,
     fontSize: 16,
-    paddingVertical: Spacing.sm,
     minHeight: 200,
+    width: '100%',
+    padding: 0,
     lineHeight: 24,
+    ...createInputStyle(),
   },
   anonymousSection: {
     flexDirection: 'row',
