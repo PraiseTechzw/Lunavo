@@ -21,16 +21,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -280,8 +280,6 @@ export default function CreateResourceScreen() {
       let thumbnailUrl: string | undefined;
 
       setUploadProgress(0);
-      let filePath: string | undefined;
-      let thumbnailUrl: string | undefined;
 
       // Upload single file if provided (non-image or single image)
       if (uploadedFile && uploadedImages.length === 0) {
