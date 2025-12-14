@@ -100,6 +100,40 @@ const contentCategories = [
 // getResourceIcon, getResourceTypeLabel) are now imported from '@/app/utils/resource-utils'
 // This ensures consistent type mapping and badge display across the app
 
+/**
+ * Validate if a URL is a supported image format for thumbnails
+ * Filters out SVG and other unsupported formats to prevent loading errors
+ */
+function isValidImageUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  
+  // Check if URL is valid format
+  if (!url.startsWith('http') && !url.startsWith('file://') && !url.startsWith('data:')) {
+    return false;
+  }
+  
+  // Filter out unsupported formats (SVG, etc.)
+  const urlLower = url.toLowerCase();
+  const unsupportedFormats = ['.svg', 'svg+xml', 'image/svg'];
+  if (unsupportedFormats.some(format => urlLower.includes(format))) {
+    return false;
+  }
+  
+  // Check for common image extensions
+  const supportedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp'];
+  const hasSupportedExtension = supportedExtensions.some(ext => urlLower.includes(ext));
+  
+  // If it's a data URI, check the mime type
+  if (url.startsWith('data:')) {
+    const mimeType = url.split(';')[0].split(':')[1];
+    return mimeType?.startsWith('image/') && !mimeType.includes('svg') || false;
+  }
+  
+  // For URLs without clear extension, allow if it's from a known image host
+  // Otherwise require an extension
+  return hasSupportedExtension || urlLower.includes('image') || urlLower.includes('thumbnail');
+}
+
 export default function ResourcesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
