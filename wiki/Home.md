@@ -14,7 +14,6 @@ Welcome to the Lunavo Platform documentation wiki. This comprehensive guide cove
 - [Developer Guide](Development/Developer-Guide.md) - Complete development reference
 - [Architecture Overview](Development/Architecture.md) - System architecture and design patterns
 - [API Reference](Development/API-Reference.md) - API documentation
-- [Code Style Guide](Development/Code-Style-Guide.md) - Coding standards and best practices
 
 ### ✨ Features
 - [Authentication System](Features/Authentication.md) - User authentication and authorization
