@@ -10,13 +10,13 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface VideoPlayerProps {

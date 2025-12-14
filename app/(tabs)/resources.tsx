@@ -20,15 +20,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -242,13 +242,13 @@ export default function ResourcesScreen() {
       filtered = filtered.filter((r) => {
         // Strict type matching - ensure PDFs don't show up as images
         if (selectedCategory === 'articles') {
-          return r.resourceType === 'article' && r.resourceType !== 'pdf';
+          return r.resourceType === 'article';
         }
         if (selectedCategory === 'short-articles') {
           return r.resourceType === 'short-article';
         }
         if (selectedCategory === 'videos') {
-          return r.resourceType === 'video' && r.resourceType !== 'pdf';
+          return r.resourceType === 'video';
         }
         if (selectedCategory === 'short-videos') {
           return r.resourceType === 'short-video';
@@ -263,7 +263,7 @@ export default function ResourcesScreen() {
         }
         if (selectedCategory === 'images') {
           // Only show actual images, not PDFs
-          return r.resourceType === 'image' && r.resourceType !== 'pdf';
+          return r.resourceType === 'image';
         }
         return r.resourceType === selectedCategory;
       });
@@ -313,9 +313,10 @@ export default function ResourcesScreen() {
     const isPDF = item.resourceType === 'pdf' && 
                   !item.tags?.some((tag: string) => tag.startsWith('type:image') || tag.startsWith('type:infographic'));
     
+    // Validate thumbnail URL before attempting to load
     const hasThumbnail = 
       !isPDF && // Never show thumbnail for actual PDFs
-      isValidImageUrl(item.thumbnailUrl) && // Validate URL format
+      isValidImageUrl(item.thumbnailUrl) && // Validate URL format (filters SVG, etc.)
       (isImageType || isVideoType);
 
     return (
@@ -834,6 +835,14 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
+  },
+  uploadButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...getCursorStyle(),
   },
   scrollView: {
     flex: 1,
