@@ -7,21 +7,21 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createShadow } from '@/utils/platform-styles';
-import { getPseudonym } from '@/utils/storage';
 import { getCurrentUser, getPosts, getReplies, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
 import { getUserPoints } from '@/lib/points-system';
+import { createShadow } from '@/utils/platform-styles';
+import { getPseudonym } from '@/utils/storage';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -479,23 +479,30 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </TouchableOpacity>
 
-          {(user?.role === 'peer-educator' || user?.role === 'peer-educator-executive' || user?.role === 'admin') && (
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                { backgroundColor: colors.card },
-                createShadow(2, '#000', 0.1),
-              ]}
-              onPress={() => router.push('/peer-educator/club-info')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="people-outline" size={24} color={colors.primary} />
-              <ThemedText type="body" style={styles.actionText}>
-                Peer Educator Club
-              </ThemedText>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </TouchableOpacity>
-          )}
+          {/* Peer Educator Club - Show for all users */}
+          <TouchableOpacity
+            style={[
+              styles.actionCard,
+              { backgroundColor: colors.card },
+              createShadow(2, '#000', 0.1),
+            ]}
+            onPress={() => router.push('/peer-educator/club-info')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={user?.role === 'peer-educator' || user?.role === 'peer-educator-executive' || user?.role === 'admin' 
+                ? "people" 
+                : "people-outline"} 
+              size={24} 
+              color={colors.primary} 
+            />
+            <ThemedText type="body" style={styles.actionText}>
+              {user?.role === 'peer-educator' || user?.role === 'peer-educator-executive' || user?.role === 'admin'
+                ? 'Peer Educator Club'
+                : 'Join Peer Educator Club'}
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+          </TouchableOpacity>
 
           {user?.role === 'admin' && (
             <TouchableOpacity

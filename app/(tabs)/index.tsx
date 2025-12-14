@@ -605,6 +605,30 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Join Peer Educator Club Card - For Students */}
+        {userRole === 'student' && (
+          <TouchableOpacity
+            style={[
+              styles.resourceCard,
+              { backgroundColor: '#4CAF50' + '10', borderWidth: 2, borderColor: '#4CAF50' + '30' },
+              createShadow(2, '#4CAF50', 0.15),
+            ]}
+            onPress={() => router.push('/peer-educator/club-info' as any)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="people" size={32} color="#4CAF50" />
+            <View style={styles.resourceContent}>
+              <ThemedText type="body" style={[styles.cardTitle, { color: '#4CAF50', fontWeight: '700' }]}>
+                Join Peer Educator Club
+              </ThemedText>
+              <ThemedText type="small" style={[styles.cardDescription, { color: colors.icon }]}>
+                Become a peer educator and help support fellow students
+              </ThemedText>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={20} color="#4CAF50" />
+          </TouchableOpacity>
+        )}
+
         {/* Bottom Spacing */}
         <View style={{ height: Spacing.xl }} />
       </ScrollView>

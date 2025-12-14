@@ -2,11 +2,10 @@
  * Gamification System - Badges, Streaks, Points, and Achievements
  */
 
-import { supabase } from './supabase';
-import { getUserBadges, createUserBadge, getStreak, updateStreak, createStreak, getReplies, getPosts } from './database';
+import { createStreak, createUserBadge, getPosts, getReplies, getStreak, getUserBadges, updateStreak } from './database';
 import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
 import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
-import { User } from '@/types';
+import { supabase } from './supabase';
 
 // ============================================
 // BADGE DEFINITIONS
@@ -41,7 +40,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'weekly-warrior',
     name: 'Weekly Warrior',
     description: 'Check in 7 days in a row',
-    icon: 'calendar-week',
+    icon: 'calendar-today',
     color: '#3B82F6',
     category: 'check-in',
     criteria: { type: 'check_in_streak', value: 7, description: '7-day check-in streak' },
@@ -61,7 +60,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'first-response',
     name: 'First Response',
     description: 'Help your first student',
-    icon: 'hand-holding-heart',
+    icon: 'favorite',
     color: '#F59E0B',
     category: 'helping',
     criteria: { type: 'response_count', value: 1, description: 'Give 1 helpful response' },
@@ -70,7 +69,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'helper-hero',
     name: 'Helper Hero',
     description: 'Help 10 students',
-    icon: 'superhero',
+    icon: 'stars',
     color: '#EF4444',
     category: 'helping',
     criteria: { type: 'response_count', value: 10, description: 'Give 10 helpful responses' },
@@ -119,7 +118,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'streak-master',
     name: 'Streak Master',
     description: 'Maintain a 100-day streak',
-    icon: 'fire',
+    icon: 'local-fire-department',
     color: '#DC2626',
     category: 'achievement',
     criteria: { type: 'max_streak', value: 100, description: '100-day streak' },
@@ -128,7 +127,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'quick-responder',
     name: 'Quick Responder',
     description: 'Respond within 1 hour, 10 times',
-    icon: 'flash',
+    icon: 'bolt',
     color: '#FBBF24',
     category: 'achievement',
     criteria: { type: 'quick_responses', value: 10, description: '10 quick responses' },
@@ -238,6 +237,11 @@ export async function getBadgeProgress(userId: string, badgeId: string): Promise
   target: number;
   percentage: number;
 }> {
+  // Validate userId to prevent UUID errors
+  if (!userId || userId.trim() === '') {
+    return { current: 0, target: 0, percentage: 0 };
+  }
+
   const badge = BADGE_DEFINITIONS.find((b) => b.id === badgeId);
   if (!badge) {
     return { current: 0, target: 0, percentage: 0 };
@@ -517,6 +521,20 @@ export async function resetStreak(userId: string, streakType: 'check-in' | 'help
 // ============================================
 
 async function getUserStats(userId: string) {
+  // Validate userId to prevent UUID errors
+  if (!userId || userId.trim() === '') {
+    return {
+      checkInCount: 0,
+      checkInStreak: 0,
+      responseCount: 0,
+      activeDays: 0,
+      helpfulVotes: 0,
+      maxStreak: 0,
+      quickResponses: 0,
+      categoryResponses: {},
+    };
+  }
+
   // Get check-ins
   const { data: checkIns } = await supabase
     .from('check_ins')

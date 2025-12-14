@@ -6,9 +6,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createShadow, getCursorStyle } from '@/utils/platform-styles';
-import { getCurrentUser, getMeetings, getPosts, getReplies } from '@/lib/database';
+import { createMembershipRequest, getCurrentUser, getMeetings, getPosts, getReplies } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { Image as ExpoImage } from 'expo-image';
@@ -17,9 +17,11 @@ import { useEffect, useState } from 'react';
 import {
     Alert,
     Linking,
+    Modal,
     RefreshControl,
     ScrollView,
     StyleSheet,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -90,6 +92,8 @@ export default function ClubInfoScreen() {
   const [nextMeeting, setNextMeeting] = useState<any>(null);
   const [isMember, setIsMember] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [membershipRequest, setMembershipRequest] = useState<any>(null);
   const [clubStats, setClubStats] = useState({
     totalMembers: 0,
     activeMembers: 0,
@@ -97,6 +101,13 @@ export default function ClubInfoScreen() {
     helpfulResponses: 0,
     upcomingMeetings: 0,
   });
+  
+  // Application form state
+  const [motivation, setMotivation] = useState('');
+  const [experience, setExperience] = useState('');
+  const [availability, setAvailability] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -188,19 +199,72 @@ export default function ClubInfoScreen() {
       return;
     }
 
-    Alert.alert(
-      'Join Peer Educator Club',
-      'To join the Peer Educator Club, please contact the club president or visit the Student Affairs office.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Contact',
-          onPress: () => {
-            Linking.openURL('mailto:studentaffairs@cut.ac.zw?subject=Peer Educator Club Membership');
+    // Check if user already has a pending request
+    if (membershipRequest && membershipRequest.status === 'pending') {
+      Alert.alert(
+        'Application Pending',
+        'You already have a pending membership request. Please wait for it to be reviewed by the executive committee.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Check if user has a rejected request
+    if (membershipRequest && membershipRequest.status === 'rejected') {
+      Alert.alert(
+        'Application Rejected',
+        `Your previous application was rejected.${membershipRequest.reviewNotes ? `\n\nReason: ${membershipRequest.reviewNotes}` : ''}\n\nYou can submit a new application if you wish.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Apply Again',
+            onPress: () => setShowApplicationModal(true),
           },
-        },
-      ]
-    );
+        ]
+      );
+      return;
+    }
+
+    setShowApplicationModal(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!motivation.trim()) {
+      Alert.alert('Required Field', 'Please explain your motivation for joining the Peer Educator Club.');
+      return;
+    }
+
+    if (motivation.trim().length < 50) {
+      Alert.alert('Insufficient Detail', 'Please provide at least 50 characters explaining your motivation.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const request = await createMembershipRequest({
+        motivation: motivation.trim(),
+        experience: experience.trim() || undefined,
+        availability: availability.trim() || undefined,
+        additionalInfo: additionalInfo.trim() || undefined,
+      });
+
+      setMembershipRequest(request);
+      setShowApplicationModal(false);
+      setMotivation('');
+      setExperience('');
+      setAvailability('');
+      setAdditionalInfo('');
+
+      Alert.alert(
+        'Application Submitted',
+        'Your membership application has been submitted successfully. The executive committee will review it and get back to you soon.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleContact = (email: string) => {
@@ -414,17 +478,44 @@ export default function ClubInfoScreen() {
             </View>
           </View>
 
-          {/* Join Club Button */}
+          {/* Join Club Button / Status */}
           {!isMember && (
-            <TouchableOpacity
-              style={[styles.joinButton, { backgroundColor: colors.primary }]}
-              onPress={handleJoinClub}
-            >
-              <MaterialIcons name="person-add" size={24} color="#FFFFFF" />
-              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.sm }}>
-                Join the Club
-              </ThemedText>
-            </TouchableOpacity>
+            <>
+              {membershipRequest?.status === 'pending' && (
+                <View style={[styles.statusBadge, { backgroundColor: colors.warning + '20' }]}>
+                  <MaterialIcons name="pending" size={24} color={colors.warning} />
+                  <View style={{ flex: 1, marginLeft: Spacing.sm }}>
+                    <ThemedText type="body" style={{ color: colors.warning, fontWeight: '600' }}>
+                      Application Pending Review
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                      Submitted on {format(new Date(membershipRequest.createdAt), 'MMM dd, yyyy')}
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+              
+              {membershipRequest?.status === 'approved' && (
+                <View style={[styles.memberBadge, { backgroundColor: colors.success + '20' }]}>
+                  <MaterialIcons name="check-circle" size={24} color={colors.success} />
+                  <ThemedText type="body" style={{ color: colors.success, fontWeight: '600', marginLeft: Spacing.sm }}>
+                    Your application was approved! Please refresh to see your new status.
+                  </ThemedText>
+                </View>
+              )}
+
+              {(!membershipRequest || membershipRequest.status !== 'pending') && (
+                <TouchableOpacity
+                  style={[styles.joinButton, { backgroundColor: colors.primary }]}
+                  onPress={handleJoinClub}
+                >
+                  <MaterialIcons name="person-add" size={24} color="#FFFFFF" />
+                  <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.sm }}>
+                    Apply to Join the Club
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </>
           )}
 
           {isMember && (
@@ -437,6 +528,159 @@ export default function ClubInfoScreen() {
           )}
         </ScrollView>
       </ThemedView>
+
+      {/* Application Modal */}
+      <Modal
+        visible={showApplicationModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowApplicationModal(false)}
+      >
+        <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { backgroundColor: colors.background }]}>
+            <TouchableOpacity onPress={() => setShowApplicationModal(false)} style={getCursorStyle()}>
+              <MaterialIcons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <ThemedText type="h2" style={styles.modalTitle}>
+              Apply to Join
+            </ThemedText>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ThemedText type="body" style={{ color: colors.text, marginBottom: Spacing.lg, lineHeight: 22 }}>
+              Please fill out the application form below. The executive committee will review your application and get back to you.
+            </ThemedText>
+
+            <View style={styles.formGroup}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginBottom: Spacing.sm }}>
+                Motivation <ThemedText style={{ color: colors.danger }}>*</ThemedText>
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon, marginBottom: Spacing.xs }}>
+                Why do you want to become a peer educator? (Minimum 50 characters)
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: colors.surface,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={motivation}
+                onChangeText={setMotivation}
+                placeholder="Explain your motivation for joining the Peer Educator Club..."
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+              <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
+                {motivation.length} characters
+              </ThemedText>
+            </View>
+
+            <View style={styles.formGroup}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginBottom: Spacing.sm }}>
+                Experience (Optional)
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon, marginBottom: Spacing.xs }}>
+                Any relevant experience in counseling, mentoring, or peer support?
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: colors.surface,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={experience}
+                onChangeText={setExperience}
+                placeholder="Describe any relevant experience..."
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginBottom: Spacing.sm }}>
+                Availability (Optional)
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon, marginBottom: Spacing.xs }}>
+                When are you typically available for club activities and meetings?
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: colors.surface,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={availability}
+                onChangeText={setAvailability}
+                placeholder="e.g., Weekdays after 2 PM, Weekends..."
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text, marginBottom: Spacing.sm }}>
+                Additional Information (Optional)
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon, marginBottom: Spacing.xs }}>
+                Anything else you'd like the committee to know?
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: colors.surface,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={additionalInfo}
+                onChangeText={setAdditionalInfo}
+                placeholder="Additional information..."
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor: submitting ? colors.icon : colors.primary,
+                  opacity: submitting ? 0.6 : 1,
+                },
+              ]}
+              onPress={handleSubmitApplication}
+              disabled={submitting}
+            >
+              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                {submitting ? 'Submitting...' : 'Submit Application'}
+              </ThemedText>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -567,6 +811,50 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalTitle: {
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: 40,
+  },
+  formGroup: {
+    marginBottom: Spacing.lg,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: 16,
+    minHeight: 100,
+    maxHeight: 200,
+  },
+  submitButton: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
   },
 });
 

@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createCheckIn, getCurrentUser } from '@/lib/database';
 import { createInputStyle, getCursorStyle } from '@/utils/platform-styles';
 import { saveCheckIn } from '@/utils/storage';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -53,9 +54,25 @@ export default function CheckInScreen() {
     }
 
     try {
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to check in.');
+        return;
+      }
+
       const today = new Date();
       const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
       
+      // Save to database (this will also award points and update streaks)
+      await createCheckIn({
+        userId: user.id,
+        mood: selectedMood,
+        feelingStrength: Math.round(feelingStrength),
+        note: note.trim() || undefined,
+        date: dateString,
+      });
+
+      // Also save locally for offline access
       const checkIn = {
         id: `checkin-${Date.now()}`,
         mood: selectedMood,
@@ -64,7 +81,6 @@ export default function CheckInScreen() {
         date: dateString,
         timestamp: today.getTime(),
       };
-
       await saveCheckIn(checkIn);
 
       Alert.alert('Check-In Saved', 'Thank you for checking in. Your thoughts are private.', [
@@ -80,6 +96,7 @@ export default function CheckInScreen() {
         },
       ]);
     } catch (error) {
+      console.error('Error saving check-in:', error);
       Alert.alert('Error', 'Failed to save check-in. Please try again.');
     }
   };

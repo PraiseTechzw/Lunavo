@@ -363,6 +363,175 @@ export async function getUsers(limit?: number): Promise<User[]> {
 }
 
 // ============================================
+// MEMBERSHIP REQUEST OPERATIONS
+// ============================================
+
+export interface CreateMembershipRequestData {
+  motivation: string;
+  experience?: string;
+  availability?: string;
+  additionalInfo?: string;
+}
+
+export interface MembershipRequest {
+  id: string;
+  userId: string;
+  motivation: string;
+  experience?: string;
+  availability?: string;
+  additionalInfo?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  reviewNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export async function createMembershipRequest(requestData: CreateMembershipRequestData): Promise<MembershipRequest> {
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) {
+    throw new Error('User must be authenticated to create membership request');
+  }
+
+  // Check if user already has a pending request
+  const existingRequest = await getMembershipRequestByUserId(authUser.id);
+  if (existingRequest && existingRequest.status === 'pending') {
+    throw new Error('You already have a pending membership request');
+  }
+
+  // Check if user is already a peer educator
+  const currentUser = await getCurrentUser();
+  if (currentUser && ['peer-educator', 'peer-educator-executive'].includes(currentUser.role)) {
+    throw new Error('You are already a peer educator');
+  }
+
+  const { data, error } = await supabase
+    .from('membership_requests')
+    .insert({
+      user_id: authUser.id,
+      motivation: requestData.motivation,
+      experience: requestData.experience || null,
+      availability: requestData.availability || null,
+      additional_info: requestData.additionalInfo || null,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    // Check for unique constraint violation (user already has a request)
+    if (error.code === '23505') {
+      throw new Error('You already have a membership request. Please wait for it to be reviewed.');
+    }
+    throw error;
+  }
+
+  return mapMembershipRequestFromDB(data);
+}
+
+export async function getMembershipRequestByUserId(userId: string): Promise<MembershipRequest | null> {
+  const { data, error } = await supabase
+    .from('membership_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data ? mapMembershipRequestFromDB(data) : null;
+}
+
+export async function getAllMembershipRequests(status?: 'pending' | 'approved' | 'rejected' | 'withdrawn'): Promise<MembershipRequest[]> {
+  let query = supabase
+    .from('membership_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return data.map(mapMembershipRequestFromDB);
+}
+
+export async function updateMembershipRequest(
+  requestId: string,
+  updates: {
+    status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+    reviewNotes?: string;
+  }
+): Promise<MembershipRequest> {
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) {
+    throw new Error('User must be authenticated to update membership request');
+  }
+
+  const updateData: any = {
+    status: updates.status,
+    reviewed_by: authUser.id,
+    reviewed_at: new Date().toISOString(),
+  };
+
+  if (updates.reviewNotes) {
+    updateData.review_notes = updates.reviewNotes;
+  }
+
+  // If approved, update user role to peer-educator
+  if (updates.status === 'approved') {
+    const { data: requestData } = await supabase
+      .from('membership_requests')
+      .select('user_id')
+      .eq('id', requestId)
+      .single();
+
+    if (requestData) {
+      await supabase
+        .from('users')
+        .update({ role: 'peer-educator' })
+        .eq('id', requestData.user_id);
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('membership_requests')
+    .update(updateData)
+    .eq('id', requestId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapMembershipRequestFromDB(data);
+}
+
+function mapMembershipRequestFromDB(data: any): MembershipRequest {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    motivation: data.motivation,
+    experience: data.experience || undefined,
+    availability: data.availability || undefined,
+    additionalInfo: data.additional_info || undefined,
+    status: data.status,
+    reviewedBy: data.reviewed_by || undefined,
+    reviewedAt: data.reviewed_at ? new Date(data.reviewed_at) : undefined,
+    reviewNotes: data.review_notes || undefined,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+// ============================================
 // POST OPERATIONS
 // ============================================
 
@@ -450,6 +619,20 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
       console.error('Error creating escalation:', escalationError);
       // Don't fail post creation if escalation fails
     }
+  }
+
+  // Award points, update streaks, and check badges for post creation
+  try {
+    const { awardPostCreatedPoints } = await import('./points-system');
+    const { updateEngagementStreak, checkAllBadges } = await import('./gamification');
+    await Promise.all([
+      awardPostCreatedPoints(postData.authorId),
+      updateEngagementStreak(postData.authorId),
+      checkAllBadges(postData.authorId), // Check for new badges
+    ]);
+  } catch (error) {
+    console.error('Error awarding points/streaks for post creation:', error);
+    // Don't fail post creation if gamification fails
   }
 
   return post;
@@ -702,7 +885,44 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
   if (error) throw error;
 
   const author = await getUser(replyData.authorId);
-  return mapReplyFromDB(data, author?.pseudonym || 'Anonymous');
+  const reply = mapReplyFromDB(data, author?.pseudonym || 'Anonymous');
+
+  // Award points and update streaks for reply creation
+  try {
+    const { awardReplyPoints } = await import('./points-system');
+    const { updateEngagementStreak, updateHelpingStreak } = await import('./gamification');
+    
+    // Check if this is the first reply to the post
+    const { data: existingReplies } = await supabase
+      .from('replies')
+      .select('id')
+      .eq('post_id', replyData.postId)
+      .neq('id', reply.id);
+    
+    const isFirstReply = !existingReplies || existingReplies.length === 0;
+    
+    await Promise.all([
+      awardReplyPoints(replyData.authorId),
+      updateEngagementStreak(replyData.authorId),
+      updateHelpingStreak(replyData.authorId),
+      // Award bonus points for first response
+      isFirstReply ? (async () => {
+        const { addPoints } = await import('./points-system');
+        const { POINTS_CONFIG } = await import('./points-system');
+        await addPoints(
+          replyData.authorId,
+          POINTS_CONFIG.firstResponse,
+          'helping',
+          'First response to post'
+        );
+      })() : Promise.resolve(),
+    ]);
+  } catch (error) {
+    console.error('Error awarding points/streaks for reply creation:', error);
+    // Don't fail reply creation if gamification fails
+  }
+
+  return reply;
 }
 
 export async function getReplies(postId: string): Promise<Reply[]> {
@@ -753,18 +973,36 @@ export async function deleteReply(replyId: string): Promise<void> {
 export async function markReplyHelpful(replyId: string): Promise<number> {
   const reply = await supabase
     .from('replies')
-    .select('is_helpful')
+    .select('is_helpful, author_id')
     .eq('id', replyId)
     .single();
 
   if (reply.error) throw reply.error;
 
   const newHelpful = (reply.data.is_helpful || 0) + 1;
+  const authorId = reply.data.author_id;
 
   await supabase
     .from('replies')
     .update({ is_helpful: newHelpful })
     .eq('id', replyId);
+
+  // Award points, update streaks, and check badges when reply is marked helpful
+  // Only award if this is the first helpful vote (to avoid duplicate awards)
+  if (newHelpful === 1 && authorId) {
+    try {
+      const { awardHelpfulResponsePoints } = await import('./points-system');
+      const { updateHelpingStreak, checkAllBadges } = await import('./gamification');
+      await Promise.all([
+        awardHelpfulResponsePoints(authorId),
+        updateHelpingStreak(authorId),
+        checkAllBadges(authorId), // Check for new badges
+      ]);
+    } catch (error) {
+      console.error('Error awarding points/streaks for helpful reply:', error);
+      // Don't fail helpful marking if gamification fails
+    }
+  }
 
   return newHelpful;
 }
@@ -975,12 +1213,43 @@ export async function createCheckIn(checkInData: CreateCheckInData): Promise<Che
         .single();
 
       if (updateError) throw updateError;
-      return mapCheckInFromDB(updated);
+      const checkIn = mapCheckInFromDB(updated);
+      
+      // Award points, update streaks, and check badges for check-in (even if updating existing)
+      try {
+        const { awardCheckInPoints } = await import('./points-system');
+        const { updateCheckInStreak, checkAllBadges } = await import('./gamification');
+        await Promise.all([
+          awardCheckInPoints(checkInData.userId),
+          updateCheckInStreak(checkInData.userId),
+          checkAllBadges(checkInData.userId), // Check for new badges
+        ]);
+      } catch (error) {
+        console.error('Error awarding points/streaks for check-in:', error);
+        // Don't fail check-in if gamification fails
+      }
+      
+      return checkIn;
     }
     throw error;
   }
 
-  return mapCheckInFromDB(data);
+  const checkIn = mapCheckInFromDB(data);
+  
+  // Award points and update streaks for check-in
+  try {
+    const { awardCheckInPoints } = await import('./points-system');
+    const { updateCheckInStreak } = await import('./gamification');
+    await Promise.all([
+      awardCheckInPoints(checkInData.userId),
+      updateCheckInStreak(checkInData.userId),
+    ]);
+  } catch (error) {
+    console.error('Error awarding points/streaks for check-in:', error);
+    // Don't fail check-in if gamification fails
+  }
+
+  return checkIn;
 }
 
 export async function getCheckIns(userId: string, limit?: number): Promise<CheckIn[]> {
@@ -1536,6 +1805,11 @@ export async function getBadge(badgeId: string): Promise<any | null> {
 }
 
 export async function getUserBadges(userId: string): Promise<any[]> {
+  // Validate userId to prevent UUID errors
+  if (!userId || userId.trim() === '') {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('user_badges')
     .select('*, badges(*)')

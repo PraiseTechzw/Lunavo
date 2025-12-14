@@ -2,26 +2,25 @@
  * Badges Screen - View all badges and earned badges
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getUserBadges } from '@/lib/database';
+import { BADGE_DEFINITIONS, checkAllBadges, getBadgeProgress } from '@/lib/gamification';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { createShadow, getCursorStyle } from '@/utils/platform-styles';
-import { BADGE_DEFINITIONS, getBadgeProgress, checkAllBadges } from '@/lib/gamification';
-import { getUserBadges } from '@/lib/database';
-import { getCurrentUser } from '@/lib/database';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function BadgesScreen() {
   const router = useRouter();
@@ -46,21 +45,27 @@ export default function BadgesScreen() {
 
   const loadBadges = async () => {
     try {
+      // Validate user ID before loading badges
+      if (!user?.id || user.id.trim() === '') {
+        console.warn('Cannot load badges: invalid user ID');
+        return;
+      }
+
       // Get user's earned badges
-      const userBadges = await getUserBadges(user!.id);
+      const userBadges = await getUserBadges(user.id);
       const earnedIds = new Set(userBadges.map((ub: any) => ub.badge_id || ub.badge?.id));
       setEarnedBadgeIds(earnedIds);
 
       // Get progress for all badges
       const progressMap: Record<string, { current: number; target: number; percentage: number }> = {};
       for (const badge of BADGE_DEFINITIONS) {
-        const progress = await getBadgeProgress(user!.id, badge.id);
+        const progress = await getBadgeProgress(user.id, badge.id);
         progressMap[badge.id] = progress;
       }
       setBadgeProgress(progressMap);
 
       // Check for newly eligible badges
-      await checkAllBadges(user!.id);
+      await checkAllBadges(user.id);
     } catch (error) {
       console.error('Error loading badges:', error);
     }
