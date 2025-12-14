@@ -3,6 +3,7 @@
  * Shows all support topics/categories as cards with stats
  */
 
+import { FAB as FABButton } from '@/app/components/navigation/fab-button';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES } from '@/app/constants/categories';
@@ -12,19 +13,18 @@ import { PostCategory } from '@/app/types';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getTopicStats, TopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
-import { FAB as FABButton } from '@/app/components/navigation/fab-button';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
