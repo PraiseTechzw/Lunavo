@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { CATEGORY_LIST } from '@/constants/categories';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getSession } from '@/lib/auth';
 import { createResource } from '@/lib/database';
 import { canCreateResources, UserRole } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
@@ -216,26 +216,107 @@ export default function CreateResourceScreen() {
     onProgress?: (progress: number) => void
   ): Promise<string | null> => {
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `resources/${Date.now()}_${fileName}`;
+      // Check if user has a valid session
+      const session = await getSession();
+      if (!session) {
+        throw new Error('You must be logged in to upload files. Please sign in and try again.');
+      }
 
-      // Read file as blob
-      const response = await fetch(fileUri);
-      const blob = await response.blob();
+      // Validate file URI
+      if (!fileUri || (!fileUri.startsWith('file://') && !fileUri.startsWith('http') && !fileUri.startsWith('content://'))) {
+        throw new Error('Invalid file URI. Please select the file again.');
+      }
+
+      const filePath = `resources/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+      // Read file with better error handling
+      if (onProgress) {
+        onProgress(10);
+      }
+
+      let fileData: Blob | ArrayBuffer;
+      
+      try {
+        if (Platform.OS === 'web') {
+          // On web, use fetch which works well
+          const response = await fetch(fileUri);
+          if (!response.ok) {
+            throw new Error(`Failed to read file: ${response.status} ${response.statusText}`);
+          }
+          fileData = await response.blob();
+        } else {
+          // On React Native, use XMLHttpRequest which handles file:// URIs better
+          fileData = await new Promise<ArrayBuffer>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.onload = () => {
+              if (xhr.status === 200 || xhr.status === 0) {
+                // Convert blob response to ArrayBuffer for Supabase
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  resolve(reader.result as ArrayBuffer);
+                };
+                reader.onerror = () => reject(new Error('Failed to convert file to ArrayBuffer'));
+                reader.readAsArrayBuffer(xhr.response);
+              } else {
+                reject(new Error(`Failed to read file: HTTP ${xhr.status}`));
+              }
+            };
+            xhr.onerror = () => reject(new Error('Network error reading file. Please check your connection.'));
+            xhr.ontimeout = () => reject(new Error('File read timeout. The file may be too large.'));
+            xhr.timeout = 60000; // 60 second timeout
+            xhr.open('GET', fileUri);
+            xhr.responseType = 'blob';
+            xhr.send();
+          });
+        }
+      } catch (readError: any) {
+        console.error('Error reading file:', readError);
+        throw new Error(`Failed to read the selected file: ${readError.message || 'Please try selecting it again.'}`);
+      }
+
+      if (onProgress) {
+        onProgress(30);
+      }
+
+      // Get file size
+      const fileSize = fileData instanceof Blob ? fileData.size : fileData.byteLength;
+      
+      // Check file size (limit to 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (fileSize > maxSize) {
+        throw new Error(`File size (${(fileSize / 1024 / 1024).toFixed(2)}MB) exceeds the maximum allowed size of 50MB.`);
+      }
+
+      if (onProgress) {
+        onProgress(50);
+      }
 
       // Upload to Supabase Storage with progress tracking
+      // Use ArrayBuffer for React Native, Blob for web
       const { data, error } = await supabase.storage
         .from('resources')
-        .upload(filePath, blob, {
-          contentType: fileType,
+        .upload(filePath, fileData, {
+          contentType: fileType || 'application/octet-stream',
           upsert: false,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase storage error:', error);
+        
+        // Provide more helpful error messages
+        if (error.message?.includes('bucket') || error.message?.includes('not found')) {
+          throw new Error('Storage bucket not found. Please contact support.');
+        } else if (error.message?.includes('permission') || error.message?.includes('unauthorized')) {
+          throw new Error('Permission denied. Please ensure you are logged in and have the required permissions.');
+        } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        } else {
+          throw new Error(`Upload failed: ${error.message || 'Unknown error'}`);
+        }
+      }
 
-      // Simulate progress for better UX (Supabase doesn't provide native progress)
       if (onProgress) {
-        onProgress(100);
+        onProgress(90);
       }
 
       // Get public URL
@@ -243,10 +324,20 @@ export default function CreateResourceScreen() {
         .from('resources')
         .getPublicUrl(filePath);
 
+      if (onProgress) {
+        onProgress(100);
+      }
+
       return urlData.publicUrl;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
-      throw error;
+      
+      // Re-throw with improved error message
+      if (error.message) {
+        throw error;
+      } else {
+        throw new Error('Failed to upload file. Please try again.');
+      }
     }
   };
 
@@ -302,52 +393,64 @@ export default function CreateResourceScreen() {
 
       // Upload single file if provided (non-image or single image)
       if (uploadedFile && uploadedImages.length === 0) {
-        setUploadProgress(10);
-        const uploadedUrl = await uploadFile(
-          uploadedFile.uri,
-          uploadedFile.name,
-          uploadedFile.type,
-          (progress) => setUploadProgress(10 + (progress * 0.4)) // 10-50%
-        );
-        if (uploadedUrl) {
-          filePath = uploadedUrl;
-          if (uploadedFile.type.startsWith('image/')) {
-            thumbnailUrl = uploadedUrl;
+        try {
+          setUploadProgress(10);
+          const uploadedUrl = await uploadFile(
+            uploadedFile.uri,
+            uploadedFile.name,
+            uploadedFile.type,
+            (progress) => setUploadProgress(10 + (progress * 0.4)) // 10-50%
+          );
+          if (uploadedUrl) {
+            filePath = uploadedUrl;
+            if (uploadedFile.type.startsWith('image/')) {
+              thumbnailUrl = uploadedUrl;
+            }
           }
+        } catch (uploadError: any) {
+          throw new Error(`Failed to upload file: ${uploadError.message || 'Unknown error'}`);
         }
       }
 
       // Upload multiple images if provided
       if (uploadedImages.length > 0) {
-        setUploadProgress(10);
-        const totalImages = uploadedImages.length;
-        const uploadedUrls: string[] = [];
-        
-        for (let i = 0; i < uploadedImages.length; i++) {
-          const image = uploadedImages[i];
-          const progressStart = 10 + (i / totalImages) * 40;
-          const progressEnd = 10 + ((i + 1) / totalImages) * 40;
+        try {
+          setUploadProgress(10);
+          const totalImages = uploadedImages.length;
+          const uploadedUrls: string[] = [];
           
-          const uploadedUrl = await uploadFile(
-            image.uri,
-            image.name,
-            'image/jpeg',
-            (progress) => setUploadProgress(progressStart + (progress / 100) * (progressEnd - progressStart))
-          );
-          
-          if (uploadedUrl) {
-            uploadedUrls.push(uploadedUrl);
-            if (i === 0) {
-              filePath = uploadedUrl;
-              thumbnailUrl = uploadedUrl;
+          for (let i = 0; i < uploadedImages.length; i++) {
+            const image = uploadedImages[i];
+            const progressStart = 10 + (i / totalImages) * 40;
+            const progressEnd = 10 + ((i + 1) / totalImages) * 40;
+            
+            try {
+              const uploadedUrl = await uploadFile(
+                image.uri,
+                image.name,
+                'image/jpeg',
+                (progress) => setUploadProgress(progressStart + (progress / 100) * (progressEnd - progressStart))
+              );
+              
+              if (uploadedUrl) {
+                uploadedUrls.push(uploadedUrl);
+                if (i === 0) {
+                  filePath = uploadedUrl;
+                  thumbnailUrl = uploadedUrl;
+                }
+              }
+            } catch (imageError: any) {
+              throw new Error(`Failed to upload image ${i + 1} of ${totalImages}: ${imageError.message || 'Unknown error'}`);
             }
           }
-        }
-        
-        // Store multiple image URLs in tags
-        if (uploadedUrls.length > 1) {
-          filePath = uploadedUrls[0];
-          thumbnailUrl = uploadedUrls[0];
+          
+          // Store multiple image URLs in tags
+          if (uploadedUrls.length > 1) {
+            filePath = uploadedUrls[0];
+            thumbnailUrl = uploadedUrls[0];
+          }
+        } catch (uploadError: any) {
+          throw new Error(`Failed to upload images: ${uploadError.message || 'Unknown error'}`);
         }
       }
 
@@ -402,7 +505,28 @@ export default function CreateResourceScreen() {
       });
     } catch (error: any) {
       console.error('Error creating resource:', error);
-      Alert.alert('Error', error.message || 'Failed to create resource. Please try again.');
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to create resource. Please try again.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('network') || error.message?.includes('Network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message?.includes('permission') || error.message?.includes('unauthorized')) {
+        errorMessage = 'Permission denied. Please ensure you are logged in and have permission to create resources.';
+      }
+      
+      Alert.alert(
+        'Upload Failed',
+        errorMessage,
+        [
+          {
+            text: 'OK',
+            style: 'default',
+          },
+        ]
+      );
       setUploadProgress(0);
     } finally {
       setIsSubmitting(false);
