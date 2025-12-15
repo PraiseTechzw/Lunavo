@@ -6,8 +6,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createShadow } from '@/utils/platform-styles';
 import { getSession } from '@/lib/auth';
+import { createShadow } from '@/utils/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
@@ -15,9 +15,9 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
+    Animated,
     Dimensions,
-  Image,
+    Image,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
