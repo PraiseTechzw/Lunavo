@@ -31,7 +31,7 @@ Expo supports FCM V1 protocol for Android push notifications, which provides bet
    └── ...
    ```
 
-2. **Important**: The file is already in `.gitignore`, so it won't be committed to version control.
+2. **Important**: The file should be committed to version control (it's safe - contains only public identifiers). It's NOT in `.gitignore`.
 
 ### 3. Verify Configuration
 
@@ -39,8 +39,22 @@ The `app.config.js` file is already configured with:
 ```javascript
 android: {
   googleServicesFile: "./google-services.json"
-}
+},
+plugins: [
+  // ... other plugins
+  [
+    "expo-notifications",
+    {
+      icon: "./assets/images/icon.png",
+      color: "#ffffff",
+      sounds: [],
+      mode: "production"
+    }
+  ]
+]
 ```
+
+**Important**: The `expo-notifications` plugin is required to initialize Firebase when using FCM V1.
 
 ### 4. Rebuild Your App
 
@@ -100,9 +114,10 @@ If notifications aren't working on Android:
 
 ⚠️ **Important Security Notes**:
 
-1. **Never commit `google-services.json`** to version control
-   - Already added to `.gitignore`
-   - Contains sensitive Firebase configuration
+1. **`google-services.json` is SAFE to commit** to version control
+   - Contains only public-facing identifiers (project ID, API keys, etc.)
+   - NOT in `.gitignore` - should be committed
+   - Required for EAS Build to access the file
 
 2. **Use environment-specific files** for different environments:
    - Development: `google-services.dev.json`

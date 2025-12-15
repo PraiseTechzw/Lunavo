@@ -34,12 +34,13 @@ yarn-error.*
 .env*.local
 .env
 
-# Firebase Admin SDK credentials
+# Firebase Admin SDK credentials (DO NOT COMMIT - contains private keys)
 *-firebase-adminsdk-*.json
 firebase-adminsdk-*.json
 
 # Firebase Google Services files
-google-services.json
+# Note: google-services.json is SAFE to commit (contains only public identifiers)
+# GoogleService-Info.plist (iOS) - keep ignored if contains sensitive data
 GoogleService-Info.plist
 
 # typescript

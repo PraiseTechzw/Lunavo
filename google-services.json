@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "263637728768",
+    "project_id": "lenove",
+    "storage_bucket": "lenove.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263637728768:android:714490673fb0911abaa2e5",
+        "android_client_info": {
+          "package_name": "com.camusmarketzw.Lunavo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDamPPZkHhMWB9w5l0ZUBKQshgUNpceSp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
