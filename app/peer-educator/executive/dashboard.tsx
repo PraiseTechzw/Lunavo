@@ -59,6 +59,7 @@ interface SystemMetrics {
 
 export default function ExecutiveDashboardScreen() {
   const router = useRouter();
+  const pathname = usePathname(); // Moved to top - must be called before any conditional returns
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
@@ -238,7 +239,6 @@ export default function ExecutiveDashboardScreen() {
   };
 
   const slaStatus = getSLAStatus();
-  const pathname = usePathname();
 
   return (
     <SafeAreaView edges={isMobile ? ['top'] : []} style={styles.safeArea}>
