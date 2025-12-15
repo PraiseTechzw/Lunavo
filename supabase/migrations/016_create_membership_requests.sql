@@ -89,3 +89,6 @@ CREATE TRIGGER membership_requests_updated_at
   BEFORE UPDATE ON membership_requests
   FOR EACH ROW
   EXECUTE FUNCTION update_membership_requests_updated_at();
+
+
+

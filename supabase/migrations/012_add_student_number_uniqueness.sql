@@ -62,3 +62,6 @@ GRANT EXECUTE ON FUNCTION check_student_number_available(TEXT) TO authenticated,
 -- - All student numbers are normalized to uppercase for consistency
 
 
+
+
+

@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createShadow } from '@/utils/platform-styles';
+import { getSession } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
@@ -37,9 +38,9 @@ const onboardingData: Array<{
   iconColor: string;
 }> = [
   {
-    title: "Welcome",
-    subtitle: "Support Hub",
-    description: "A safe space for students to connect and support each other.",
+    title: "Welcome to Lunavo",
+    subtitle: "Your Support Hub",
+    description: "A safe, anonymous space for CUT students to connect, share, and support each other through life's challenges.",
     illustration: require('@/assets/images/onboarding/welcome.jpg'),
     illustrationType: "image" as const,
     gradient: ["#E8F5E9", "#C8E6C9"],
@@ -48,7 +49,7 @@ const onboardingData: Array<{
   {
     title: "Peer Support",
     subtitle: "You're Not Alone",
-    description: "Connect with students who understand what you're going through.",
+    description: "Connect with fellow students who understand what you're going through. Share experiences and find comfort in community.",
     illustration: "chatbubbles",
     illustrationType: "icon" as const,
     gradient: ["#E3F2FD", "#BBDEFB"],
@@ -57,11 +58,29 @@ const onboardingData: Array<{
   {
     title: "Privacy First",
     subtitle: "Your Identity Protected",
-    description: "Share freely without fear. Your privacy is our priority.",
+    description: "Share freely without fear. Your privacy is our priority with anonymous posting and secure messaging.",
     illustration: "lock-closed",
     illustrationType: "icon" as const,
     gradient: ["#F3E5F5", "#E1BEE7"],
     iconColor: "#9C27B0",
+  },
+  {
+    title: "Professional Help",
+    subtitle: "Expert Support Available",
+    description: "Access counselors, life coaches, and peer educators when you need professional guidance and support.",
+    illustration: "people",
+    illustrationType: "icon" as const,
+    gradient: ["#FFF3E0", "#FFE0B2"],
+    iconColor: "#FF9800",
+  },
+  {
+    title: "24/7 Safety",
+    subtitle: "Crisis Detection & Support",
+    description: "Our AI-powered system detects when you need urgent help and connects you with professional support immediately.",
+    illustration: "shield-checkmark",
+    illustrationType: "icon" as const,
+    gradient: ["#FFEBEE", "#FFCDD2"],
+    iconColor: "#F44336",
   },
 ];
 
@@ -70,22 +89,33 @@ export default function OnboardingScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [currentPage, setCurrentPage] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // Fade in animation when page changes
+    // Enhanced animations when page changes
+    fadeAnim.setValue(0);
+    scaleAnim.setValue(0.8);
+    slideAnim.setValue(20);
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 8,
-        tension: 40,
+        friction: 7,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
@@ -93,8 +123,6 @@ export default function OnboardingScreen() {
 
   const handleNext = () => {
     if (currentPage < onboardingData.length - 1) {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.8);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
       scrollViewRef.current?.scrollTo({
@@ -107,21 +135,45 @@ export default function OnboardingScreen() {
   };
 
   const handleSkip = async () => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    router.replace('/(tabs)');
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      // Check authentication state before redirecting
+      const session = await getSession();
+      if (session) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/auth/login');
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      setIsNavigating(false);
+    }
   };
 
   const handleComplete = async () => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    router.replace('/(tabs)');
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      // Check authentication state before redirecting
+      const session = await getSession();
+      if (session) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/auth/login');
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      setIsNavigating(false);
+    }
   };
 
   const handlePageChange = (event: any) => {
     const page = Math.round(event.nativeEvent.contentOffset.x / width);
-    if (page !== currentPage) {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.8);
-    setCurrentPage(page);
+    if (page !== currentPage && page >= 0 && page < onboardingData.length) {
+      setCurrentPage(page);
     }
   };
 
@@ -254,8 +306,6 @@ export default function OnboardingScreen() {
             <TouchableOpacity
               key={index}
               onPress={() => {
-                fadeAnim.setValue(0);
-                scaleAnim.setValue(0.8);
                 setCurrentPage(index);
                 scrollViewRef.current?.scrollTo({
                   x: index * width,
@@ -284,21 +334,30 @@ export default function OnboardingScreen() {
         <TouchableOpacity
             style={[
               styles.nextButton,
-              { backgroundColor: colors.primary },
+              { backgroundColor: colors.primary, opacity: isNavigating ? 0.7 : 1 },
               createShadow(4, colors.primary, 0.3),
             ]}
           onPress={handleNext}
           activeOpacity={0.8}
+          disabled={isNavigating}
         >
-          <ThemedText type="body" style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
-              {currentPage === onboardingData.length - 1 ? 'Get Started' : 'Continue'}
-          </ThemedText>
-            <Ionicons
-              name={currentPage === onboardingData.length - 1 ? 'checkmark-circle' : 'arrow-forward'}
-              size={22}
-              color="#FFFFFF"
-              style={{ marginLeft: Spacing.xs }}
-            />
+          {isNavigating ? (
+            <ThemedText type="body" style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
+              Loading...
+            </ThemedText>
+          ) : (
+            <>
+              <ThemedText type="body" style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
+                {currentPage === onboardingData.length - 1 ? 'Get Started' : 'Continue'}
+              </ThemedText>
+              <Ionicons
+                name={currentPage === onboardingData.length - 1 ? 'checkmark-circle' : 'arrow-forward'}
+                size={22}
+                color="#FFFFFF"
+                style={{ marginLeft: Spacing.xs }}
+              />
+            </>
+          )}
         </TouchableOpacity>
       </View>
       </SafeAreaView>
