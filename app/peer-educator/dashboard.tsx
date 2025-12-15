@@ -2,36 +2,35 @@
  * Peer Educator Dashboard - For trained peer volunteers
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getMeetings, getPosts, getReplies } from '@/lib/database';
+import { Meeting, Post, Reply } from '@/types';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import { format, formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { createShadow, getCursorStyle } from '@/utils/platform-styles';
-import { getPosts, getReplies, getMeetings, getCurrentUser } from '@/lib/database';
-import { Post, Reply, Meeting } from '@/types';
-import { formatDistanceToNow, format } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { PostCard } from '@/components/post-card';
 
 export default function PeerEducatorDashboardScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
-  // Role guard - only peer educators can access
+  // Role guard - only regular peer educators can access (executives have their own dashboard)
   const { user, loading: authLoading } = useRoleGuard(
-    ['peer-educator', 'peer-educator-executive', 'admin'],
+    ['peer-educator', 'admin'],
     '/(tabs)'
   );
   
@@ -47,9 +46,14 @@ export default function PeerEducatorDashboardScreen() {
 
   useEffect(() => {
     if (user) {
+      // Redirect peer-educator-executive to their executive dashboard
+      if (user.role === 'peer-educator-executive') {
+        router.replace('/peer-educator/executive/dashboard');
+        return;
+      }
       loadData();
     }
-  }, [user]);
+  }, [user, router]);
 
   const loadData = async () => {
     try {

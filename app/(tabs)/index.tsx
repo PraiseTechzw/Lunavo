@@ -15,10 +15,10 @@ import { Resource } from '@/types';
 import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { getResourceIcon, getResourceTypeColor, getResourceTypeLabel } from '@/utils/resource-utils';
 import {
-  getCheckInStreak,
-  getPosts,
-  getPseudonym,
-  hasCheckedInToday
+    getCheckInStreak,
+    getPosts,
+    getPseudonym,
+    hasCheckedInToday
 } from '@/utils/storage';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -26,13 +26,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Dimensions,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Dimensions,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -126,9 +126,13 @@ export default function HomeScreen() {
         // Admin can access admin dashboard via sidebar
       } else if (userRole === 'student-affairs') {
         // Student Affairs should be redirected (handled in _layout.tsx)
+      } else if (userRole === 'peer-educator-executive') {
+        // Peer Educator Executives should use their executive dashboard
+        // Redirect if they somehow end up on the home screen
+        router.replace('/peer-educator/executive/dashboard');
       }
     }
-  }, [userRole]);
+  }, [userRole, router]);
 
   useEffect(() => {
     // Reload recommendations when user changes
@@ -581,8 +585,8 @@ export default function HomeScreen() {
           <MaterialIcons name="arrow-forward-ios" size={20} color={colors.icon} />
         </TouchableOpacity>
 
-        {/* Peer Educator Dashboard Card - Only for Peer Educators */}
-        {(userRole === 'peer-educator' || userRole === 'peer-educator-executive') && (
+        {/* Peer Educator Dashboard Card - Only for Regular Peer Educators */}
+        {userRole === 'peer-educator' && (
           <TouchableOpacity
             style={[
               styles.resourceCard,
@@ -599,6 +603,30 @@ export default function HomeScreen() {
               </ThemedText>
               <ThemedText type="small" style={[styles.cardDescription, { color: colors.icon }]}>
                 View posts needing support and manage your responses
+              </ThemedText>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Executive Dashboard Card - Only for Peer Educator Executives */}
+        {userRole === 'peer-educator-executive' && (
+          <TouchableOpacity
+            style={[
+              styles.resourceCard,
+              { backgroundColor: colors.primary + '10', borderWidth: 2, borderColor: colors.primary + '30' },
+              createShadow(2, colors.primary, 0.15),
+            ]}
+            onPress={() => router.push('/peer-educator/executive/dashboard' as any)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="admin-panel-settings" size={32} color={colors.primary} />
+            <View style={styles.resourceContent}>
+              <ThemedText type="body" style={[styles.cardTitle, { color: colors.primary, fontWeight: '700' }]}>
+                Executive Dashboard
+              </ThemedText>
+              <ThemedText type="small" style={[styles.cardDescription, { color: colors.icon }]}>
+                System-level oversight and peer educator management
               </ThemedText>
             </View>
             <MaterialIcons name="arrow-forward-ios" size={20} color={colors.primary} />
@@ -634,7 +662,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Floating Action Button - Role-based */}
-      {userRole === 'peer-educator' || userRole === 'peer-educator-executive' ? (
+      {userRole === 'peer-educator' ? (
         <TouchableOpacity
           style={[
             styles.fab,
@@ -650,6 +678,24 @@ export default function HomeScreen() {
           <MaterialIcons name="reply" size={20} color="#FFFFFF" />
           <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
             Respond
+          </ThemedText>
+        </TouchableOpacity>
+      ) : userRole === 'peer-educator-executive' ? (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { 
+              backgroundColor: colors.primary,
+              bottom: fabBottom,
+            },
+            createShadow(8, colors.primary, 0.3),
+          ]}
+          onPress={() => router.push('/peer-educator/executive/dashboard' as any)}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="dashboard" size={20} color="#FFFFFF" />
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '500', marginLeft: Spacing.xs }}>
+            Executive Dashboard
           </ThemedText>
         </TouchableOpacity>
       ) : (

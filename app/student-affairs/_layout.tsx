@@ -7,9 +7,9 @@ import { SidebarNavigation } from '@/components/navigation/sidebar-navigation';
 import { WebHeader } from '@/components/web';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { isStudentAffairsMobileBlocked } from '@/utils/navigation';
 import { getCurrentUser } from '@/lib/database';
 import { UserRole } from '@/lib/permissions';
+import { isStudentAffairsMobileBlocked } from '@/utils/navigation';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, View } from 'react-native';
@@ -67,6 +67,8 @@ export default function StudentAffairsLayout() {
         <Stack.Screen name="dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="analytics" options={{ headerShown: false }} />
         <Stack.Screen name="trends" options={{ headerShown: false }} />
+        <Stack.Screen name="resources" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
       </Stack>
     );
   }
@@ -100,6 +102,8 @@ export default function StudentAffairsLayout() {
           <Stack.Screen name="dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="analytics" options={{ headerShown: false }} />
           <Stack.Screen name="trends" options={{ headerShown: false }} />
+          <Stack.Screen name="resources" options={{ headerShown: false }} />
+          <Stack.Screen name="reports" options={{ headerShown: false }} />
         </Stack>
       </View>
     </View>

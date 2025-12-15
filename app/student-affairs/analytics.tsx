@@ -9,11 +9,11 @@ import { ThemedView } from '@/components/themed-view';
 import { WebCard, WebContainer } from '@/components/web';
 import { CATEGORIES } from '@/constants/categories';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getEscalations, getPosts, getReplies } from '@/lib/database';
 import { EscalationLevel, PostCategory } from '@/types';
 import { getCursorStyle } from '@/utils/platform-styles';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { getEscalations, getPosts, getReplies } from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -336,7 +336,7 @@ export default function DetailedAnalyticsScreen() {
         {/* Engagement Metrics */}
         <WebCard style={styles.engagementCard}>
           <View>
-            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText type="h3" style={[styles.sectionTitle as any, { color: colors.text }]}>
               Engagement Metrics
             </ThemedText>
             <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>

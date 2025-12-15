@@ -2,28 +2,37 @@
  * Member Management - Executive view of all peer educators
  */
 
-import { useState, useEffect } from 'react';
+import { DrawerHeader } from '@/components/navigation/drawer-header';
+import { DrawerMenu } from '@/components/navigation/drawer-menu';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getPosts, getReplies } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { User } from '@/types';
+import { createInputStyle, createShadow } from '@/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  TextInput,
-  Alert,
+    Alert,
+    Dimensions,
+    FlatList,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/utils/platform-styles';
-import { supabase } from '@/lib/supabase';
-import { getReplies, getPosts } from '@/lib/database';
-import { User } from '@/types';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobile = Platform.OS !== 'web';
 
 interface MemberStats {
   totalResponses: number;
@@ -41,6 +50,7 @@ export default function MemberManagementScreen() {
     '/(tabs)'
   );
   
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [members, setMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
   const [filteredMembers, setFilteredMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
@@ -183,9 +193,11 @@ export default function MemberManagementScreen() {
     </TouchableOpacity>
   );
 
+  const pathname = usePathname();
+
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+      <SafeAreaView edges={isMobile ? ['top'] : []} style={{ flex: 1 }}>
         <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ThemedText>Loading...</ThemedText>
         </ThemedView>
@@ -194,21 +206,34 @@ export default function MemberManagementScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={isMobile ? ['top'] : []} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Member Management
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
+        {/* Mobile Header */}
+        {isMobile && (
+          <DrawerHeader
+            title="Member Management"
+            onMenuPress={() => setDrawerVisible(true)}
+          />
+        )}
+
+        {/* Web Header */}
+        {isWeb && (
+          <View style={[styles.webHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            <View style={styles.webHeaderContent}>
+              <View>
+                <ThemedText type="h1" style={[styles.webHeaderTitle, { color: colors.text }]}>
+                  Member Management
+                </ThemedText>
+                <ThemedText type="body" style={{ color: colors.icon, marginTop: 4 }}>
+                  View and manage peer educators
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, isWeb && styles.webSearchContainer]}>
           <MaterialIcons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
           <TextInput
             style={[
@@ -224,28 +249,61 @@ export default function MemberManagementScreen() {
         </View>
 
         {/* Members List */}
-        <FlatList
-          data={filteredMembers}
-          renderItem={renderMember}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-          }
-          ListHeaderComponent={
+        {isMobile ? (
+          <FlatList
+            data={filteredMembers}
+            renderItem={renderMember}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            }
+            ListHeaderComponent={
+              <ThemedText type="body" style={{ color: colors.icon, marginBottom: Spacing.md }}>
+                {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
+              </ThemedText>
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="people-outline" size={64} color={colors.icon} />
+                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+                  No members found
+                </ThemedText>
+              </View>
+            }
+          />
+        ) : (
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={[styles.webListContent, isWeb && styles.webScrollContent]}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            }
+          >
             <ThemedText type="body" style={{ color: colors.icon, marginBottom: Spacing.md }}>
               {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
             </ThemedText>
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="people-outline" size={64} color={colors.icon} />
-              <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                No members found
-              </ThemedText>
-            </View>
-          }
-        />
+            {filteredMembers.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="people-outline" size={64} color={colors.icon} />
+                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+                  No members found
+                </ThemedText>
+              </View>
+            ) : (
+              filteredMembers.map((item) => renderMember({ item }))
+            )}
+          </ScrollView>
+        )}
+
+        {/* Mobile Drawer Menu */}
+        {isMobile && (
+          <DrawerMenu
+            visible={drawerVisible}
+            onClose={() => setDrawerVisible(false)}
+            role={user?.role || 'peer-educator-executive'}
+          />
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -258,22 +316,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  scrollView: {
+    flex: 1,
+  },
+  webHeader: {
+    padding: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    ...(isWeb ? {
+      position: 'sticky' as any,
+      top: 70,
+      zIndex: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(10px)',
+    } : {}),
+  },
+  webHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
-  headerTitle: {
+  webHeaderTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 32,
+    letterSpacing: -0.5,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     marginBottom: Spacing.md,
+  },
+  webSearchContainer: {
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
   searchIcon: {
     position: 'absolute',
@@ -290,6 +370,15 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.md,
     paddingBottom: 80,
+  },
+  webListContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  webScrollContent: {
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
   memberCard: {
     padding: Spacing.lg,

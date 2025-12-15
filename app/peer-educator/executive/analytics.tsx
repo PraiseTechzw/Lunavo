@@ -2,25 +2,31 @@
  * Club Analytics - Executive view of club statistics
  */
 
-import { useState, useEffect } from 'react';
+import { DrawerHeader } from '@/components/navigation/drawer-header';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getMeetingAttendance, getMeetings, getPosts, getReplies } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { createShadow } from '@/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  Dimensions,
+  Platform,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { createShadow, getCursorStyle } from '@/utils/platform-styles';
-import { getMeetings, getMeetingAttendance, getPosts, getReplies } from '@/lib/database';
-import { supabase } from '@/lib/supabase';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobile = Platform.OS !== 'web';
 
 export default function ClubAnalyticsScreen() {
   const router = useRouter();
@@ -104,9 +110,11 @@ export default function ClubAnalyticsScreen() {
     setRefreshing(false);
   };
 
+  const pathname = usePathname();
+
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+      <SafeAreaView edges={isMobile ? ['top'] : []} style={{ flex: 1 }}>
         <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ThemedText>Loading...</ThemedText>
         </ThemedView>
@@ -115,25 +123,39 @@ export default function ClubAnalyticsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={isMobile ? ['top'] : []} style={styles.safeArea}>
       <ThemedView style={styles.container}>
+        {/* Mobile Header */}
+        {isMobile && (
+          <DrawerHeader
+            title="Club Analytics"
+            onMenuPress={() => setDrawerVisible(true)}
+          />
+        )}
+
+        {/* Web Header */}
+        {isWeb && (
+          <View style={[styles.webHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            <View style={styles.webHeaderContent}>
+              <View>
+                <ThemedText type="h1" style={[styles.webHeaderTitle, { color: colors.text }]}>
+                  Club Analytics
+                </ThemedText>
+                <ThemedText type="body" style={{ color: colors.icon, marginTop: 4 }}>
+                  View club statistics and engagement metrics
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        )}
+
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
           }
         >
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <ThemedText type="h2" style={styles.headerTitle}>
-              Club Analytics
-            </ThemedText>
-            <View style={{ width: 24 }} />
-          </View>
 
           {/* Member Engagement */}
           <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
@@ -269,18 +291,37 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.md,
-    paddingBottom: 80,
+    paddingBottom: isMobile ? 80 : Spacing.xl,
   },
-  header: {
+  webScrollContent: {
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  webHeader: {
+    padding: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    ...(isWeb ? {
+      position: 'sticky' as any,
+      top: 70,
+      zIndex: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(10px)',
+    } : {}),
+  },
+  webHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
-  headerTitle: {
+  webHeaderTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 32,
+    letterSpacing: -0.5,
   },
   section: {
     padding: Spacing.lg,

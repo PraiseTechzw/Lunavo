@@ -26,7 +26,7 @@ interface SidebarItem {
 }
 
 interface SidebarNavigationProps {
-  role: 'admin' | 'student-affairs';
+  role: 'admin' | 'student-affairs' | 'peer-educator-executive';
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -46,7 +46,21 @@ const STUDENT_AFFAIRS_ITEMS: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', route: '/student-affairs/dashboard', section: 'main' },
   { id: 'analytics', label: 'Analytics', icon: 'analytics', route: '/student-affairs/analytics', section: 'main' },
   { id: 'trends', label: 'Trends', icon: 'trending-up', route: '/student-affairs/trends', section: 'main' },
-  { id: 'resources', label: 'Resources', icon: 'book', route: '/(tabs)/resources', section: 'management' },
+  { id: 'resources', label: 'Resources', icon: 'book', route: '/student-affairs/resources', section: 'management' },
+  { id: 'reports', label: 'Reports', icon: 'description', route: '/student-affairs/reports', section: 'management' },
+  { id: 'settings', label: 'Settings', icon: 'settings', route: '/profile-settings', section: 'settings' },
+];
+
+const EXECUTIVE_ITEMS: SidebarItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', route: '/peer-educator/executive/dashboard', section: 'main' },
+  { id: 'flag-review', label: 'Flag Review', icon: 'flag', route: '/peer-educator/executive/flag-review', section: 'main' },
+  { id: 'peer-activity', label: 'Peer Activity', icon: 'people', route: '/peer-educator/executive/peer-activity', section: 'main' },
+  { id: 'content-approval', label: 'Content Approval', icon: 'check-circle', route: '/peer-educator/executive/content-approval', section: 'main' },
+  { id: 'reports', label: 'Reports', icon: 'description', route: '/peer-educator/executive/reports', section: 'main' },
+  { id: 'members', label: 'Members', icon: 'group', route: '/peer-educator/executive/members', section: 'management' },
+  { id: 'analytics', label: 'Analytics', icon: 'analytics', route: '/peer-educator/executive/analytics', section: 'management' },
+  { id: 'meetings', label: 'Meetings', icon: 'event', route: '/peer-educator/executive/meetings', section: 'management' },
+  { id: 'announcements', label: 'Announcements', icon: 'campaign', route: '/peer-educator/executive/announcements', section: 'management' },
   { id: 'settings', label: 'Settings', icon: 'settings', route: '/profile-settings', section: 'settings' },
 ];
 
@@ -57,7 +71,11 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
   const colors = Colors[colorScheme];
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
 
-  const items = role === 'admin' ? ADMIN_ITEMS : STUDENT_AFFAIRS_ITEMS;
+  const items = role === 'admin' 
+    ? ADMIN_ITEMS 
+    : role === 'student-affairs' 
+    ? STUDENT_AFFAIRS_ITEMS 
+    : EXECUTIVE_ITEMS;
   const groupedItems = items.reduce((acc, item) => {
     const section = item.section || 'main';
     if (!acc[section]) acc[section] = [];

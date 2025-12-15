@@ -2,29 +2,36 @@
  * Announcements Management - Create, edit, delete announcements
  */
 
-import { useState, useEffect } from 'react';
+import { DrawerHeader } from '@/components/navigation/drawer-header';
+import { DrawerMenu } from '@/components/navigation/drawer-menu';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Announcement } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format } from 'date-fns';
+import { usePathname, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  Switch,
+    Alert,
+    Dimensions,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/utils/platform-styles';
-import { getCurrentUser } from '@/lib/database';
-import { Announcement } from '@/types';
-import { format } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobile = Platform.OS !== 'web';
 
 const ANNOUNCEMENTS_KEY = '@lunavo:announcements';
 
@@ -161,9 +168,11 @@ export default function AnnouncementsScreen() {
     }
   };
 
+  const pathname = usePathname();
+
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+      <SafeAreaView edges={isMobile ? ['top'] : []} style={{ flex: 1 }}>
         <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ThemedText>Loading...</ThemedText>
         </ThemedView>
@@ -175,21 +184,50 @@ export default function AnnouncementsScreen() {
   const draftAnnouncements = announcements.filter((a) => !a.isPublished);
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={isMobile ? ['top'] : []} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <ThemedText type="h2" style={styles.headerTitle}>
-              Announcements
-            </ThemedText>
-            <TouchableOpacity onPress={handleCreate} style={getCursorStyle()}>
-              <MaterialIcons name="add" size={24} color={colors.primary} />
-            </TouchableOpacity>
+        {/* Mobile Header */}
+        {isMobile && (
+          <DrawerHeader
+            title="Announcements"
+            onMenuPress={() => setDrawerVisible(true)}
+            rightAction={{
+              icon: 'add',
+              onPress: handleCreate,
+            }}
+          />
+        )}
+
+        {/* Web Header */}
+        {isWeb && (
+          <View style={[styles.webHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            <View style={styles.webHeaderContent}>
+              <View>
+                <ThemedText type="h1" style={[styles.webHeaderTitle, { color: colors.text }]}>
+                  Announcements
+                </ThemedText>
+                <ThemedText type="body" style={{ color: colors.icon, marginTop: 4 }}>
+                  Create and manage announcements for peer educators
+                </ThemedText>
+              </View>
+              <TouchableOpacity
+                onPress={handleCreate}
+                style={[styles.addButton, { backgroundColor: colors.primary }]}
+                {...getCursorStyle()}
+              >
+                <MaterialIcons name="add" size={20} color="#FFFFFF" />
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.xs }}>
+                  New Announcement
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
+        )}
+
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
+        >
 
           {/* Published Announcements */}
           {publishedAnnouncements.length > 0 && (
@@ -363,6 +401,15 @@ export default function AnnouncementsScreen() {
             </View>
           </View>
         )}
+
+        {/* Mobile Drawer Menu */}
+        {isMobile && (
+          <DrawerMenu
+            visible={drawerVisible}
+            onClose={() => setDrawerVisible(false)}
+            role={user?.role || 'peer-educator-executive'}
+          />
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -380,18 +427,47 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.md,
-    paddingBottom: 80,
+    paddingBottom: isMobile ? 80 : Spacing.xl,
   },
-  header: {
+  webScrollContent: {
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  webHeader: {
+    padding: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    ...(isWeb ? {
+      position: 'sticky' as any,
+      top: 70,
+      zIndex: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(10px)',
+    } : {}),
+  },
+  webHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
-  headerTitle: {
+  webHeaderTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 32,
+    letterSpacing: -0.5,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    ...(isWeb ? {
+      transition: 'all 0.2s ease',
+    } : {}),
   },
   section: {
     marginBottom: Spacing.lg,

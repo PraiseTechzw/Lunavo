@@ -3,10 +3,10 @@
  * These functions create notifications for various events
  */
 
-import { createNotification, getPost } from './database';
 import { getCurrentUser } from './auth';
+import { createNotification, getPost } from './database';
+import { sendPushNotificationToUser } from './firebase-push';
 import { scheduleNotification } from './notifications';
-import { NotificationType } from '@/types';
 
 /**
  * Send notification when a new reply is added to user's post
@@ -30,7 +30,15 @@ export async function notifyNewReply(postId: string, replyAuthor: string) {
       read: false,
     });
 
-    // Send push notification
+    // Send push notification via Firebase/Expo Push API
+    await sendPushNotificationToUser(
+      post.authorId,
+      'New Reply',
+      `${replyAuthor} replied to your post: "${post.title}"`,
+      { postId, type: 'reply' }
+    );
+    
+    // Also schedule local notification as fallback
     await scheduleNotification(
       'New Reply',
       `${replyAuthor} replied to your post`,
@@ -62,6 +70,15 @@ export async function notifyEscalationAssigned(
       read: false,
     });
 
+    // Send push notification via Firebase/Expo Push API
+    await sendPushNotificationToUser(
+      counselorId,
+      'New Escalation Assigned',
+      `A ${escalationLevel} level escalation requires your attention: "${post.title}"`,
+      { postId, type: 'escalation', escalationLevel }
+    );
+    
+    // Also schedule local notification as fallback
     await scheduleNotification(
       'New Escalation',
       `A ${escalationLevel} level escalation requires your attention`,
@@ -192,6 +209,15 @@ export async function notifyBadgeEarned(userId: string, badgeName: string, badge
       read: false,
     });
 
+    // Send push notification via Firebase/Expo Push API
+    await sendPushNotificationToUser(
+      userId,
+      'Badge Earned! 🎉',
+      `You earned the "${badgeName}" badge: ${badgeDescription}`,
+      { type: 'achievement', badgeName, badgeDescription }
+    );
+    
+    // Also schedule local notification as fallback
     await scheduleNotification(
       'Badge Earned! 🎉',
       `You earned the "${badgeName}" badge`,
@@ -216,6 +242,15 @@ export async function notifyStreakMilestone(userId: string, streakType: string, 
       read: false,
     });
 
+    // Send push notification via Firebase/Expo Push API
+    await sendPushNotificationToUser(
+      userId,
+      'Streak Milestone! 🔥',
+      `Amazing! You've maintained a ${streakType} streak for ${days} days!`,
+      { type: 'achievement', streakType, days }
+    );
+    
+    // Also schedule local notification as fallback
     await scheduleNotification(
       'Streak Milestone! 🔥',
       `You've maintained a ${streakType} streak for ${days} days!`,
@@ -245,6 +280,15 @@ export async function notifyNewPostInCategory(
       read: false,
     });
 
+    // Send push notification via Firebase/Expo Push API
+    await sendPushNotificationToUser(
+      userId,
+      'New Post in Your Category',
+      `A new post in ${category}: "${postTitle}"`,
+      { postId, type: 'system', category }
+    );
+    
+    // Also schedule local notification as fallback
     await scheduleNotification(
       'New Post',
       `A new post in ${category}: "${postTitle}"`,

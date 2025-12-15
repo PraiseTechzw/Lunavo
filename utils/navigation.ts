@@ -119,7 +119,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
   'peer-educator-executive': {
     mobile: [
       '/(tabs)',
-      '/peer-educator',
+      '/peer-educator/executive',
       '/create-post',
       '/post',
       '/topic',
@@ -139,7 +139,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
     ],
     web: [
       '/(tabs)',
-      '/peer-educator',
+      '/peer-educator/executive',
       '/create-post',
       '/post',
       '/topic',
@@ -161,6 +161,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/admin',
       '/counselor',
       '/student-affairs',
+      '/peer-educator/dashboard', // Block regular peer educator dashboard
     ],
   },
   moderator: {
@@ -404,8 +405,9 @@ export function getDefaultRoute(role: UserRole, platform: 'mobile' | 'web' = isM
     case 'student':
       return '/(tabs)';
     case 'peer-educator':
-    case 'peer-educator-executive':
       return '/(tabs)';
+    case 'peer-educator-executive':
+      return '/peer-educator/executive/dashboard';
     case 'moderator':
       return '/(tabs)';
     case 'counselor':

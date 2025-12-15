@@ -65,3 +65,4 @@ GRANT EXECUTE ON FUNCTION check_student_number_available(TEXT) TO authenticated,
 
 
 
+

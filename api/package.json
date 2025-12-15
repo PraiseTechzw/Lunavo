@@ -1,0 +1,20 @@
+{
+  "name": "lunavo-push-notification-api",
+  "version": "1.0.0",
+  "description": "Push notification API using Firebase Admin SDK",
+  "main": "push-notification.ts",
+  "scripts": {
+    "dev": "tsx watch push-notification.ts",
+    "build": "tsc",
+    "start": "node dist/push-notification.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "@supabase/supabase-js": "^2.87.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.2"
+  }
+}

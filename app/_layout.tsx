@@ -259,6 +259,13 @@ export default function RootLayout() {
           safeNavigateRole('/student-affairs/dashboard');
           return;
         }
+
+        // Special case: Peer Educator Executives should not access regular peer educator dashboard
+        if (role === 'peer-educator-executive' && currentRoute === 'peer-educator/dashboard') {
+          console.log('[Role Guard] Peer Educator Executive accessing regular dashboard - redirecting to executive dashboard');
+          safeNavigateRole('/peer-educator/executive/dashboard');
+          return;
+        }
       } catch (error) {
         console.error('Error checking role access:', error);
       }

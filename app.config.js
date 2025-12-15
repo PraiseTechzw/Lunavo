@@ -27,7 +27,8 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.camusmarketzw.Lunavo"
+      package: "com.camusmarketzw.Lunavo",
+      googleServicesFile: "./google-services.json"
     },
     web: {
       output: "static",
