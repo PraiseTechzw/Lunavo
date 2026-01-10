@@ -7,12 +7,12 @@ require('dotenv').config();
 
 module.exports = {
   expo: {
-    name: "Lunavo",
-    slug: "Lunavo",
+    name: "PEACE",
+    slug: "peace-app",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "lunavo",
+    scheme: "peace",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -27,7 +27,7 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.camusmarketzw.Lunavo"
+      package: "com.peaceclub.app"
     },
     web: {
       output: "static",
