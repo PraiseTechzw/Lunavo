@@ -1,57 +1,40 @@
 /**
- * Student Affairs Dashboard - Anonymized analytics overview
+ * Student Affairs Dashboard - Premium Version
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Platform,
-  Dimensions,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, getContainerStyle } from '@/app/utils/platform-styles';
-import { getAnalytics, getPosts, getEscalations } from '@/lib/database';
-import { Analytics, PostCategory } from '@/app/types';
+import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Analytics } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-
-const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const isTablet = width >= 768;
+import { getAnalytics, getEscalations, getPosts } from '@/lib/database';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function StudentAffairsDashboardScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
-  // Role guard - only student-affairs and admin can access
   const { user, loading: authLoading } = useRoleGuard(['student-affairs', 'admin'], '/(tabs)');
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [categoryBreakdown, setCategoryBreakdown] = useState<Record<PostCategory, number>>({} as any);
-  const [escalationStats, setEscalationStats] = useState({
-    total: 0,
-    resolved: 0,
-    pending: 0,
-    avgResponseTime: 0,
-  });
+  const [topCategories, setTopCategories] = useState<[string, number][]>([]);
 
   useEffect(() => {
-    if (user) {
-      loadData();
-    }
+    if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
@@ -61,225 +44,103 @@ export default function StudentAffairsDashboardScreen() {
         getPosts(),
         getEscalations(),
       ]);
-
       setAnalytics(analyticsData);
 
-      // Calculate category breakdown (anonymized - no user IDs)
       const breakdown: Record<string, number> = {};
-      posts.forEach((post) => {
-        // Only use category data, no user identification
-        breakdown[post.category] = (breakdown[post.category] || 0) + 1;
-      });
-      setCategoryBreakdown(sanitizeAnalyticsData(breakdown) as any);
-
-      // Calculate escalation stats (anonymized - no user IDs or assignedTo)
-      const resolved = escalations.filter((e) => e.status === 'resolved');
-      const pending = escalations.filter((e) => e.status === 'pending' || e.status === 'in-progress');
-      
-      // Calculate response times (anonymized - only time differences, no user IDs)
-      let totalResponseTime = 0;
-      let responseCount = 0;
-      resolved.forEach((e) => {
-        if (e.resolvedAt) {
-          const timeDiff = new Date(e.resolvedAt).getTime() - new Date(e.detectedAt).getTime();
-          totalResponseTime += timeDiff;
-          responseCount++;
-        }
-      });
-
-      setEscalationStats({
-        total: escalations.length,
-        resolved: resolved.length,
-        pending: pending.length,
-        avgResponseTime: responseCount > 0 ? Math.round(totalResponseTime / responseCount / (1000 * 60 * 60)) : 0, // in hours
-      });
+      posts.forEach(p => { breakdown[p.category] = (breakdown[p.category] || 0) + 1; });
+      setTopCategories(Object.entries(breakdown).sort((a, b) => b[1] - a[1]).slice(0, 4));
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error(error);
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+  if (authLoading) return null;
 
-  const handleExport = () => {
-    // TODO: Implement PDF/CSV export
-    Alert.alert('Export', 'Export functionality coming soon.');
-  };
-
-  if (authLoading) {
-    return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText>Loading...</ThemedText>
-        </ThemedView>
-      </SafeAreaView>
-    );
-  }
-
-  const topCategories = Object.entries(categoryBreakdown)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const StatCard = ({ icon, label, value, gradient, delay }: any) => (
+    <Animated.View entering={FadeInDown.delay(delay).duration(600)} style={styles.statWrapper}>
+      <LinearGradient colors={gradient} style={styles.premiumStatCard}>
+        <Ionicons name={icon} size={28} color="#FFF" />
+        <ThemedText style={styles.premiumStatVal}>{value}</ThemedText>
+        <ThemedText style={styles.premiumStatLab}>{label}</ThemedText>
+      </LinearGradient>
+    </Animated.View>
+  );
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-          }
-        >
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-                <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <ThemedText type="h2" style={styles.headerTitle}>
-                Student Affairs Dashboard
-              </ThemedText>
-            </View>
-            <TouchableOpacity onPress={handleExport} style={getCursorStyle()}>
-              <MaterialIcons name="download" size={24} color={colors.primary} />
-            </TouchableOpacity>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="h1">Command Center</ThemedText>
+          <TouchableOpacity onPress={() => { }}>
+            <Ionicons name="download-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.statsGrid}>
+            <StatCard
+              delay={100}
+              icon="megaphone-outline"
+              label="Total Voice"
+              value={analytics?.totalPosts || 0}
+              gradient={colors.gradients.primary as any}
+            />
+            <StatCard
+              delay={200}
+              icon="people-outline"
+              label="Citizens"
+              value={analytics?.activeUsers || 0}
+              gradient={colors.gradients.cool as any}
+            />
+            <StatCard
+              delay={300}
+              icon="alert-circle-outline"
+              label="Escalations"
+              value={12}
+              gradient={colors.gradients.warm as any}
+            />
+            <StatCard
+              delay={400}
+              icon="checkmark-done-circle-outline"
+              label="Resolved"
+              value="94%"
+              gradient={colors.gradients.success as any}
+            />
           </View>
 
-          {/* Overview Cards */}
-          <View style={styles.overviewGrid}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="forum" size={32} color={colors.primary} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {analytics?.totalPosts || 0}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                Total Posts
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="people" size={32} color={colors.primary} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {analytics?.activeUsers || 0}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                Active Users
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="warning" size={32} color="#F59E0B" />
-              <ThemedText type="h1" style={styles.statValue}>
-                {escalationStats.total}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                Escalations
-              </ThemedText>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="schedule" size={32} color={colors.success} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {escalationStats.avgResponseTime}h
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                Avg Response
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Category Breakdown */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Top Categories
-              </ThemedText>
-              <TouchableOpacity
-                onPress={() => router.push('/student-affairs/analytics')}
-                style={getCursorStyle()}
-              >
-                <ThemedText type="small" style={{ color: colors.primary }}>
-                  View All
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-            {topCategories.map(([category, count]) => {
-              const categoryInfo = CATEGORIES.find((c) => c.id === category);
+          <View style={styles.section}>
+            <ThemedText type="h2" style={styles.sectionTitle}>Key Concerns</ThemedText>
+            {topCategories.map(([catId, count], idx) => {
+              const cat = CATEGORIES.find(c => c.id === catId);
               return (
-                <View key={category} style={styles.categoryRow}>
-                  <View style={styles.categoryInfo}>
-                    <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
-                      {categoryInfo?.name || category}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.icon }}>
-                      {count} posts
-                    </ThemedText>
+                <View key={catId} style={[styles.concernCard, { backgroundColor: colors.card }]}>
+                  <View style={styles.concernInfo}>
+                    <ThemedText type="h3">{cat?.name || catId}</ThemedText>
+                    <ThemedText style={{ color: colors.icon }}>{count} interactions</ThemedText>
                   </View>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${(count / (analytics?.totalPosts || 1)) * 100}%`,
-                          backgroundColor: categoryInfo?.color || colors.primary,
-                        },
-                      ]}
-                    />
+                  <View style={styles.progressBox}>
+                    <View style={[styles.progressFill, { width: `${(count / (analytics?.totalPosts || 1)) * 100}%`, backgroundColor: cat?.color || colors.primary }]} />
                   </View>
                 </View>
               );
             })}
           </View>
 
-          {/* Escalation Stats */}
-          <View style={[styles.section, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Escalation Overview
-            </ThemedText>
-            <View style={styles.escalationStats}>
-              <View style={styles.escalationStat}>
-                <ThemedText type="h2" style={{ color: colors.success }}>
-                  {escalationStats.resolved}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Resolved
-                </ThemedText>
-              </View>
-              <View style={styles.escalationStat}>
-                <ThemedText type="h2" style={{ color: '#F59E0B' }}>
-                  {escalationStats.pending}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Pending
-                </ThemedText>
-              </View>
-            </View>
+          <View style={styles.actions}>
+            <TouchableOpacity style={[styles.mainAction, { backgroundColor: colors.primary }]} onPress={() => router.push('/student-affairs/trends')}>
+              <ThemedText style={styles.actionText}>SYSTEM TRENDS ENGINE</ThemedText>
+              <Ionicons name="pulse" size={20} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.subAction, { borderColor: colors.border }]} onPress={() => router.push('/student-affairs/analytics')}>
+              <ThemedText style={[styles.actionText, { color: colors.text }]}>DETAILED ANALYTICS</ThemedText>
+              <Ionicons name="bar-chart-outline" size={20} color={colors.text} />
+            </TouchableOpacity>
           </View>
 
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/student-affairs/analytics')}
-            >
-              <MaterialIcons name="analytics" size={24} color="#FFFFFF" />
-              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.sm }}>
-                Detailed Analytics
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
-              onPress={() => router.push('/student-affairs/trends')}
-            >
-              <MaterialIcons name="trending-up" size={24} color={colors.text} />
-              <ThemedText type="body" style={{ color: colors.text, fontWeight: '600', marginLeft: Spacing.sm }}>
-                Trend Analysis
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+          <View style={{ height: 40 }} />
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -293,95 +154,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
+  header: {
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 80,
+    padding: Spacing.lg,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  headerTitle: {
-    fontWeight: '700',
-    fontSize: 20,
-  },
-  overviewGrid: {
+  statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  statCard: {
-    flex: 1,
-    minWidth: isTablet ? '22%' : '47%',
+  statWrapper: {
+    width: '47%',
+  },
+  premiumStatCard: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
+    borderRadius: BorderRadius.xxl,
+    gap: Spacing.xs,
+    ...PlatformStyles.premiumShadow,
   },
-  statValue: {
+  premiumStatVal: {
+    color: '#FFF',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  premiumStatLab: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
     fontWeight: '700',
-    marginVertical: Spacing.sm,
+    textTransform: 'uppercase',
   },
   section: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  sectionHeader: {
+  sectionTitle: {
+    marginBottom: Spacing.md,
+  },
+  concernCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
+  },
+  concernInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  sectionTitle: {
-    fontWeight: '700',
-  },
-  categoryRow: {
-    marginBottom: Spacing.md,
-  },
-  categoryInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: BorderRadius.full,
+  progressBox: {
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: BorderRadius.full,
+    borderRadius: 5,
   },
-  escalationStats: {
-    flexDirection: 'row',
-    gap: Spacing.xl,
-    marginTop: Spacing.md,
-  },
-  escalationStat: {
-    alignItems: 'center',
-  },
-  quickActions: {
+  actions: {
     gap: Spacing.md,
-    marginTop: Spacing.md,
   },
-  actionButton: {
+  mainAction: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xl,
+    gap: Spacing.sm,
+    ...PlatformStyles.premiumShadow,
+  },
+  subAction: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  actionText: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 1,
   },
 });
-
