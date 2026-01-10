@@ -109,10 +109,10 @@ export default function PeerEducatorDashboardScreen() {
   }
 
   const quickActions = [
-    { id: 'respond', icon: 'message-reply-text', label: 'Respond', route: '/peer-educator/posts', color: '#6366F1' },
+    { id: 'queue', icon: 'account-multiple-plus-outline', label: 'Queue', route: '/peer-educator/queue', color: '#EF4444' },
+    { id: 'respond', icon: 'message-reply-text', label: 'Posts', route: '/peer-educator/posts', color: '#6366F1' },
+    { id: 'log', icon: 'clipboard-check-outline', label: 'Log Hours', route: '/peer-educator/activity-log', color: '#10B981' },
     { id: 'meetings', icon: 'calendar-clock', label: 'Meetings', route: '/peer-educator/meetings', color: '#F59E0B' },
-    { id: 'training', icon: 'school-outline', label: 'Training', route: '/peer-educator/training', color: '#10B981' },
-    { id: 'resources', icon: 'book-open-page-variant', label: 'Resources', route: '/peer-educator/resources', color: '#EC4899' },
   ];
 
   return (

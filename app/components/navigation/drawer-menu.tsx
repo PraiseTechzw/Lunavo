@@ -144,9 +144,9 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
           entering={SlideInRight.duration(300)}
           style={[styles.drawer, { backgroundColor: colors.background }]}
         >
-          {/* User Profile Header */}
+          {/* User Profile Header - Role-Colored */}
           <LinearGradient
-            colors={colors.gradients.primary as any}
+            colors={roleMeta ? [roleMeta.accentColor, roleMeta.accentColor + 'CC'] : (colors.gradients.primary as any)}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.header}

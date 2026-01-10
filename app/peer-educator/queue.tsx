@@ -8,11 +8,12 @@ import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     RefreshControl,
@@ -26,25 +27,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SupportRequest {
     id: string;
-    pseudonym: string;
+    student_pseudonym: string;
     preview: string;
     priority: 'urgent' | 'normal' | 'low';
     category: string;
-    createdAt: Date;
-    status: 'pending' | 'accepted' | 'resolved';
+    created_at: string;
+    status: string;
 }
 
-// Mock data - would come from Supabase in production
-const MOCK_QUEUE: SupportRequest[] = [
-    { id: '1', pseudonym: 'SilentOcean42', preview: 'Feeling overwhelmed with exams...', priority: 'urgent', category: 'Academic Stress', createdAt: new Date(), status: 'pending' },
-    { id: '2', pseudonym: 'QuietMountain', preview: 'Need someone to talk to about...', priority: 'normal', category: 'Loneliness', createdAt: new Date(Date.now() - 3600000), status: 'pending' },
-    { id: '3', pseudonym: 'GentleRiver88', preview: 'Struggling with motivation lately...', priority: 'low', category: 'Motivation', createdAt: new Date(Date.now() - 7200000), status: 'pending' },
-];
-
 const priorityConfig = {
-    urgent: { color: '#EF4444', icon: 'alert-circle', label: 'Urgent' },
-    normal: { color: '#F59E0B', icon: 'clock-outline', label: 'Normal' },
-    low: { color: '#10B981', icon: 'check-circle-outline', label: 'Low' },
+    urgent: { icon: 'alert-circle', color: '#EF4444', label: 'Urgent' },
+    normal: { icon: 'clock-outline', color: '#F59E0B', label: 'Normal' },
+    low: { icon: 'check-circle-outline', color: '#10B981', label: 'Low' },
 };
 
 export default function SupportQueueScreen() {
@@ -54,27 +48,66 @@ export default function SupportQueueScreen() {
 
     const { user, loading } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
 
-    const [queue, setQueue] = useState<SupportRequest[]>(MOCK_QUEUE);
+    const [queue, setQueue] = useState<SupportRequest[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState<'all' | 'urgent' | 'normal'>('all');
+
+    useEffect(() => {
+        if (user) loadQueue();
+    }, [user]);
+
+    const loadQueue = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('support_sessions')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setQueue(data || []);
+        } catch (e) {
+            console.error('Failed to load queue:', e);
+            // Fallback to empty
+            setQueue([]);
+        }
+    };
 
     const filteredQueue = queue.filter((req) => {
         if (filter === 'all') return true;
         return req.priority === filter;
     });
 
-    const handleAccept = (request: SupportRequest) => {
+    const handleAccept = async (request: SupportRequest) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
             'Accept Request',
-            `Start an anonymous chat session with ${request.pseudonym}?`,
+            `Start an anonymous chat session with ${request.student_pseudonym}?`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Start Session',
-                    onPress: () => {
-                        // Would navigate to chat session
-                        router.push(`/peer-educator/session/${request.id}` as any);
+                    onPress: async () => {
+                        try {
+                            // Update session status in database
+                            const { error } = await supabase
+                                .from('support_sessions')
+                                .update({
+                                    status: 'active',
+                                    educator_id: user?.id,
+                                    accepted_at: new Date().toISOString()
+                                })
+                                .eq('id', request.id);
+
+                            if (error) throw error;
+
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            // Navigate to chat session
+                            router.push(`/peer-educator/session/${request.id}` as any);
+                        } catch (e) {
+                            console.error('Failed to accept session:', e);
+                            Alert.alert('Error', 'Failed to accept session. Please try again.');
+                        }
                     },
                 },
             ]
@@ -84,8 +117,7 @@ export default function SupportQueueScreen() {
     const handleRefresh = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setRefreshing(true);
-        // Simulate reload
-        await new Promise((r) => setTimeout(r, 1000));
+        await loadQueue();
         setRefreshing(false);
     };
 
@@ -179,7 +211,7 @@ export default function SupportQueueScreen() {
                                                 <MaterialCommunityIcons name="account-circle" size={40} color={colors.icon} />
                                             </View>
                                             <View style={styles.cardContent}>
-                                                <ThemedText style={styles.pseudonym}>{request.pseudonym}</ThemedText>
+                                                <ThemedText style={styles.pseudonym}>{request.student_pseudonym}</ThemedText>
                                                 <ThemedText style={[styles.preview, { color: colors.icon }]} numberOfLines={2}>
                                                     "{request.preview}"
                                                 </ThemedText>
@@ -188,7 +220,7 @@ export default function SupportQueueScreen() {
 
                                         <View style={styles.cardFooter}>
                                             <ThemedText style={[styles.timeAgo, { color: colors.icon }]}>
-                                                {Math.round((Date.now() - request.createdAt.getTime()) / 60000)} min ago
+                                                {Math.round((Date.now() - new Date(request.created_at).getTime()) / 60000)} min ago
                                             </ThemedText>
                                             <View style={[styles.acceptBtn, { backgroundColor: colors.primary }]}>
                                                 <ThemedText style={styles.acceptText}>Accept</ThemedText>
