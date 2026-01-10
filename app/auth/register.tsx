@@ -76,6 +76,24 @@ export default function RegisterScreen() {
     );
   }, []);
 
+  // Button press animation
+  const buttonScale = useSharedValue(1);
+  const buttonOpacity = useSharedValue(1);
+
+  const animateButtonPress = () => {
+    buttonScale.value = withTiming(0.95, { duration: 100 }, () => {
+      buttonScale.value = withTiming(1, { duration: 200, easing: Easing.elastic(1.2) });
+    });
+    buttonOpacity.value = withTiming(0.8, { duration: 100 }, () => {
+      buttonOpacity.value = withTiming(1, { duration: 200 });
+    });
+  };
+
+  const animatedButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+    opacity: buttonOpacity.value,
+  }));
+
   const blob1Style = useAnimatedStyle(() => ({
     transform: [
       { translateY: interpolate(floatValue.value, [0, 1], [0, 60]) },
@@ -185,6 +203,16 @@ export default function RegisterScreen() {
       Alert.alert('Error', e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleButtonPress = () => {
+    animateButtonPress();
+    if (step === 4) {
+      // Delay the actual registration to let animation play
+      setTimeout(handleRegister, 150);
+    } else {
+      setTimeout(() => setStep((step + 1) as any), 150);
     }
   };
 
@@ -369,14 +397,17 @@ export default function RegisterScreen() {
                     <ThemedText>Back</ThemedText>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity
-                  style={[styles.primaryBtnWrapper, { flex: 1 }]}
-                  onPress={step === 4 ? handleRegister : () => setStep((step + 1) as any)}
-                >
-                  <LinearGradient colors={colors.gradients.primary as any} style={styles.primaryBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                    {loading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.btnText}>{step === 4 ? 'ESTABLISH LINK' : 'CONTINUE'}</ThemedText>}
-                  </LinearGradient>
-                </TouchableOpacity>
+                <Animated.View style={[styles.primaryBtnWrapper, { flex: 1 }, animatedButtonStyle]}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={handleButtonPress}
+                    disabled={loading}
+                  >
+                    <LinearGradient colors={colors.gradients.primary as any} style={styles.primaryBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                      {loading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.btnText}>{step === 4 ? 'ESTABLISH LINK' : 'CONTINUE'}</ThemedText>}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
             </Animated.View>
 
