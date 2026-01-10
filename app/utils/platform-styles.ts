@@ -3,7 +3,7 @@
  * Helps create styles that work well on web, Windows, iOS, and Android
  */
 
-import { Platform, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 /**
  * Create shadow styles that work across all platforms
@@ -49,7 +49,7 @@ export function createInputStyle(): TextStyle {
     return {
       outlineStyle: 'none',
       WebkitAppearance: 'none',
-    } as TextStyle;
+    } as any;
   }
   return {};
 }
@@ -87,7 +87,7 @@ export function getScrollViewStyle(): ViewStyle {
   if (Platform.OS === 'web') {
     return {
       scrollbarWidth: 'thin',
-      scrollbarColor: '#C0C0C0 transparent',
+      scrollbarColor: '#94a3b8 transparent',
     } as ViewStyle;
   }
   return {};

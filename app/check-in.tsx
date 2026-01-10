@@ -1,42 +1,33 @@
 /**
- * Daily Check-In Screen
+ * Daily Check-In Screen - Premium Version
  */
 
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { saveCheckIn } from '@/app/utils/storage';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Slider,
   Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import { saveCheckIn } from '@/app/utils/storage';
 
 const moods = [
-  { id: 'awesome', iconName: 'sentiment-very-satisfied', iconFamily: 'MaterialIcons', label: 'Awesome', color: '#4CAF50' },
-  { id: 'good', iconName: 'sentiment-very-satisfied', iconFamily: 'MaterialIcons', label: 'Good', color: '#8BC34A' },
-  { id: 'okay', iconName: 'sentiment-neutral', iconFamily: 'MaterialIcons', label: 'Okay', color: '#FF9800' },
-  { id: 'not-great', iconName: 'sentiment-dissatisfied', iconFamily: 'MaterialIcons', label: 'Not Great', color: '#FF5722' },
-  { id: 'awful', iconName: 'sentiment-very-dissatisfied', iconFamily: 'MaterialIcons', label: 'Awful', color: '#F44336' },
-];
-
-const feelingStrengths = [
-  'Not at all',
-  'A little bit',
-  'Somewhat',
-  'Quite a bit',
-  'Very much',
+  { id: 'terrible', emoji: '😫', label: 'Awful', color: '#EF4444' },
+  { id: 'bad', emoji: '😔', label: 'Down', color: '#F97316' },
+  { id: 'okay', emoji: '😐', label: 'Fine', color: '#FBBF24' },
+  { id: 'good', emoji: '😊', label: 'Good', color: '#84CC16' },
+  { id: 'awesome', emoji: '🤩', label: 'Great', color: '#10B981' },
 ];
 
 export default function CheckInScreen() {
@@ -44,261 +35,209 @@ export default function CheckInScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [feelingStrength, setFeelingStrength] = useState(1);
   const [note, setNote] = useState('');
 
   const handleSave = async () => {
     if (!selectedMood) {
-      Alert.alert('Select Mood', 'Please select how you are feeling today.');
+      Alert.alert('Mood Needed', 'Please tell us how you are feeling.');
       return;
     }
 
     try {
       const today = new Date();
-      const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-      
-      const checkIn = {
+      await saveCheckIn({
         id: `checkin-${Date.now()}`,
         mood: selectedMood,
         note: note.trim() || undefined,
-        feelingStrength: Math.round(feelingStrength),
-        date: dateString,
+        date: today.toISOString().split('T')[0],
         timestamp: today.getTime(),
-      };
+      });
 
-      await saveCheckIn(checkIn);
-
-      Alert.alert('Check-In Saved', 'Thank you for checking in. Your thoughts are private.', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      router.back();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save check-in. Please try again.');
+      Alert.alert('Error', 'Could not save check-in.');
     }
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="h2" style={styles.title}>
-            Daily Check-In
-          </ThemedText>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
+          <ThemedText type="h1">How are you?</ThemedText>
+          <View style={{ width: 44 }} />
         </View>
 
-        {/* Mood Selection */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            How are you feeling today?
-          </ThemedText>
-          <View style={styles.moodContainer}>
-            {moods.map((mood) => (
-              <TouchableOpacity
-                key={mood.id}
-                style={[
-                  styles.moodOption,
-                  {
-                    borderColor:
-                      selectedMood === mood.id ? colors.primary : colors.border,
-                    borderWidth: selectedMood === mood.id ? 3 : 1,
-                  },
-                ]}
-                onPress={() => setSelectedMood(mood.id)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.moodIconContainer, { backgroundColor: mood.color + '20' }]}>
-                  {mood.iconFamily === 'MaterialIcons' ? (
-                    <MaterialIcons name={mood.iconName as any} size={32} color={mood.color} />
-                  ) : (
-                    <Ionicons name={mood.iconName as any} size={32} color={mood.color} />
-                  )}
-                </View>
-                <ThemedText type="small" style={styles.moodLabel}>
-                  {mood.label}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <ThemedText style={styles.subtitle}>Checking in daily helps track your wellbeing journey.</ThemedText>
+
+          <View style={styles.moodGrid}>
+            {moods.map((mood, idx) => {
+              const isSelected = selectedMood === mood.id;
+              return (
+                <Animated.View key={mood.id} entering={FadeInDown.delay(100 + idx * 100)}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedMood(mood.id)}
+                    style={[
+                      styles.moodCard,
+                      { backgroundColor: colors.card, borderColor: isSelected ? mood.color : colors.border },
+                      isSelected && { ...PlatformStyles.shadow, borderTransform: [{ scale: 1.05 }] }
+                    ]}
+                  >
+                    <ThemedText style={styles.moodEmoji}>{mood.emoji}</ThemedText>
+                    <ThemedText style={[styles.moodLabel, isSelected && { color: mood.color, fontWeight: '800' }]}>{mood.label}</ThemedText>
+                    {isSelected && (
+                      <View style={[styles.checkBadge, { backgroundColor: mood.color }]}>
+                        <Ionicons name="checkmark" size={10} color="#FFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
           </View>
-        </View>
 
-        {/* Feeling Strength */}
-        {selectedMood && (
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              How strong is this feeling?
-            </ThemedText>
-            <View style={styles.sliderContainer}>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={4}
-                step={1}
-                value={feelingStrength}
-                onValueChange={setFeelingStrength}
-                minimumTrackTintColor={colors.primary}
-                maximumTrackTintColor={colors.border}
-                thumbTintColor={colors.primary}
-              />
-              <ThemedText type="body" style={styles.sliderValue}>
-                {feelingStrengths[Math.round(feelingStrength)]}
-              </ThemedText>
+          <Animated.View entering={FadeInDown.delay(700)} style={styles.section}>
+            <ThemedText type="h2" style={styles.sectionTitle}>Add a private note</ThemedText>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              placeholder="What's making your day feel this way? (Optional)"
+              placeholderTextColor={colors.icon}
+              multiline
+              value={note}
+              onChangeText={setNote}
+            />
+            <View style={styles.privacyBanner}>
+              <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+              <ThemedText style={styles.privacyText}>This note is only visible to you.</ThemedText>
             </View>
-          </View>
-        )}
+          </Animated.View>
 
-        {/* Private Note */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Add a private note...
-          </ThemedText>
-          <TextInput
-            style={[
-              styles.noteInput,
-              createInputStyle(),
-              {
-                backgroundColor: colors.surface,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="Want to share more? What's on your mind?"
-            placeholderTextColor={colors.icon}
-            value={note}
-            onChangeText={setNote}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={colors.icon} />
-            <ThemedText type="small" style={styles.privacyText}>
-              Your thoughts are always private.
-            </ThemedText>
+          <View style={styles.footer}>
+            <TouchableOpacity
+              disabled={!selectedMood}
+              onPress={handleSave}
+              style={styles.saveBtnWrapper}
+            >
+              <LinearGradient
+                colors={selectedMood ? (colors.gradients.primary as any) : ['#94A3B8', '#64748B']}
+                style={styles.saveBtn}
+              >
+                <ThemedText style={styles.saveText}>FINISH CHECK-IN</ThemedText>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Save Button */}
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: colors.primary,
-              opacity: selectedMood ? 1 : 0.5,
-            },
-          ]}
-          onPress={handleSave}
-          disabled={!selectedMood}
-          activeOpacity={0.8}
-        >
-          <ThemedText type="body" style={[styles.saveButtonText, { color: '#FFFFFF' }]}>
-            Save Check-In
-          </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
       </ThemedView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeAreaTop: {
+  safeArea: {
     flex: 1,
   },
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
+  header: {
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
-  header: {
+  subtitle: {
+    textAlign: 'center',
+    opacity: 0.6,
+    marginBottom: Spacing.xxl,
+  },
+  moodGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.xxl,
   },
-  title: {
-    fontWeight: '700',
+  moodCard: {
+    width: 100,
+    height: 120,
+    borderRadius: BorderRadius.xxl,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  moodEmoji: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  moodLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginTop: Spacing.xl,
   },
   sectionTitle: {
     marginBottom: Spacing.md,
-    fontWeight: '600',
   },
-  moodContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  moodOption: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: '#FFFFFF',
-  },
-  moodIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  moodLabel: {
-    fontWeight: '500',
-  },
-  sliderContainer: {
-    marginTop: Spacing.md,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderValue: {
-    textAlign: 'right',
-    marginTop: Spacing.sm,
-    fontWeight: '600',
-  },
-  noteInput: {
+  input: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    height: 150,
     borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    minHeight: 120,
-    marginBottom: Spacing.sm,
+    textAlignVertical: 'top',
+    fontSize: 16,
   },
-  privacyNote: {
+  privacyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 8,
+    marginTop: 12,
+    opacity: 0.6,
   },
   privacyText: {
-    opacity: 0.7,
+    fontSize: 12,
   },
-  saveButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+  footer: {
+    marginTop: 40,
+    marginBottom: 60,
+  },
+  saveBtnWrapper: {
+    ...PlatformStyles.premiumShadow,
+  },
+  saveBtn: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
     alignItems: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xl,
   },
-  saveButtonText: {
-    fontWeight: '600',
+  saveText: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 2,
   },
 });
-

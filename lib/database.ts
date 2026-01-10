@@ -244,6 +244,15 @@ export async function getUsers(limit?: number): Promise<User[]> {
   return (data || []).map(mapUserFromDB);
 }
 
+export async function getUserCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) throw error;
+  return count || 0;
+}
+
 // ============================================
 // POST OPERATIONS
 // ============================================

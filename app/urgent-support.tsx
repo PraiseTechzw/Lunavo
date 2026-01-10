@@ -99,7 +99,7 @@ export default function UrgentSupportScreen() {
                   </View>
                   <View style={styles.callIcon}>
                     <Ionicons name="call" size={20} color={res.color} />
-                  </ThemedText>
+                  </View>
                 </TouchableOpacity>
               </Animated.View>
             ))}

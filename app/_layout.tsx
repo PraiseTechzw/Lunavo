@@ -63,10 +63,20 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === 'onboarding';
     const inWebRequired = segments[0] === 'web-required';
 
-    if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
-      // Redirect to login if not authenticated
+    // 1. Mandatory Onboarding for unauthenticated users
+    if (!isAuthenticated && isOnboardingComplete === false && !inOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+
+    // 2. Redirect to Login if onboarding is done but not authenticated
+    if (!isAuthenticated && isOnboardingComplete === true && !inAuthGroup && !inOnboarding) {
       router.replace('/auth/login');
-    } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
+      return;
+    }
+
+    // 3. Authenticated User Redirection
+    if (isAuthenticated && (inAuthGroup || inOnboarding)) {
       // Load user role and redirect to appropriate default route
       getCurrentUser().then(user => {
         if (user) {
@@ -187,12 +197,10 @@ export default function RootLayout() {
             },
           }}
         >
-          {!isOnboardingComplete && (
-            <Stack.Screen
-              name="onboarding"
-              options={{ headerShown: false }}
-            />
-          )}
+          <Stack.Screen
+            name="onboarding"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="auth"
             options={{ headerShown: false }}

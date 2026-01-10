@@ -1,27 +1,38 @@
 /**
- * CUT Student Verification Screen
+ * Premium CUT Student Verification Screen
  */
 
-import { useState } from 'react';
+import { PEACELogo } from '@/app/components/peace-logo';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { verifyStudent } from '@/lib/auth';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  FadeInDown,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { verifyStudent } from '@/lib/auth';
-import { getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
 
 const DEPARTMENTS = [
   'Applied Sciences',
@@ -30,67 +41,60 @@ const DEPARTMENTS = [
   'Information Technology',
   'Social Sciences',
   'Education',
-  'Other',
 ];
-
-const YEARS = [1, 2, 3, 4, 5];
 
 export default function VerifyStudentScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [studentNumber, setStudentNumber] = useState('');
-  const [name, setName] = useState('');
-  const [department, setDepartment] = useState('');
-  const [year, setYear] = useState<number | null>(null);
+
+  const [formData, setFormData] = useState({
+    studentNumber: '',
+    name: '',
+    department: '',
+    year: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
 
+  // Background animation
+  const floatValue = useSharedValue(0);
+  useEffect(() => {
+    floatValue.value = withRepeat(
+      withTiming(1, { duration: 18000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const blobStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(floatValue.value, [0, 1], [0, 100]) },
+      { translateY: interpolate(floatValue.value, [0, 1], [0, 50]) }
+    ]
+  }));
+
   const handleVerify = async () => {
-    if (!studentNumber.trim() || !name.trim()) {
-      Alert.alert('Error', 'Please enter your student number and name');
-      return;
-    }
-
-    if (!department) {
-      Alert.alert('Error', 'Please select your department');
-      return;
-    }
-
-    if (!year) {
-      Alert.alert('Error', 'Please select your year of study');
+    if (!formData.studentNumber || !formData.name || !formData.department || !formData.year) {
+      Alert.alert('Missing Info', 'Please complete the verification profile.');
       return;
     }
 
     setLoading(true);
     try {
       const { verified: isVerified, error } = await verifyStudent(
-        studentNumber.trim(),
-        name.trim(),
-        department,
-        year
+        formData.studentNumber,
+        formData.name,
+        formData.department,
+        formData.year
       );
-
-      if (error) {
-        Alert.alert('Verification Failed', error.message || 'Could not verify student. Please try again.');
-        return;
-      }
-
+      if (error) throw error;
       if (isVerified) {
         setVerified(true);
-        Alert.alert(
-          'Verification Successful',
-          'Your CUT student status has been verified.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.back(),
-            },
-          ]
-        );
+        setTimeout(() => router.replace('/(tabs)'), 2000);
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'An error occurred. Please try again.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     } finally {
       setLoading(false);
     }
@@ -98,318 +102,259 @@ export default function VerifyStudentScreen() {
 
   if (verified) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <ThemedView style={styles.container}>
-          <View style={styles.verifiedContainer}>
-            <View style={[styles.iconCircle, { backgroundColor: '#10B981' + '20' }]}>
-              <MaterialIcons name="check-circle" size={64} color="#10B981" />
-            </View>
-            <ThemedText type="h2" style={styles.verifiedTitle}>
-              Verified!
-            </ThemedText>
-            <ThemedText type="body" style={[styles.verifiedText, { color: colors.icon }]}>
-              Your CUT student status has been verified.
-            </ThemedText>
-          </View>
-        </ThemedView>
-      </SafeAreaView>
+      <ThemedView style={styles.container}>
+        {/* Particle-like success background */}
+        <View style={styles.background}>
+          <LinearGradient colors={[colors.success, colors.primary]} style={[styles.blob, { top: '30%', left: '10%', opacity: 0.15 }]} />
+        </View>
+        <View style={styles.verifiedCenter}>
+          <Animated.View entering={FadeInDown.springify()} style={styles.successCircle}>
+            <Ionicons name="checkmark-circle" size={120} color={colors.success} />
+          </Animated.View>
+          <ThemedText type="h1" style={styles.successTitle}>Access Granted</ThemedText>
+          <ThemedText style={styles.successSubtitle}>Your academic status is verified. Welcome to the HUB.</ThemedText>
+        </View>
+      </ThemedView>
     );
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={[styles.backButton, getCursorStyle()]}
-              >
-                <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <View style={[styles.iconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
-                <MaterialIcons name="school" size={48} color="#3B82F6" />
-              </View>
-              <ThemedText type="h1" style={styles.title}>
-                Verify Student Status
-              </ThemedText>
-              <ThemedText type="body" style={[styles.subtitle, { color: colors.icon }]}>
-                Verify your Chinhoyi University of Technology student status
-              </ThemedText>
-            </View>
+    <ThemedView style={styles.container}>
+      {/* Animated Background Blobs */}
+      <View style={styles.background}>
+        <Animated.View style={[styles.blobWrapper, blobStyle, { top: -100, left: -100 }]}>
+          <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.blob} />
+        </Animated.View>
+      </View>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Student Number */}
-              <View style={styles.inputContainer}>
-                <ThemedText type="small" style={[styles.label, { color: colors.text }]}>
-                  Student Number *
-                </ThemedText>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <MaterialIcons name="badge" size={20} color={colors.icon} style={styles.inputIcon} />
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+            <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
+              <PEACELogo size={90} />
+              <ThemedText type="h2" style={styles.title}>Academic Verification</ThemedText>
+              <ThemedText style={styles.subtitle}>We need to verify you are a valid CUT student to maintain community integrity.</ThemedText>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(400).duration(800)} style={[styles.card, { backgroundColor: colors.card }]}>
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Full Name</ThemedText>
+                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                  <Ionicons name="person-outline" size={20} color={colors.icon} />
                   <TextInput
-                    style={[styles.input, { color: colors.text }, createInputStyle()]}
-                    placeholder="Enter your student number"
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="As on student ID"
                     placeholderTextColor={colors.icon}
-                    value={studentNumber}
-                    onChangeText={setStudentNumber}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
+                    value={formData.name}
+                    onChangeText={v => setFormData({ ...formData, name: v })}
                   />
                 </View>
               </View>
 
-              {/* Name */}
-              <View style={styles.inputContainer}>
-                <ThemedText type="small" style={[styles.label, { color: colors.text }]}>
-                  Full Name *
-                </ThemedText>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <MaterialIcons name="person" size={20} color={colors.icon} style={styles.inputIcon} />
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Student ID Number</ThemedText>
+                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                  <Ionicons name="badge-outline" size={20} color={colors.icon} />
                   <TextInput
-                    style={[styles.input, { color: colors.text }, createInputStyle()]}
-                    placeholder="Enter your full name"
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="C23XXXXX"
                     placeholderTextColor={colors.icon}
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    editable={!loading}
+                    value={formData.studentNumber}
+                    onChangeText={v => setFormData({ ...formData, studentNumber: v })}
                   />
                 </View>
               </View>
 
-              {/* Department */}
-              <View style={styles.inputContainer}>
-                <ThemedText type="small" style={[styles.label, { color: colors.text }]}>
-                  Department/Faculty *
-                </ThemedText>
-                <View style={styles.pickerContainer}>
-                  {DEPARTMENTS.map((dept) => (
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Department</ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+                  {DEPARTMENTS.map(d => (
                     <TouchableOpacity
-                      key={dept}
-                      style={[
-                        styles.pickerOption,
-                        {
-                          backgroundColor: department === dept ? colors.primary + '20' : colors.surface,
-                          borderColor: department === dept ? colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setDepartment(dept)}
-                      disabled={loading}
+                      key={d}
+                      onPress={() => setFormData({ ...formData, department: d })}
+                      style={[styles.chip, {
+                        borderColor: formData.department === d ? colors.primary : colors.border,
+                        backgroundColor: formData.department === d ? colors.primary : 'transparent',
+                        transform: [{ scale: formData.department === d ? 1.05 : 1 }]
+                      }]}
                     >
-                      <ThemedText
-                        type="body"
-                        style={{
-                          color: department === dept ? colors.primary : colors.text,
-                          fontWeight: department === dept ? '600' : '400',
-                        }}
-                      >
-                        {dept}
-                      </ThemedText>
-                      {department === dept && (
-                        <MaterialIcons name="check" size={20} color={colors.primary} />
-                      )}
+                      <ThemedText style={{ color: formData.department === d ? '#FFF' : colors.text, fontSize: 12, fontWeight: '700' }}>{d}</ThemedText>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               </View>
 
-              {/* Year of Study */}
-              <View style={styles.inputContainer}>
-                <ThemedText type="small" style={[styles.label, { color: colors.text }]}>
-                  Year of Study *
-                </ThemedText>
-                <View style={styles.yearContainer}>
-                  {YEARS.map((y) => (
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Year of Study</ThemedText>
+                <View style={styles.yearRow}>
+                  {[1, 2, 3, 4, 5].map(y => (
                     <TouchableOpacity
                       key={y}
-                      style={[
-                        styles.yearOption,
-                        {
-                          backgroundColor: year === y ? colors.primary : colors.surface,
-                          borderColor: year === y ? colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setYear(y)}
-                      disabled={loading}
+                      onPress={() => setFormData({ ...formData, year: y })}
+                      style={[styles.yearBox, {
+                        borderColor: formData.year === y ? colors.primary : colors.border,
+                        backgroundColor: formData.year === y ? colors.primary : 'transparent',
+                        transform: [{ scale: formData.year === y ? 1.1 : 1 }]
+                      }]}
                     >
-                      <ThemedText
-                        type="body"
-                        style={{
-                          color: year === y ? '#FFFFFF' : colors.text,
-                          fontWeight: '600',
-                        }}
-                      >
-                        Year {y}
-                      </ThemedText>
+                      <ThemedText style={{ color: formData.year === y ? '#FFF' : colors.text, fontWeight: '700' }}>{y}</ThemedText>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              {/* Verify Button */}
               <TouchableOpacity
-                style={[
-                  styles.verifyButton,
-                  { backgroundColor: colors.primary },
-                  loading && styles.buttonDisabled,
-                ]}
                 onPress={handleVerify}
                 disabled={loading}
-                activeOpacity={0.8}
+                style={styles.verifyBtnWrapper}
               >
-                {loading ? (
-                  <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                    Verifying...
-                  </ThemedText>
-                ) : (
-                  <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                    Verify Student Status
-                  </ThemedText>
-                )}
+                <LinearGradient colors={colors.gradients.primary as any} style={styles.verifyBtn}>
+                  {loading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.btnText}>VALIDATE ACADEMIC LINK</ThemedText>}
+                </LinearGradient>
               </TouchableOpacity>
 
-              <ThemedText type="small" style={[styles.note, { color: colors.icon }]}>
-                * Verification helps us ensure only CUT students can access the platform.
-                Your information is kept confidential and secure.
-              </ThemedText>
-            </View>
+            </Animated.View>
+
+            <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
-      </ThemedView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
   },
-  keyboardView: {
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  blobWrapper: {
+    position: 'absolute',
+    width: 600,
+    height: 600,
+  },
+  blob: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 300,
+    opacity: 0.1,
+  },
+  safeArea: {
     flex: 1,
   },
   scrollContent: {
+    padding: Spacing.xl,
     flexGrow: 1,
-    padding: Spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-    marginTop: Spacing.md,
-  },
-  backButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    padding: Spacing.sm,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: 30,
+    marginTop: 20,
   },
   title: {
-    fontWeight: '700',
-    marginBottom: Spacing.xs,
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 15,
+    letterSpacing: 1,
   },
   subtitle: {
+    fontSize: 14,
+    opacity: 0.6,
     textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 20,
   },
-  form: {
-    width: '100%',
+  card: {
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xxl,
+    ...PlatformStyles.premiumShadow,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  inputContainer: {
+  inputGroup: {
     marginBottom: Spacing.lg,
   },
   label: {
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     marginBottom: Spacing.xs,
+    marginLeft: 4,
+    opacity: 0.7,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    height: 60,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: Spacing.sm,
+    gap: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   input: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 0,
   },
-  pickerContainer: {
-    gap: Spacing.sm,
+  chipScroll: {
+    marginTop: 5,
   },
-  pickerOption: {
+  chip: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 10,
+  },
+  yearRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    marginTop: 5,
+  },
+  yearBox: {
+    width: '18%',
+    height: 50,
+    borderRadius: 12,
     borderWidth: 1,
-  },
-  yearContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  yearOption: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  verifyButton: {
-    height: 56,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    alignItems: 'center',
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  verifyBtnWrapper: {
+    ...PlatformStyles.premiumShadow,
+    marginTop: 30,
   },
-  note: {
-    textAlign: 'center',
-    lineHeight: 20,
+  verifyBtn: {
+    height: 60,
+    borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  verifiedContainer: {
+  btnText: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  verifiedCenter: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
+    alignItems: 'center',
+    padding: 30,
   },
-  verifiedTitle: {
-    fontWeight: '700',
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+  successCircle: {
+    marginBottom: 30,
   },
-  verifiedText: {
+  successTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  successSubtitle: {
     textAlign: 'center',
-  },
+    opacity: 0.6,
+    marginTop: 10,
+    lineHeight: 24,
+  }
 });
-
