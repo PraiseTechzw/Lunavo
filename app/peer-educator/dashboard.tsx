@@ -1,95 +1,109 @@
 /**
- * Premium Peer Educator Dashboard
- * Enhanced with animations, glassmorphism, and haptic feedback
+ * Peer Educator Dashboard - Professional Mobile Design
+ * Clean data-focused layout, no quick action cards
  */
 
 import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Meeting, Post } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { getMeetings, getPosts, getReplies } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface Session {
+  id: string;
+  student_pseudonym: string;
+  category: string;
+  priority: string;
+  created_at: string;
+  status: string;
+}
+
+interface Activity {
+  id: string;
+  activity_type: string;
+  title: string;
+  duration_minutes: number;
+  date: string;
+}
 
 export default function PeerEducatorDashboardScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-
-  const { user, loading: authLoading } = useRoleGuard(
-    ['peer-educator', 'peer-educator-executive', 'admin'],
-    '/(tabs)'
-  );
+  const { user, loading: authLoading } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
 
   const [refreshing, setRefreshing] = useState(false);
-  const [postsNeedingSupport, setPostsNeedingSupport] = useState<Post[]>([]);
-  const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
-  const [stats, setStats] = useState({
-    totalResponses: 0,
-    helpfulResponses: 0,
-    activeThreads: 0,
-    hoursLogged: 12, // Placeholder
-  });
+  const [loading, setLoading] = useState(true);
+  const [pendingSessions, setPendingSessions] = useState<Session[]>([]);
+  const [mySessions, setMySessions] = useState<Session[]>([]);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+  const [stats, setStats] = useState({ helped: 0, hours: 0 });
+
+  const loadData = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      // Pending sessions
+      const { data: pending } = await supabase
+        .from('support_sessions')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      setPendingSessions(pending || []);
+
+      // My active sessions
+      const { data: active } = await supabase
+        .from('support_sessions')
+        .select('*')
+        .eq('educator_id', user.id)
+        .in('status', ['active', 'resolved'])
+        .order('created_at', { ascending: false })
+        .limit(3);
+      setMySessions(active || []);
+
+      // Recent activity
+      const { data: activity } = await supabase
+        .from('pe_activity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(5);
+      setRecentActivity(activity || []);
+
+      // Stats
+      const { count: helpedCount } = await supabase
+        .from('support_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('educator_id', user.id)
+        .eq('status', 'resolved');
+
+      const { data: logs } = await supabase
+        .from('pe_activity_logs')
+        .select('duration_minutes')
+        .eq('user_id', user.id);
+      const totalHours = Math.round((logs?.reduce((s, l) => s + l.duration_minutes, 0) || 0) / 60 * 10) / 10;
+
+      setStats({ helped: helpedCount || 0, hours: totalHours });
+    } catch (e) {
+      console.error('Dashboard load error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (user) loadData();
-  }, [user]);
-
-  const loadData = async () => {
-    try {
-      const [allPosts, meetings] = await Promise.all([getPosts(), getMeetings()]);
-
-      // Get all replies
-      const allReplies = (await Promise.all(allPosts.map((p) => getReplies(p.id)))).flat();
-
-      // Filter posts needing support
-      const postsNeedingHelp = allPosts
-        .filter((post) => {
-          const replies = allReplies.filter((r) => r.postId === post.id);
-          return replies.length === 0 || (replies.length < 2 && post.escalationLevel === 'none');
-        })
-        .slice(0, 5);
-
-      setPostsNeedingSupport(postsNeedingHelp);
-
-      // Upcoming meetings
-      const upcoming = meetings
-        .filter((m) => new Date(m.scheduledDate) >= new Date())
-        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
-        .slice(0, 3);
-      setUpcomingMeetings(upcoming);
-
-      // Stats
-      const myReplies = allReplies.filter((r) => r.authorId === user?.id);
-      const helpfulCount = myReplies.filter((r) => r.isHelpful > 0).length;
-      const activeThreads = new Set(myReplies.map((r) => r.postId)).size;
-
-      setStats({
-        totalResponses: myReplies.length,
-        helpfulResponses: helpfulCount,
-        activeThreads,
-        hoursLogged: 12,
-      });
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-    }
-  };
+  }, [user, loadData]);
 
   const handleRefresh = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -98,231 +112,192 @@ export default function PeerEducatorDashboardScreen() {
     setRefreshing(false);
   };
 
-  if (authLoading) {
+  const priorityColor = (p: string) => p === 'urgent' ? '#EF4444' : p === 'normal' ? '#F59E0B' : '#10B981';
+
+  if (authLoading || loading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={colors.primary} />
-        </ThemedView>
+        </View>
       </SafeAreaView>
     );
   }
 
-  const quickActions = [
-    { id: 'queue', icon: 'account-multiple-plus-outline', label: 'Queue', route: '/peer-educator/queue', color: '#EF4444' },
-    { id: 'respond', icon: 'message-reply-text', label: 'Posts', route: '/peer-educator/posts', color: '#6366F1' },
-    { id: 'log', icon: 'clipboard-check-outline', label: 'Log Hours', route: '/peer-educator/activity-log', color: '#10B981' },
-    { id: 'meetings', icon: 'calendar-clock', label: 'Meetings', route: '/peer-educator/meetings', color: '#F59E0B' },
-  ];
-
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-        >
-          {/* Hero Header */}
-          <Animated.View entering={FadeInDown.duration(600)}>
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6', '#A855F7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroCard}
-            >
-              <View style={styles.heroPattern1} />
-              <View style={styles.heroPattern2} />
-              <MaterialCommunityIcons name="shield-account" size={100} color="rgba(255,255,255,0.08)" style={styles.heroBgIcon} />
-
-              <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-              </TouchableOpacity>
-
-              <View style={styles.heroContent}>
-                <View style={styles.roleBadge}>
-                  <MaterialCommunityIcons name="hand-heart" size={14} color="#FFF" />
-                  <ThemedText style={styles.roleBadgeText}>Peer Educator</ThemedText>
-                </View>
-                <ThemedText style={styles.heroTitle}>Welcome back, {user?.pseudonym?.split(/(?=[A-Z])/)[0] || 'Educator'}!</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>You're making a difference today.</ThemedText>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+      >
+        {/* Header */}
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.header}>
+            <View>
+              <ThemedText style={styles.greeting}>Good day, {user?.pseudonym?.split(/(?=[A-Z])/)[0] || 'Educator'}</ThemedText>
+              <ThemedText style={styles.subGreeting}>Peer Educator Dashboard</ThemedText>
+            </View>
+            <View style={styles.headerStats}>
+              <View style={styles.headerStat}>
+                <ThemedText style={styles.headerStatNum}>{stats.helped}</ThemedText>
+                <ThemedText style={styles.headerStatLabel}>Helped</ThemedText>
               </View>
-            </LinearGradient>
-          </Animated.View>
-
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
-            {[
-              { icon: 'message-text-outline', value: stats.totalResponses, label: 'Responses', color: '#6366F1' },
-              { icon: 'thumb-up-outline', value: stats.helpfulResponses, label: 'Helpful', color: '#10B981' },
-              { icon: 'forum-outline', value: stats.activeThreads, label: 'Threads', color: '#F59E0B' },
-              { icon: 'clock-outline', value: `${stats.hoursLogged}h`, label: 'Logged', color: '#EC4899' },
-            ].map((stat, idx) => (
-              <Animated.View key={stat.label} entering={FadeInDown.delay(200 + idx * 100)} style={styles.statCard}>
-                <View style={[styles.statIconBox, { backgroundColor: stat.color + '15' }]}>
-                  <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
-                </View>
-                <ThemedText style={styles.statValue}>{stat.value}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: colors.icon }]}>{stat.label}</ThemedText>
-              </Animated.View>
-            ))}
-          </View>
-
-          {/* Quick Actions */}
-          <Animated.View entering={FadeInDown.delay(500)}>
-            <ThemedText type="h3" style={styles.sectionTitle}>Quick Actions</ThemedText>
-            <View style={styles.actionsGrid}>
-              {quickActions.map((action, idx) => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(action.route as any);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient colors={[action.color, action.color + 'CC']} style={styles.actionIconBox}>
-                    <MaterialCommunityIcons name={action.icon as any} size={24} color="#FFF" />
-                  </LinearGradient>
-                  <ThemedText style={styles.actionLabel}>{action.label}</ThemedText>
-                </TouchableOpacity>
-              ))}
+              <View style={styles.headerStat}>
+                <ThemedText style={styles.headerStatNum}>{stats.hours}h</ThemedText>
+                <ThemedText style={styles.headerStatLabel}>Logged</ThemedText>
+              </View>
             </View>
-          </Animated.View>
+          </LinearGradient>
+        </Animated.View>
 
-          {/* Posts Needing Support */}
-          <Animated.View entering={FadeInDown.delay(600)} style={[styles.section, { backgroundColor: colors.card }]}>
+        {/* Pending Requests */}
+        <Animated.View entering={FadeInDown.delay(100)}>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="h3">Posts Awaiting Support</ThemedText>
-              <TouchableOpacity onPress={() => router.push('/peer-educator/posts')}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>See All</ThemedText>
-              </TouchableOpacity>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>Pending Requests</ThemedText>
+              <View style={[styles.countBadge, { backgroundColor: pendingSessions.length > 0 ? '#EF4444' : colors.success }]}>
+                <ThemedText style={styles.countText}>{pendingSessions.length}</ThemedText>
+              </View>
             </View>
 
-            {postsNeedingSupport.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons name="check-circle-outline" size={48} color={colors.success} />
-                <ThemedText style={{ color: colors.icon, marginTop: 12 }}>All caught up! Great work. 🎉</ThemedText>
+            {pendingSessions.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="check-circle-outline" size={32} color={colors.success} />
+                <ThemedText style={{ color: colors.icon, marginTop: 8 }}>No pending requests</ThemedText>
               </View>
             ) : (
-              postsNeedingSupport.map((post, idx) => (
-                <Animated.View key={post.id} entering={FadeInRight.delay(idx * 80)}>
-                  <TouchableOpacity
-                    style={[styles.postItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      router.push(`/post/${post.id}`);
-                    }}
-                  >
-                    <View style={styles.postInfo}>
-                      <ThemedText style={styles.postTitle} numberOfLines={1}>{post.title}</ThemedText>
-                      <ThemedText style={[styles.postMeta, { color: colors.icon }]}>
-                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                      </ThemedText>
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.icon} />
-                  </TouchableOpacity>
-                </Animated.View>
-              ))
-            )}
-          </Animated.View>
-
-          {/* Upcoming Meetings */}
-          <Animated.View entering={FadeInDown.delay(700)} style={[styles.section, { backgroundColor: colors.card }]}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3">Upcoming Meetings</ThemedText>
-              <TouchableOpacity onPress={() => router.push('/peer-educator/meetings')}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>See All</ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            {upcomingMeetings.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={colors.icon} />
-                <ThemedText style={{ color: colors.icon, marginTop: 12 }}>No upcoming meetings.</ThemedText>
-              </View>
-            ) : (
-              upcomingMeetings.map((meeting, idx) => (
+              pendingSessions.map((session) => (
                 <TouchableOpacity
-                  key={meeting.id}
-                  style={[styles.meetingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  key={session.id}
+                  style={[styles.sessionCard, { backgroundColor: colors.card, borderLeftColor: priorityColor(session.priority) }]}
                   onPress={() => {
                     Haptics.selectionAsync();
-                    router.push(`/meetings/${meeting.id}`);
+                    router.push('/peer-educator/queue');
                   }}
                 >
-                  <View style={[styles.meetingDateBox, { backgroundColor: colors.primary + '15' }]}>
-                    <ThemedText style={[styles.meetingDay, { color: colors.primary }]}>
-                      {format(new Date(meeting.scheduledDate), 'dd')}
-                    </ThemedText>
-                    <ThemedText style={[styles.meetingMonth, { color: colors.primary }]}>
-                      {format(new Date(meeting.scheduledDate), 'MMM')}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.meetingInfo}>
-                    <ThemedText style={styles.meetingTitle}>{meeting.title}</ThemedText>
-                    <ThemedText style={[styles.meetingTime, { color: colors.icon }]}>
-                      {format(new Date(meeting.scheduledDate), 'HH:mm')} • {meeting.location || 'Online'}
+                  <View style={styles.sessionInfo}>
+                    <ThemedText style={[styles.sessionName, { color: colors.text }]}>{session.student_pseudonym}</ThemedText>
+                    <ThemedText style={[styles.sessionMeta, { color: colors.icon }]}>
+                      {session.category || 'General'} • {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
                     </ThemedText>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={20} color={colors.icon} />
                 </TouchableOpacity>
               ))
             )}
-          </Animated.View>
+          </View>
+        </Animated.View>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </ThemedView>
+        {/* My Sessions */}
+        <Animated.View entering={FadeInDown.delay(200)}>
+          <View style={styles.section}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>My Sessions</ThemedText>
+
+            {mySessions.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="message-off-outline" size={32} color={colors.icon} />
+                <ThemedText style={{ color: colors.icon, marginTop: 8 }}>No active sessions</ThemedText>
+              </View>
+            ) : (
+              mySessions.map((session) => (
+                <View key={session.id} style={[styles.mySessionCard, { backgroundColor: colors.card }]}>
+                  <View style={[styles.statusDot, { backgroundColor: session.status === 'active' ? colors.success : colors.icon }]} />
+                  <View style={styles.sessionInfo}>
+                    <ThemedText style={[styles.sessionName, { color: colors.text }]}>{session.student_pseudonym}</ThemedText>
+                    <ThemedText style={[styles.sessionMeta, { color: colors.icon }]}>{session.status}</ThemedText>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </Animated.View>
+
+        {/* Recent Activity */}
+        <Animated.View entering={FadeInDown.delay(300)}>
+          <View style={styles.section}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</ThemedText>
+
+            {recentActivity.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="clipboard-text-off-outline" size={32} color={colors.icon} />
+                <ThemedText style={{ color: colors.icon, marginTop: 8 }}>No activity logged yet</ThemedText>
+              </View>
+            ) : (
+              recentActivity.map((act) => (
+                <View key={act.id} style={[styles.activityCard, { backgroundColor: colors.card }]}>
+                  <MaterialCommunityIcons
+                    name={act.activity_type === 'session' ? 'message-text' : act.activity_type === 'training' ? 'school' : 'calendar'}
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <ThemedText style={[styles.activityTitle, { color: colors.text }]}>{act.title}</ThemedText>
+                    <ThemedText style={[styles.activityMeta, { color: colors.icon }]}>{act.date}</ThemedText>
+                  </View>
+                  <ThemedText style={[styles.activityDuration, { color: colors.primary }]}>{act.duration_minutes}m</ThemedText>
+                </View>
+              ))
+            )}
+          </View>
+        </Animated.View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  container: { flex: 1 },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: Spacing.lg },
-  heroCard: {
-    borderRadius: BorderRadius.xxl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    overflow: 'hidden',
-    minHeight: 180,
+  container: { padding: Spacing.md },
+  header: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
-  heroPattern1: { position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.05)' },
-  heroPattern2: { position: 'absolute', bottom: -60, left: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
-  heroBgIcon: { position: 'absolute', right: -10, bottom: -20, transform: [{ rotate: '-15deg' }] },
-  backBtn: { position: 'absolute', top: 16, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' },
-  heroContent: { marginTop: 40 },
-  roleBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 6, marginBottom: 12 },
-  roleBadgeText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
-  heroTitle: { color: '#FFF', fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  heroSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: Spacing.xl },
-  statCard: { width: '47%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center', gap: 8 },
-  statIconBox: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: '800' },
-  statLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionTitle: { marginBottom: Spacing.md, fontWeight: '700' },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: Spacing.xl },
-  actionCard: { width: '47%', padding: Spacing.lg, borderRadius: BorderRadius.xl, alignItems: 'center', gap: 10 },
-  actionIconBox: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  actionLabel: { fontWeight: '600', fontSize: 14 },
-  section: { borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.lg },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  emptyState: { alignItems: 'center', paddingVertical: Spacing.xl },
-  postItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: BorderRadius.lg, borderWidth: 1, marginBottom: Spacing.sm },
-  postInfo: { flex: 1 },
-  postTitle: { fontWeight: '600', marginBottom: 4 },
-  postMeta: { fontSize: 12 },
-  meetingItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: BorderRadius.lg, borderWidth: 1, marginBottom: Spacing.sm, gap: 12 },
-  meetingDateBox: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  meetingDay: { fontSize: 18, fontWeight: '800' },
-  meetingMonth: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
-  meetingInfo: { flex: 1 },
-  meetingTitle: { fontWeight: '600', marginBottom: 2 },
-  meetingTime: { fontSize: 12 },
+  greeting: { color: '#FFF', fontSize: 20, fontWeight: '700' },
+  subGreeting: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  headerStats: { flexDirection: 'row', gap: 16 },
+  headerStat: { alignItems: 'center' },
+  headerStatNum: { color: '#FFF', fontSize: 20, fontWeight: '800' },
+  headerStatLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
+  section: { marginBottom: Spacing.lg },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  countText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  emptyCard: { padding: Spacing.xl, borderRadius: BorderRadius.lg, alignItems: 'center' },
+  sessionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderLeftWidth: 3,
+    marginBottom: Spacing.xs,
+    ...PlatformStyles.premiumShadow,
+  },
+  sessionInfo: { flex: 1 },
+  sessionName: { fontWeight: '600', fontSize: 14 },
+  sessionMeta: { fontSize: 12, marginTop: 2 },
+  mySessionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+  },
+  activityTitle: { fontSize: 13, fontWeight: '500' },
+  activityMeta: { fontSize: 11 },
+  activityDuration: { fontSize: 12, fontWeight: '600' },
 });
