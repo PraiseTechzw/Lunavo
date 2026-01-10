@@ -1,6 +1,6 @@
 /**
- * Theme configuration for Lunavo - Anonymous Peer Support Platform
- * Modern, professional color palette designed for mental health support
+ * Theme configuration for PEACE - Peer Education Club Platform
+ * Modern, professional color palette designed for peer support and wellness
  */
 
 import { Platform } from 'react-native';

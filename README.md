@@ -1,8 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" width="100%" alt="Lunavo Banner" />
 
-  # 🌙 Lunavo Platform
+  # 🕊️ PEACE Platform
   **Empowering Student Wellness and Peer Support at CUT**
+  **Peer Education Club (PE Club)**
 
   [![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
   [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
@@ -15,7 +16,7 @@
 ---
 
 ## 🌟 Vision
-**Lunavo** is a state-of-the-art, student-centric support ecosystem engineered specifically for **Chinhoyi University of Technology (CUT)**. It bridges the gap between students, peer educators, and professional counselors, providing a safe, intelligent, and real-time environment for mental wellness, crisis intervention, and academic community building.
+**PEACE** (Peer Education Club) is a state-of-the-art, student-centric support ecosystem engineered specifically for **Chinhoyi University of Technology (CUT)**. It bridges the gap between students, peer educators, and professional counselors, providing a safe, intelligent, and real-time environment for mental wellness, crisis intervention, and academic community building.
 
 ---
 
@@ -140,5 +141,5 @@ The platform features a sophisticated **8-tier Permission System**:
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by the Lunavo Team. © 2026 Lunavo Platform.</sub>
+  <sub>Built with ❤️ by the **PE Club** (Peer Education Club) Development Team. © 2026 PEACE Platform.</sub>
 </div>
