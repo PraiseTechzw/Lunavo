@@ -39,3 +39,30 @@ export interface Report {
     reviewedAt?: Date;
     reviewedBy?: string;
 }
+
+export interface SupportSession {
+    id: string;
+    educator_id: string | null;
+    student_pseudonym: string;
+    status: 'pending' | 'active' | 'resolved' | 'escalated';
+    priority: 'urgent' | 'normal' | 'low';
+    category: string | null;
+    preview: string | null;
+    created_at: string;
+    accepted_at: string | null;
+    resolved_at: string | null;
+    notes: string | null;
+}
+
+export interface ActivityLog {
+    id: string;
+    user_id: string;
+    activity_type: 'session' | 'training' | 'meeting' | 'outreach';
+    title: string;
+    duration_minutes: number;
+    date: string;
+    notes: string | null;
+    verified: boolean;
+    created_at: string;
+}
+

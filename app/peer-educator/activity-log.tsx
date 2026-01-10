@@ -1,20 +1,24 @@
 /**
  * Peer Educator Activity Log
- * Track support hours and session summaries
+ * Connected to Supabase backend
  */
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { ActivityLog } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { createActivityLog, getActivityLogs } from '@/lib/database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -22,22 +26,6 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface ActivityEntry {
-    id: string;
-    type: 'session' | 'training' | 'meeting' | 'outreach';
-    title: string;
-    duration: number; // minutes
-    date: Date;
-    notes?: string;
-}
-
-// Mock data
-const MOCK_ACTIVITIES: ActivityEntry[] = [
-    { id: '1', type: 'session', title: 'Peer Support Session', duration: 45, date: new Date(), notes: 'Helped student with exam anxiety' },
-    { id: '2', type: 'training', title: 'Crisis Response Training', duration: 120, date: new Date(Date.now() - 86400000) },
-    { id: '3', type: 'meeting', title: 'Weekly PE Meeting', duration: 60, date: new Date(Date.now() - 172800000) },
-];
 
 const typeConfig = {
     session: { icon: 'message-text-outline', color: '#6366F1', label: 'Support Session' },
@@ -51,40 +39,83 @@ export default function ActivityLogScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
-    const { user } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
+    const { user, loading: authLoading } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
 
-    const [activities, setActivities] = useState<ActivityEntry[]>(MOCK_ACTIVITIES);
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [activities, setActivities] = useState<ActivityLog[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const totalHours = Math.round(activities.reduce((sum, a) => sum + a.duration, 0) / 60 * 10) / 10;
-    const sessionsCount = activities.filter((a) => a.type === 'session').length;
-    const trainingHours = Math.round(activities.filter((a) => a.type === 'training').reduce((s, a) => s + a.duration, 0) / 60 * 10) / 10;
+    const loadActivities = useCallback(async () => {
+        if (!user?.id) return;
+        try {
+            const data = await getActivityLogs(user.id);
+            setActivities(data);
+        } catch (error) {
+            console.error('Failed to load logs:', error);
+            Alert.alert('Error', 'Failed to load activity logs');
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (user) loadActivities();
+    }, [user, loadActivities]);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadActivities();
+        setRefreshing(false);
+    };
+
+    const totalHours = Math.round(activities.reduce((sum, a) => sum + (a.duration_minutes || 0), 0) / 60 * 10) / 10;
+    const sessionsCount = activities.filter((a) => a.activity_type === 'session').length;
+    const trainingHours = Math.round(activities.filter((a) => a.activity_type === 'training').reduce((s, a) => s + (a.duration_minutes || 0), 0) / 60 * 10) / 10;
 
     const handleLogNew = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
             'Log Activity',
-            'What type of activity?',
+            'What type of activity would you like to log?',
             [
-                { text: 'Support Session', onPress: () => addActivity('session') },
-                { text: 'Training', onPress: () => addActivity('training') },
-                { text: 'Meeting', onPress: () => addActivity('meeting') },
+                { text: 'Support Session', onPress: () => logActivity('session', 'Support Session', 45) },
+                { text: 'Training', onPress: () => logActivity('training', 'PE Training', 60) },
+                { text: 'Meeting', onPress: () => logActivity('meeting', 'Team Meeting', 30) },
+                { text: 'Outreach', onPress: () => logActivity('outreach', 'Community Outreach', 90) },
                 { text: 'Cancel', style: 'cancel' },
             ]
         );
     };
 
-    const addActivity = (type: 'session' | 'training' | 'meeting' | 'outreach') => {
-        const newEntry: ActivityEntry = {
-            id: Date.now().toString(),
-            type,
-            title: typeConfig[type].label,
-            duration: 30,
-            date: new Date(),
-        };
-        setActivities([newEntry, ...activities]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const logActivity = async (type: ActivityLog['activity_type'], title: string, duration: number) => {
+        if (!user?.id) return;
+
+        try {
+            await createActivityLog({
+                user_id: user.id,
+                activity_type: type,
+                title: title,
+                duration_minutes: duration,
+                date: new Date().toISOString().split('T')[0],
+                notes: `Logged via dashboard`,
+            });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            loadActivities();
+        } catch (error) {
+            console.error('Failed to log activity:', error);
+            Alert.alert('Error', 'Failed to log activity to backend');
+        }
     };
+
+    if (authLoading || loading) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -100,7 +131,11 @@ export default function ActivityLogScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+                >
                     {/* Stats Overview */}
                     <Animated.View entering={FadeInDown.duration(500)}>
                         <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.statsCard}>
@@ -136,47 +171,41 @@ export default function ActivityLogScreen() {
                     {/* Activity List */}
                     <ThemedText type="h3" style={styles.sectionTitle}>Recent Activity</ThemedText>
 
-                    {activities.map((activity, idx) => {
-                        const config = typeConfig[activity.type];
-                        return (
-                            <Animated.View key={activity.id} entering={FadeInRight.delay(idx * 80)}>
-                                <View style={[styles.activityCard, { backgroundColor: colors.card }]}>
-                                    <View style={[styles.activityIcon, { backgroundColor: config.color + '15' }]}>
-                                        <MaterialCommunityIcons name={config.icon as any} size={24} color={config.color} />
-                                    </View>
-                                    <View style={styles.activityInfo}>
-                                        <ThemedText style={styles.activityTitle}>{activity.title}</ThemedText>
-                                        <ThemedText style={[styles.activityMeta, { color: colors.icon }]}>
-                                            {activity.date.toLocaleDateString()} • {activity.duration} min
-                                        </ThemedText>
-                                        {activity.notes && (
-                                            <ThemedText style={[styles.activityNotes, { color: colors.icon }]} numberOfLines={1}>
-                                                {activity.notes}
-                                            </ThemedText>
-                                        )}
-                                    </View>
-                                    <ThemedText style={[styles.durationBadge, { backgroundColor: config.color + '15', color: config.color }]}>
-                                        {Math.round(activity.duration / 60 * 10) / 10}h
-                                    </ThemedText>
-                                </View>
-                            </Animated.View>
-                        );
-                    })}
-
-                    {/* Self-Care Reminder */}
-                    <Animated.View entering={FadeInDown.delay(500)}>
-                        <View style={[styles.reminderCard, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}>
-                            <MaterialCommunityIcons name="heart-outline" size={24} color={colors.success} />
-                            <View style={styles.reminderContent}>
-                                <ThemedText style={[styles.reminderTitle, { color: colors.success }]}>Self-Care Check</ThemedText>
-                                <ThemedText style={[styles.reminderText, { color: colors.text }]}>
-                                    You've been doing great work! Remember to take breaks and practice what you teach.
-                                </ThemedText>
-                            </View>
+                    {activities.length === 0 ? (
+                        <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
+                            <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={colors.icon} />
+                            <ThemedText style={{ color: colors.icon, marginTop: 12 }}>No activity logged yet</ThemedText>
                         </View>
-                    </Animated.View>
+                    ) : (
+                        activities.map((activity, idx) => {
+                            const config = typeConfig[activity.activity_type] || typeConfig.session;
+                            return (
+                                <Animated.View key={activity.id} entering={FadeInRight.delay(idx * 80)}>
+                                    <View style={[styles.activityCard, { backgroundColor: colors.card }]}>
+                                        <View style={[styles.activityIcon, { backgroundColor: config.color + '15' }]}>
+                                            <MaterialCommunityIcons name={config.icon as any} size={24} color={config.color} />
+                                        </View>
+                                        <View style={styles.activityInfo}>
+                                            <ThemedText style={styles.activityTitle}>{activity.title}</ThemedText>
+                                            <ThemedText style={[styles.activityMeta, { color: colors.icon }]}>
+                                                {activity.date} • {activity.duration_minutes} min
+                                            </ThemedText>
+                                            {activity.notes && (
+                                                <ThemedText style={[styles.activityNotes, { color: colors.icon }]} numberOfLines={1}>
+                                                    {activity.notes}
+                                                </ThemedText>
+                                            )}
+                                        </View>
+                                        <ThemedText style={[styles.durationBadge, { backgroundColor: config.color + '15', color: config.color }]}>
+                                            {Math.round(activity.duration_minutes / 60 * 10) / 10}h
+                                        </ThemedText>
+                                    </View>
+                                </Animated.View>
+                            );
+                        })
+                    )}
 
-                    <View style={{ height: 100 }} />
+                    <View style={{ height: 120 }} />
                 </ScrollView>
             </ThemedView>
         </SafeAreaView>
@@ -203,6 +232,7 @@ const styles = StyleSheet.create({
     progressBar: { height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' },
     progressFill: { height: '100%', backgroundColor: '#FFF', borderRadius: 4 },
     sectionTitle: { marginBottom: Spacing.md, fontWeight: '700' },
+    emptyState: { padding: 40, borderRadius: BorderRadius.xl, alignItems: 'center', justifyContent: 'center' },
     activityCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -218,16 +248,4 @@ const styles = StyleSheet.create({
     activityMeta: { fontSize: 12 },
     activityNotes: { fontSize: 12, fontStyle: 'italic', marginTop: 4 },
     durationBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, fontWeight: '700', fontSize: 12 },
-    reminderCard: {
-        flexDirection: 'row',
-        padding: Spacing.lg,
-        borderRadius: BorderRadius.xl,
-        borderWidth: 1,
-        gap: 12,
-        marginTop: Spacing.lg,
-        alignItems: 'flex-start',
-    },
-    reminderContent: { flex: 1 },
-    reminderTitle: { fontWeight: '700', marginBottom: 4 },
-    reminderText: { fontSize: 13, lineHeight: 18 },
 });

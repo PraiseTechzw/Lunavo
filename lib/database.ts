@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, User } from '@/app/types';
+import { ActivityLog, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
 import { supabase } from './supabase';
 
 // ============================================
@@ -1519,6 +1519,97 @@ export async function updateStreak(streakId: string, updates: {
     longestStreak: data.longest_streak,
     lastActivityDate: new Date(data.last_activity_date),
     updatedAt: new Date(data.updated_at),
+  };
+}
+
+// ============================================
+// PEER EDUCATOR OPERATIONS
+// ============================================
+
+export async function getActivityLogs(userId: string): Promise<ActivityLog[]> {
+  const { data, error } = await supabase
+    .from('pe_activity_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createActivityLog(logData: Partial<ActivityLog>): Promise<ActivityLog> {
+  const { data, error } = await supabase
+    .from('pe_activity_logs')
+    .insert({
+      user_id: logData.user_id,
+      activity_type: logData.activity_type,
+      title: logData.title,
+      duration_minutes: logData.duration_minutes,
+      date: logData.date,
+      notes: logData.notes,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getSupportSessions(status?: string): Promise<SupportSession[]> {
+  let query = supabase.from('support_sessions').select('*');
+  if (status) query = query.eq('status', status);
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateSupportSession(id: string, updates: Partial<SupportSession>): Promise<SupportSession> {
+  const { data, error } = await supabase
+    .from('support_sessions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ============================================
+// PE EXECUTIVE OPERATIONS
+// ============================================
+
+export async function getPEUsers(): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .in('role', ['peer-educator', 'peer-educator-executive']);
+
+  if (error) throw error;
+  return (data || []).map(mapUserFromDB);
+}
+
+export async function getNetworkStats(): Promise<{
+  totalSessions: number;
+  totalHours: number;
+  activeSessions: number;
+  totalPEs: number;
+}> {
+  const [sessions, logs, pes] = await Promise.all([
+    supabase.from('support_sessions').select('id', { count: 'exact' }),
+    supabase.from('pe_activity_logs').select('duration_minutes'),
+    supabase.from('users').select('id', { count: 'exact' }).in('role', ['peer-educator', 'peer-educator-executive']),
+    supabase.from('support_sessions').select('id', { count: 'exact' }).eq('status', 'active')
+  ]);
+
+  const totalMinutes = (logs.data || []).reduce((acc, log) => acc + (log.duration_minutes || 0), 0);
+
+  return {
+    totalSessions: sessions.count || 0,
+    totalHours: Math.round(totalMinutes / 60),
+    activeSessions: (await supabase.from('support_sessions').select('id', { count: 'exact' }).eq('status', 'active')).count || 0,
+    totalPEs: pes.count || 0
   };
 }
 

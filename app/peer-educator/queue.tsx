@@ -1,20 +1,23 @@
 /**
  * Peer Educator Support Queue
  * View and accept anonymous student support requests
+ * Fully integrated with Supabase backend
  */
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { SupportSession } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { supabase } from '@/lib/supabase';
+import { getSupportSessions, updateSupportSession } from '@/lib/database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     RefreshControl,
     ScrollView,
@@ -24,16 +27,6 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface SupportRequest {
-    id: string;
-    student_pseudonym: string;
-    preview: string;
-    priority: 'urgent' | 'normal' | 'low';
-    category: string;
-    created_at: string;
-    status: string;
-}
 
 const priorityConfig = {
     urgent: { icon: 'alert-circle', color: '#EF4444', label: 'Urgent' },
@@ -46,39 +39,35 @@ export default function SupportQueueScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
-    const { user, loading } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
+    const { user, loading: authLoading } = useRoleGuard(['peer-educator', 'peer-educator-executive', 'admin'], '/(tabs)');
 
-    const [queue, setQueue] = useState<SupportRequest[]>([]);
+    const [queue, setQueue] = useState<SupportSession[]>([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState<'all' | 'urgent' | 'normal'>('all');
 
-    useEffect(() => {
-        if (user) loadQueue();
-    }, [user]);
-
-    const loadQueue = async () => {
+    const loadQueue = useCallback(async () => {
         try {
-            const { data, error } = await supabase
-                .from('support_sessions')
-                .select('*')
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setQueue(data || []);
+            const data = await getSupportSessions('pending');
+            setQueue(data);
         } catch (e) {
             console.error('Failed to load queue:', e);
-            // Fallback to empty
-            setQueue([]);
+            Alert.alert('Error', 'Failed to load support requests');
+        } finally {
+            setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (user) loadQueue();
+    }, [user, loadQueue]);
 
     const filteredQueue = queue.filter((req) => {
         if (filter === 'all') return true;
         return req.priority === filter;
     });
 
-    const handleAccept = async (request: SupportRequest) => {
+    const handleAccept = async (request: SupportSession) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
             'Accept Request',
@@ -89,17 +78,11 @@ export default function SupportQueueScreen() {
                     text: 'Start Session',
                     onPress: async () => {
                         try {
-                            // Update session status in database
-                            const { error } = await supabase
-                                .from('support_sessions')
-                                .update({
-                                    status: 'active',
-                                    educator_id: user?.id,
-                                    accepted_at: new Date().toISOString()
-                                })
-                                .eq('id', request.id);
-
-                            if (error) throw error;
+                            await updateSupportSession(request.id, {
+                                status: 'active',
+                                educator_id: user?.id,
+                                accepted_at: new Date().toISOString()
+                            });
 
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             // Navigate to chat session
@@ -120,6 +103,16 @@ export default function SupportQueueScreen() {
         await loadQueue();
         setRefreshing(false);
     };
+
+    if (authLoading || loading) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -190,7 +183,7 @@ export default function SupportQueueScreen() {
                         </View>
                     ) : (
                         filteredQueue.map((request, idx) => {
-                            const priority = priorityConfig[request.priority];
+                            const priority = priorityConfig[request.priority] || priorityConfig.normal;
                             return (
                                 <Animated.View key={request.id} entering={FadeInRight.delay(idx * 100)}>
                                     <TouchableOpacity
@@ -213,7 +206,7 @@ export default function SupportQueueScreen() {
                                             <View style={styles.cardContent}>
                                                 <ThemedText style={styles.pseudonym}>{request.student_pseudonym}</ThemedText>
                                                 <ThemedText style={[styles.preview, { color: colors.icon }]} numberOfLines={2}>
-                                                    "{request.preview}"
+                                                    "{request.preview || 'No preview available'}"
                                                 </ThemedText>
                                             </View>
                                         </View>
