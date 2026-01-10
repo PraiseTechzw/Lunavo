@@ -1,23 +1,19 @@
 /**
- * Supabase Client Configuration
- * 
- * This file sets up the Supabase client for use throughout the app.
- * Make sure to set your Supabase URL and anon key in your .env file.
+ * Supabase Client Configuration with AsyncStorage for Session Persistence
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 
 // Get environment variables
-// In Expo, EXPO_PUBLIC_* variables are available via process.env
-// For development, you can also set them in app.json extra config
-const supabaseUrl = 
-  process.env.EXPO_PUBLIC_SUPABASE_URL || 
+const supabaseUrl =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ||
   Constants.expoConfig?.extra?.supabaseUrl ||
   '';
 
-const supabaseAnonKey = 
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
+const supabaseAnonKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   Constants.expoConfig?.extra?.supabaseAnonKey ||
   '';
 
@@ -28,14 +24,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
- * Supabase client instance
- * Use this client for all database operations
+ * Supabase client instance with proper session storage
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    // Use AsyncStorage for session persistence (CRITICAL for React Native)
+    storage: AsyncStorage,
     // Automatically refresh the session
     autoRefreshToken: true,
-    // Persist the session in AsyncStorage
+    // Persist the session
     persistSession: true,
     // Detect session from URL (for OAuth redirects)
     detectSessionInUrl: false,
@@ -61,4 +58,3 @@ export function isSupabaseConfigured(): boolean {
 export function getSupabaseClient() {
   return supabase;
 }
-

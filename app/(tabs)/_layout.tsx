@@ -44,8 +44,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false, // Cleaner look
-        tabBarActiveTintColor: '#6366f1', // Indigo Primary
-        tabBarInactiveTintColor: '#94a3b8', // Slate 400
+        tabBarActiveTintColor: colors.primary, // Use theme primary color
+        tabBarInactiveTintColor: colors.icon, // Use theme icon color
         tabBarStyle: {
           position: 'absolute',
           bottom: 25,

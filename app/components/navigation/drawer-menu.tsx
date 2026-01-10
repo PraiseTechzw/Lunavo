@@ -142,7 +142,6 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
 
         <Animated.View
           entering={SlideInRight.duration(300)}
-          exiting={FadeOut.duration(200)}
           style={[styles.drawer, { backgroundColor: colors.background }]}
         >
           {/* User Profile Header */}
