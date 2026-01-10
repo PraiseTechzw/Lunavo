@@ -1,5 +1,5 @@
 /**
- * About Lunavo Screen
+ * About PEACE Screen
  */
 
 import { DrawerHeader } from '@/app/components/navigation/drawer-header';
@@ -32,17 +32,17 @@ export default function AboutScreen() {
   const links = [
     {
       title: 'Visit Website',
-      url: 'https://lunavo.edu',
+      url: 'https://peaceclub.cut.ac.zw',
       icon: 'language' as const,
     },
     {
       title: 'Follow on Social Media',
-      url: 'https://social.lunavo.edu',
+      url: 'https://social.peaceclub.cut.ac.zw',
       icon: 'share' as const,
     },
     {
       title: 'Contact Support',
-      url: 'mailto:support@lunavo.edu',
+      url: 'mailto:support@peaceclub.cut.ac.zw',
       icon: 'email' as const,
     },
   ];
@@ -52,7 +52,7 @@ export default function AboutScreen() {
       <ThemedView style={styles.container}>
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
-          title="About Lunavo"
+          title="About PEACE"
           onMenuPress={() => setDrawerVisible(false)}
           rightAction={{
             icon: 'close',
@@ -71,7 +71,7 @@ export default function AboutScreen() {
               <MaterialIcons name="support-agent" size={64} color={colors.primary} />
             </View>
             <ThemedText type="h1" style={[styles.title, { color: colors.text }]}>
-              Lunavo
+              PEACE
             </ThemedText>
             <ThemedText type="body" style={[styles.tagline, { color: colors.icon }]}>
               Your Mental Health & Academic Support Platform
@@ -87,7 +87,7 @@ export default function AboutScreen() {
               Our Mission
             </ThemedText>
             <ThemedText type="body" style={[styles.missionText, { color: colors.icon }]}>
-              Lunavo is dedicated to providing accessible, anonymous, and comprehensive mental health and academic support for students. We believe that every student deserves a safe space to seek help, share experiences, and grow.
+              PEACE (Peer Education Club) is dedicated to providing accessible, anonymous, and comprehensive mental health and academic support for students. As the official student support wing of the university, we believe that every student deserves a safe space to seek help, share experiences, and grow.
             </ThemedText>
           </View>
 
@@ -169,7 +169,7 @@ export default function AboutScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <ThemedText type="small" style={[styles.footerText, { color: colors.icon }]}>
-              © {new Date().getFullYear()} Lunavo. All rights reserved.
+              © {new Date().getFullYear()} PE Club (Peer Education Club). All rights reserved.
             </ThemedText>
             <ThemedText type="small" style={[styles.footerText, { color: colors.icon }]}>
               Built with ❤️ for students

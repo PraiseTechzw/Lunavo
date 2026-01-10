@@ -33,11 +33,11 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     // Check if email already exists before attempting signup
     const { checkEmailAvailability } = await import('./database');
     const emailAvailable = await checkEmailAvailability(userData.email);
-    
+
     if (!emailAvailable) {
-      return { 
-        user: null, 
-        error: new Error('This email is already registered. Please use a different email or try signing in.') 
+      return {
+        user: null,
+        error: new Error('This email is already registered. Please use a different email or try signing in.')
       };
     }
 
@@ -49,12 +49,12 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
 
     if (authError) {
       // Check if error is due to email already existing
-      if (authError.message?.toLowerCase().includes('already registered') || 
-          authError.message?.toLowerCase().includes('already exists') ||
-          authError.message?.toLowerCase().includes('user already registered')) {
-        return { 
-          user: null, 
-          error: new Error('This email is already registered. Please use a different email or try signing in.') 
+      if (authError.message?.toLowerCase().includes('already registered') ||
+        authError.message?.toLowerCase().includes('already exists') ||
+        authError.message?.toLowerCase().includes('user already registered')) {
+        return {
+          user: null,
+          error: new Error('This email is already registered. Please use a different email or try signing in.')
         };
       }
       return { user: null, error: authError };
@@ -120,19 +120,19 @@ export async function signIn(credentials: SignInData): Promise<{ user: any; erro
 
     if (error) {
       console.log('[signIn] Supabase error:', error.message, 'Status:', error.status);
-      
+
       // Check if error is due to email not being confirmed
       const errorMessage = error.message?.toLowerCase() || '';
-      if (errorMessage.includes('email not confirmed') || 
-          errorMessage.includes('email not verified') ||
-          errorMessage.includes('not confirmed') ||
-          error.status === 400) {
+      if (errorMessage.includes('email not confirmed') ||
+        errorMessage.includes('email not verified') ||
+        errorMessage.includes('not confirmed') ||
+        error.status === 400) {
         console.log('[signIn] Email not confirmed, redirecting to verification');
-        return { 
-          user: null, 
-          error: new Error('Please verify your email address before signing in.'), 
+        return {
+          user: null,
+          error: new Error('Please verify your email address before signing in.'),
           needsVerification: true,
-          email: email 
+          email: email
         };
       }
       return { user: null, error };
@@ -148,13 +148,13 @@ export async function signIn(credentials: SignInData): Promise<{ user: any; erro
       console.log('[signIn] User signed in but email not confirmed, redirecting to verification');
       // Sign out the user since email is not confirmed
       await supabase.auth.signOut();
-      
+
       // Email not confirmed - redirect to verification
-      return { 
-        user: null, 
-        error: new Error('Please verify your email address before signing in.'), 
+      return {
+        user: null,
+        error: new Error('Please verify your email address before signing in.'),
         needsVerification: true,
-        email: data.user.email || email 
+        email: data.user.email || email
       };
     }
 
@@ -210,7 +210,7 @@ export function onAuthStateChange(callback: (event: string, session: any) => voi
  */
 export async function resetPassword(email: string): Promise<{ error: any }> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'lunavo://reset-password',
+    redirectTo: 'peace://reset-password',
   });
   return { error };
 }
@@ -250,46 +250,46 @@ export async function resendOTP(email: string): Promise<{ error: any }> {
   try {
     const normalizedEmail = email.toLowerCase().trim();
     console.log('[resendOTP] Resending OTP to:', normalizedEmail);
-    
+
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
       const error = new Error('Invalid email address');
       console.error('[resendOTP] Invalid email:', normalizedEmail);
       return { error };
     }
-    
+
     // Use Supabase's resend method to resend the signup confirmation OTP
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
       email: normalizedEmail,
     });
 
-    console.log('[resendOTP] Response:', { 
-      hasData: !!data, 
+    console.log('[resendOTP] Response:', {
+      hasData: !!data,
       hasError: !!error,
       errorMessage: error?.message,
-      errorCode: error?.status 
+      errorCode: error?.status
     });
 
     if (error) {
       console.error('[resendOTP] Error details:', JSON.stringify(error, null, 2));
-      
+
       // Provide more user-friendly error messages
       let errorMessage = error.message || 'Failed to resend verification code';
-      
-      if (error.message?.toLowerCase().includes('rate limit') || 
-          error.message?.toLowerCase().includes('too many')) {
+
+      if (error.message?.toLowerCase().includes('rate limit') ||
+        error.message?.toLowerCase().includes('too many')) {
         errorMessage = 'Too many requests. Please wait a few minutes before requesting another code.';
-      } else if (error.message?.toLowerCase().includes('not found') || 
-                 error.message?.toLowerCase().includes('does not exist') ||
-                 error.message?.toLowerCase().includes('user not found')) {
+      } else if (error.message?.toLowerCase().includes('not found') ||
+        error.message?.toLowerCase().includes('does not exist') ||
+        error.message?.toLowerCase().includes('user not found')) {
         errorMessage = 'Email not found. Please check your email address or sign up again.';
       } else if (error.message?.toLowerCase().includes('already confirmed') ||
-                 error.message?.toLowerCase().includes('already verified')) {
+        error.message?.toLowerCase().includes('already verified')) {
         errorMessage = 'This email is already verified. You can sign in now.';
       } else if (error.status === 429) {
         errorMessage = 'Too many requests. Please wait before requesting another code.';
       }
-      
+
       return { error: { ...error, message: errorMessage } };
     }
 

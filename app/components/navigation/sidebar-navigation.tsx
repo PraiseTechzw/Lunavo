@@ -82,12 +82,12 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
   }
 
   return (
-    <ThemedView style={[styles.sidebar, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
+    <ThemedView style={[styles.sidebar as any, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
       {/* Header */}
       <View style={styles.header}>
         {!isCollapsed && (
           <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
-            Lunavo
+            PEACE
           </ThemedText>
         )}
         <TouchableOpacity
@@ -135,7 +135,7 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
                         <ThemedText
                           type="body"
                           style={[
-                            styles.navItemLabel,
+                            styles.navItemLabel as any,
                             { color: active ? colors.primary : colors.text },
                           ]}
                         >
@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
     width: 280,
     ...(Platform.OS === 'web' ? {
       height: '100vh',
-      position: 'fixed' as any,
-    } : {
+      position: 'fixed',
+    } as any : {
       height: '100%',
     }),
     borderRightWidth: 1,
