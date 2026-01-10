@@ -15,12 +15,11 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Animated, {
   Easing,
@@ -109,8 +108,8 @@ export default function VerifyEmailScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
               <PEACELogo size={100} />
@@ -124,7 +123,7 @@ export default function VerifyEmailScreen() {
                 {otp.map((digit, i) => (
                   <TextInput
                     key={i}
-                    ref={el => inputRefs.current[i] = el}
+                    ref={el => { inputRefs.current[i] = el; }}
                     style={[styles.otpBox, {
                       color: colors.text,
                       borderColor: digit ? colors.primary : colors.border,
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    justifyContent: 'center',
+    paddingTop: 60,
   },
   header: {
     alignItems: 'center',

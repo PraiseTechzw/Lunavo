@@ -9,8 +9,12 @@ import { supabase } from './supabase';
 export interface SignUpData {
   email: string;
   password: string;
+  fullName: string;
   username?: string; // Anonymous username
   studentNumber: string; // Required - CUT format: Letter + 8 digits + Letter (e.g., C23155538O)
+  program: string;
+  year: number;
+  semester: number;
   phone: string; // Required for crisis contact
   emergencyContactName: string; // Required for crisis contact
   emergencyContactPhone: string; // Required for crisis contact
@@ -31,13 +35,33 @@ export interface SignInData {
 export async function signUp(userData: SignUpData): Promise<{ user: any; error: any }> {
   try {
     // Check if email already exists before attempting signup
-    const { checkEmailAvailability } = await import('./database');
+    const { checkEmailAvailability, checkUsernameAvailability, checkStudentIdAvailability } = await import('./database');
     const emailAvailable = await checkEmailAvailability(userData.email);
 
     if (!emailAvailable) {
       return {
         user: null,
         error: new Error('This email is already registered. Please use a different email or try signing in.')
+      };
+    }
+
+    // Check if username already exists
+    if (userData.username) {
+      const usernameAvailable = await checkUsernameAvailability(userData.username);
+      if (!usernameAvailable) {
+        return {
+          user: null,
+          error: new Error('This community alias is already taken. Please choose a different one.')
+        };
+      }
+    }
+
+    // Check if student ID already exists
+    const studentIdAvailable = await checkStudentIdAvailability(userData.studentNumber);
+    if (!studentIdAvailable) {
+      return {
+        user: null,
+        error: new Error('This student ID is already linked to an account. Each student can only have one PEACE account.')
       };
     }
 
@@ -73,7 +97,11 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     const dbUser = await createUser({
       email: userData.email,
       username: userData.username ? userData.username.toLowerCase().trim() : undefined,
+      full_name: userData.fullName,
       student_number: userData.studentNumber,
+      program: userData.program,
+      academic_year: userData.year,
+      academic_semester: userData.semester,
       phone: userData.phone,
       emergency_contact_name: userData.emergencyContactName,
       emergency_contact_phone: userData.emergencyContactPhone,
@@ -320,26 +348,32 @@ export async function verifyStudent(
   studentNumber: string,
   name: string,
   department?: string,
-  year?: number
+  year?: number,
+  program?: string,
+  semester?: number
 ): Promise<{ verified: boolean; error?: any }> {
-  // TODO: Implement actual verification with CUT's system
-  // For now, this is a placeholder
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { verified: false, error: new Error('Not authenticated') };
     }
 
-    // Update user with student number
+    // Update user with student info
     const { error } = await supabase
       .from('users')
       .update({
         student_number: studentNumber,
         verified: true,
+        program,
+        academic_year: year,
+        academic_semester: semester,
+        academic_updated_at: new Date().toISOString(),
         profile_data: {
           name,
           department,
           year,
+          program,
+          semester,
         },
       })
       .eq('id', user.id);

@@ -2,17 +2,7 @@
  * Role-based permissions system
  */
 
-import { User } from '@/app/types';
-
-export type UserRole =
-  | 'student'
-  | 'peer-educator'
-  | 'peer-educator-executive'
-  | 'moderator'
-  | 'counselor'
-  | 'life-coach'
-  | 'student-affairs'
-  | 'admin';
+import { User, UserRole } from '@/app/types';
 
 /**
  * Check if user can view dashboard

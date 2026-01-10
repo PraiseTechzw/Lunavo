@@ -3,11 +3,13 @@
  * Web-optimized sidebar for Admin and Student Affairs
  */
 
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { getRoleLabel, UserRole } from '@/lib/permissions';
+import { UserRole } from '@/app/types';
+import { getRoleLabel } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -87,15 +89,19 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
       {/* Header */}
       <View style={styles.header}>
         {!isCollapsed && (
-          <View>
-            <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
-              PEACE
-            </ThemedText>
-            <ThemedText type="small" style={[styles.roleLabel, { color: colors.primary }]}>
-              {getRoleLabel(role)}
-            </ThemedText>
+          <View style={styles.logoRow}>
+            <PEACELogo size={40} />
+            <View>
+              <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
+                PEACE
+              </ThemedText>
+              <ThemedText type="small" style={[styles.roleLabel, { color: colors.primary }]}>
+                {getRoleLabel(role)}
+              </ThemedText>
+            </View>
           </View>
         )}
+        {isCollapsed && <PEACELogo size={32} />}
         <TouchableOpacity
           onPress={handleToggle}
           style={[styles.toggleButton, { backgroundColor: colors.card }]}
@@ -205,9 +211,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   logo: {
     fontWeight: '700',
     fontSize: 20,
+    lineHeight: 22,
   },
   roleLabel: {
     fontSize: 10,

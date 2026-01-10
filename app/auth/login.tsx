@@ -17,12 +17,11 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Animated, {
   Easing,
@@ -98,8 +97,8 @@ export default function LoginScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.logoSection}>
               <PEACELogo size={140} />
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    justifyContent: 'center',
+    paddingTop: 100, // Fixed padding instead of center to prevent jumps
   },
   logoSection: {
     alignItems: 'center',

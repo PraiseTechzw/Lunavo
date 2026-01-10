@@ -16,12 +16,11 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Animated, {
   Easing,
@@ -52,7 +51,9 @@ export default function VerifyStudentScreen() {
     studentNumber: '',
     name: '',
     department: '',
-    year: 0,
+    program: '',
+    year: 1,
+    semester: 1,
   });
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -86,7 +87,9 @@ export default function VerifyStudentScreen() {
         formData.studentNumber,
         formData.name,
         formData.department,
-        formData.year
+        formData.year,
+        formData.program,
+        formData.semester
       );
       if (error) throw error;
       if (isVerified) {
@@ -128,8 +131,8 @@ export default function VerifyStudentScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
               <PEACELogo size={90} />
@@ -155,7 +158,7 @@ export default function VerifyStudentScreen() {
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Student ID Number</ThemedText>
                 <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-                  <Ionicons name="badge-outline" size={20} color={colors.icon} />
+                  <Ionicons name="id-card-outline" size={20} color={colors.icon} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="C23XXXXX"
@@ -186,7 +189,21 @@ export default function VerifyStudentScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>Year of Study</ThemedText>
+                <ThemedText style={styles.label}>Program of Study (Degree)</ThemedText>
+                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                  <Ionicons name="school-outline" size={20} color={colors.icon} />
+                  <TextInput
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="e.g. BSc Computer Science"
+                    placeholderTextColor={colors.icon}
+                    value={formData.program}
+                    onChangeText={v => setFormData({ ...formData, program: v })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Academic Year</ThemedText>
                 <View style={styles.yearRow}>
                   {[1, 2, 3, 4, 5].map(y => (
                     <TouchableOpacity
@@ -199,6 +216,27 @@ export default function VerifyStudentScreen() {
                       }]}
                     >
                       <ThemedText style={{ color: formData.year === y ? '#FFF' : colors.text, fontWeight: '700' }}>{y}</ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.label}>Semester</ThemedText>
+                <View style={styles.yearRow}>
+                  {[1, 2].map(s => (
+                    <TouchableOpacity
+                      key={s}
+                      onPress={() => setFormData({ ...formData, semester: s })}
+                      style={[styles.semBox, {
+                        borderColor: formData.semester === s ? colors.primary : colors.border,
+                        backgroundColor: formData.semester === s ? colors.primary : 'transparent',
+                        transform: [{ scale: formData.semester === s ? 1.05 : 1 }]
+                      }]}
+                    >
+                      <ThemedText style={{ color: formData.semester === s ? '#FFF' : colors.text, fontWeight: '700' }}>
+                        Semester {s} ({formData.year}.{s})
+                      </ThemedText>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -316,6 +354,14 @@ const styles = StyleSheet.create({
   },
   yearBox: {
     width: '18%',
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  semBox: {
+    width: '48%',
     height: 50,
     borderRadius: 12,
     borderWidth: 1,

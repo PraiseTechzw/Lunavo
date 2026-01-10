@@ -8,6 +8,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { UserRole } from '@/app/types';
 import { createShadow } from '@/app/utils/platform-styles';
 import {
   getCheckInStreak,
@@ -16,7 +17,6 @@ import {
   hasCheckedInToday
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
-import { UserRole } from '@/lib/permissions';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';

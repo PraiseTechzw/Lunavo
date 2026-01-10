@@ -3,6 +3,7 @@
  * Header with drawer menu button for mobile screens
  */
 
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
@@ -36,11 +37,14 @@ export function DrawerHeader({ title, onMenuPress, rightAction }: DrawerHeaderPr
       >
         <MaterialIcons name="menu" size={24} color={colors.text} />
       </TouchableOpacity>
-      
-      <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
-        {title}
-      </ThemedText>
-      
+
+      <View style={styles.titleContainer}>
+        <PEACELogo size={24} />
+        <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
+          {title}
+        </ThemedText>
+      </View>
+
       {rightAction ? (
         <TouchableOpacity
           onPress={rightAction.onPress}
@@ -72,9 +76,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
+  titleContainer: {
     flex: 1,
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  title: {
     fontWeight: '700',
     fontSize: 20,
   },

@@ -6,10 +6,10 @@
 import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
+import { CUT_SCHOOLS } from '@/app/constants/programs';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { signUp } from '@/lib/auth';
-import { checkEmailAvailability } from '@/lib/database';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -18,12 +18,12 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
+  Modal,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Animated, {
   Easing,
@@ -38,6 +38,25 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type RegisterStep = 1 | 2 | 3 | 4;
+
+const InputField = ({ label, icon, value, onChange, placeholder, secure = false, statusIcon, colors }: any) => (
+  <View style={styles.inputGroup}>
+    <ThemedText style={styles.label}>{label}</ThemedText>
+    <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+      <Ionicons name={icon} size={20} color={colors.icon} />
+      <TextInput
+        style={[styles.input, { color: colors.text }]}
+        placeholder={placeholder}
+        placeholderTextColor={colors.icon}
+        value={value}
+        onChangeText={onChange}
+        secureTextEntry={secure}
+        autoCapitalize="none"
+      />
+      {statusIcon}
+    </View>
+  </View>
+);
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -76,7 +95,11 @@ export default function RegisterScreen() {
     email: '',
     password: '',
     confirmPassword: '',
+    fullName: '',
     studentNumber: '',
+    program: '',
+    year: 1,
+    semester: 1,
     username: '',
     phone: '',
     emergencyContactName: '',
@@ -85,18 +108,55 @@ export default function RegisterScreen() {
   });
 
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [studentIdStatus, setStudentIdStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [showProgramPicker, setShowProgramPicker] = useState(false);
+  const [programSpecialization, setProgramSpecialization] = useState('');
 
   // Logic for Email validation
   useEffect(() => {
     if (formData.email.includes('@')) {
       setEmailStatus('checking');
       const t = setTimeout(async () => {
+        const { checkEmailAvailability } = await import('@/lib/database');
         const avVal = await checkEmailAvailability(formData.email);
         setEmailStatus(avVal ? 'available' : 'taken');
       }, 500);
       return () => clearTimeout(t);
+    } else {
+      setEmailStatus('idle');
     }
   }, [formData.email]);
+
+  // Logic for Username validation
+  useEffect(() => {
+    if (formData.username.length >= 3) {
+      setUsernameStatus('checking');
+      const t = setTimeout(async () => {
+        const { checkUsernameAvailability } = await import('@/lib/database');
+        const avVal = await checkUsernameAvailability(formData.username);
+        setUsernameStatus(avVal ? 'available' : 'taken');
+      }, 500);
+      return () => clearTimeout(t);
+    } else {
+      setUsernameStatus('idle');
+    }
+  }, [formData.username]);
+
+  // Logic for Student ID validation
+  useEffect(() => {
+    if (formData.studentNumber.length >= 4) {
+      setStudentIdStatus('checking');
+      const t = setTimeout(async () => {
+        const { checkStudentIdAvailability } = await import('@/lib/database');
+        const avVal = await checkStudentIdAvailability(formData.studentNumber);
+        setStudentIdStatus(avVal ? 'available' : 'taken');
+      }, 500);
+      return () => clearTimeout(t);
+    } else {
+      setStudentIdStatus('idle');
+    }
+  }, [formData.studentNumber]);
 
   const handleRegister = async () => {
     if (!formData.acceptedTerms) {
@@ -106,9 +166,19 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       const { user, error } = await signUp({
-        ...formData,
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        username: formData.username,
+        studentNumber: formData.studentNumber,
+        program: formData.program,
+        year: formData.year,
+        semester: formData.semester,
+        phone: formData.phone,
+        emergencyContactName: formData.emergencyContactName,
+        emergencyContactPhone: formData.emergencyContactPhone,
         role: 'student',
-      } as any);
+      });
       if (error) throw error;
       router.replace({ pathname: '/auth/verify-email', params: { email: formData.email } });
     } catch (e: any) {
@@ -117,25 +187,6 @@ export default function RegisterScreen() {
       setLoading(false);
     }
   };
-
-  const InputField = ({ label, icon, value, onChange, placeholder, secure = false, statusIcon }: any) => (
-    <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-        <Ionicons name={icon} size={20} color={colors.icon} />
-        <TextInput
-          style={[styles.input, { color: colors.text }]}
-          placeholder={placeholder}
-          placeholderTextColor={colors.icon}
-          value={value}
-          onChangeText={onChange}
-          secureTextEntry={secure}
-          autoCapitalize="none"
-        />
-        {statusIcon}
-      </View>
-    </View>
-  );
 
   return (
     <ThemedView style={styles.container}>
@@ -150,8 +201,8 @@ export default function RegisterScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <View style={styles.fixedHeader}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -188,26 +239,106 @@ export default function RegisterScreen() {
                     value={formData.email}
                     onChange={(v: string) => setFormData({ ...formData, email: v })}
                     placeholder="name@cut.ac.zw"
-                    statusIcon={emailStatus === 'checking' ? <ActivityIndicator size="small" /> : emailStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : null}
+                    statusIcon={emailStatus === 'checking' ? <ActivityIndicator size="small" /> : emailStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : emailStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    colors={colors}
                   />
-                  <InputField label="Student ID" icon="card-outline" value={formData.studentNumber} onChange={(v: string) => setFormData({ ...formData, studentNumber: v })} placeholder="C23XXXXX" />
-                  <InputField label="Password" icon="lock-closed-outline" secure value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} placeholder="••••••••" />
-                  <InputField label="Confirm" icon="lock-closed-outline" secure value={formData.confirmPassword} onChange={(v: string) => setFormData({ ...formData, confirmPassword: v })} placeholder="••••••••" />
+                  <InputField
+                    label="Student ID"
+                    icon="card-outline"
+                    value={formData.studentNumber}
+                    onChange={(v: string) => setFormData({ ...formData, studentNumber: v })}
+                    placeholder="C23XXXXX"
+                    statusIcon={studentIdStatus === 'checking' ? <ActivityIndicator size="small" /> : studentIdStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : studentIdStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    colors={colors}
+                  />
+                  <InputField label="Password" icon="lock-closed-outline" secure value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} placeholder="••••••••" colors={colors} />
+                  <InputField label="Confirm" icon="lock-closed-outline" secure value={formData.confirmPassword} onChange={(v: string) => setFormData({ ...formData, confirmPassword: v })} placeholder="••••••••" colors={colors} />
                 </View>
               )}
 
               {step === 2 && (
                 <View>
-                  <InputField label="Community Alias" icon="person-outline" value={formData.username} onChange={(v: string) => setFormData({ ...formData, username: v })} placeholder="choose_a_nickname" />
-                  <ThemedText style={styles.hintText}>This name is visible to peers. It can be different from your real name.</ThemedText>
+                  <InputField
+                    label="Full Name"
+                    icon="person-outline"
+                    value={formData.fullName}
+                    onChange={(v: string) => setFormData({ ...formData, fullName: v })}
+                    placeholder="As on student ID"
+                    colors={colors}
+                  />
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={styles.label}>Program of Study</ThemedText>
+                    <TouchableOpacity
+                      onPress={() => setShowProgramPicker(true)}
+                      style={[styles.inputWrapper, { borderColor: colors.border }]}
+                    >
+                      <Ionicons name="school-outline" size={20} color={colors.icon} />
+                      <ThemedText style={[styles.input, { color: formData.program ? colors.text : colors.icon }]}>
+                        {formData.program || 'Select your program'}
+                      </ThemedText>
+                      <Ionicons name="chevron-down-outline" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={styles.label}>Academic Year & Semester</ThemedText>
+                    <View style={styles.academicRow}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText style={[styles.label, { fontSize: 11, opacity: 0.6 }]}>Year</ThemedText>
+                        <View style={styles.yearRow}>
+                          {[1, 2, 3, 4, 5].map(y => (
+                            <TouchableOpacity
+                              key={y}
+                              onPress={() => setFormData({ ...formData, year: y })}
+                              style={[styles.yearBox, {
+                                borderColor: formData.year === y ? colors.primary : colors.border,
+                                backgroundColor: formData.year === y ? colors.primary : 'transparent',
+                              }]}
+                            >
+                              <ThemedText style={{ color: formData.year === y ? '#FFF' : colors.text, fontWeight: '700', fontSize: 14 }}>{y}</ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <ThemedText style={[styles.label, { fontSize: 11, opacity: 0.6 }]}>Semester</ThemedText>
+                        <View style={styles.yearRow}>
+                          {[1, 2].map(s => (
+                            <TouchableOpacity
+                              key={s}
+                              onPress={() => setFormData({ ...formData, semester: s })}
+                              style={[styles.semesterBox, {
+                                borderColor: formData.semester === s ? colors.primary : colors.border,
+                                backgroundColor: formData.semester === s ? colors.primary : 'transparent',
+                              }]}
+                            >
+                              <ThemedText style={{ color: formData.semester === s ? '#FFF' : colors.text, fontWeight: '700', fontSize: 14 }}>{s}</ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                    <ThemedText style={[styles.hintText, { marginTop: 8 }]}>Current: {formData.year}.{formData.semester}</ThemedText>
+                  </View>
+
+                  <InputField
+                    label="Community Alias"
+                    icon="at-outline"
+                    value={formData.username}
+                    onChange={(v: string) => setFormData({ ...formData, username: v })}
+                    placeholder="choose_a_nickname"
+                    statusIcon={usernameStatus === 'checking' ? <ActivityIndicator size="small" /> : usernameStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : usernameStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    colors={colors}
+                  />
+                  <ThemedText style={styles.hintText}>This alias is visible to peers. It can be different from your real name.</ThemedText>
                 </View>
               )}
 
               {step === 3 && (
                 <View>
-                  <InputField label="Your Phone" icon="phone-portrait-outline" value={formData.phone} onChange={(v: string) => setFormData({ ...formData, phone: v })} placeholder="+263..." />
-                  <InputField label="Emergency Name" icon="people-outline" value={formData.emergencyContactName} onChange={(v: string) => setFormData({ ...formData, emergencyContactName: v })} placeholder="Full Name" />
-                  <InputField label="Emergency Phone" icon="call-outline" value={formData.emergencyContactPhone} onChange={(v: string) => setFormData({ ...formData, emergencyContactPhone: v })} placeholder="+263..." />
+                  <InputField label="Your Phone" icon="phone-portrait-outline" value={formData.phone} onChange={(v: string) => setFormData({ ...formData, phone: v })} placeholder="+263..." colors={colors} />
+                  <InputField label="Emergency Name" icon="people-outline" value={formData.emergencyContactName} onChange={(v: string) => setFormData({ ...formData, emergencyContactName: v })} placeholder="Full Name" colors={colors} />
+                  <InputField label="Emergency Phone" icon="call-outline" value={formData.emergencyContactPhone} onChange={(v: string) => setFormData({ ...formData, emergencyContactPhone: v })} placeholder="+263..." colors={colors} />
                 </View>
               )}
 
@@ -260,6 +391,67 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Program Picker Modal */}
+      <Modal
+        visible={showProgramPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProgramPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="h3">Select Your Program</ThemedText>
+              <TouchableOpacity onPress={() => setShowProgramPicker(false)}>
+                <Ionicons name="close-circle" size={32} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.programList} showsVerticalScrollIndicator={false}>
+              {CUT_SCHOOLS.map((school, schoolIndex) => (
+                <View key={schoolIndex} style={styles.schoolSection}>
+                  <ThemedText style={styles.schoolName}>{school.name}</ThemedText>
+                  {school.programs.map((program, progIndex) => (
+                    <TouchableOpacity
+                      key={progIndex}
+                      style={[styles.programItem, {
+                        backgroundColor: formData.program === program.name ? colors.primary + '20' : colors.card,
+                        borderColor: formData.program === program.name ? colors.primary : colors.border,
+                      }]}
+                      onPress={() => {
+                        setFormData({ ...formData, program: program.name });
+                        setShowProgramPicker(false);
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <ThemedText style={styles.programName}>{program.name}</ThemedText>
+                        <View style={styles.programMeta}>
+                          <View style={[styles.durationBadge, { backgroundColor: colors.primary + '30' }]}>
+                            <Ionicons name="time-outline" size={12} color={colors.primary} />
+                            <ThemedText style={[styles.durationText, { color: colors.primary }]}>
+                              {program.duration} years
+                            </ThemedText>
+                          </View>
+                          {program.options && (
+                            <ThemedText style={styles.optionsText}>
+                              Options: {program.options.join(', ')}
+                            </ThemedText>
+                          )}
+                        </View>
+                      </View>
+                      {formData.program === program.name && (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -408,5 +600,104 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 30,
+  },
+  academicRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  yearRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  yearBox: {
+    width: '18%',
+    height: 45,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  semesterBox: {
+    width: '48%',
+    height: 45,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    height: '85%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: Spacing.xl,
+    ...PlatformStyles.premiumShadow,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  programList: {
+    flex: 1,
+  },
+  schoolSection: {
+    marginBottom: 25,
+  },
+  schoolName: {
+    fontSize: 14,
+    fontWeight: '800',
+    opacity: 0.5,
+    marginBottom: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  programItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 10,
+  },
+  programName: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  programMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  durationText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  optionsText: {
+    fontSize: 11,
+    opacity: 0.6,
+    fontStyle: 'italic',
   },
 });

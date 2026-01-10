@@ -5,8 +5,8 @@
 
 import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { UserRole } from '@/app/types';
 import { getCurrentUser } from '@/lib/database';
-import { UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -34,17 +34,17 @@ export default function TabLayout() {
   // Determine which tabs to show based on role
   const shouldShowTab = (tabName: string): boolean => {
     if (!userRole) return true; // Show all tabs while loading
-    
+
     // Counselors and Life Coaches should not see Forum
     if (tabName === 'forum' && (userRole === 'counselor' || userRole === 'life-coach')) {
       return false;
     }
-    
+
     // Student Affairs should not see Forum or Chat
     if ((tabName === 'forum' || tabName === 'chat') && userRole === 'student-affairs') {
       return false;
     }
-    
+
     return true;
   };
 
@@ -75,10 +75,10 @@ export default function TabLayout() {
           title: 'Home',
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="home" 
-              size={focused ? 28 : 24} 
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'} 
+            <MaterialIcons
+              name="home"
+              size={focused ? 28 : 24}
+              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
             />
           ),
           tabBarLabelStyle: {
@@ -93,10 +93,10 @@ export default function TabLayout() {
           title: 'Forum',
           tabBarLabel: 'Forum',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="forum" 
-              size={focused ? 28 : 24} 
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'} 
+            <MaterialIcons
+              name="forum"
+              size={focused ? 28 : 24}
+              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
             />
           ),
           tabBarLabelStyle: {
@@ -113,10 +113,10 @@ export default function TabLayout() {
           title: 'Chat',
           tabBarLabel: 'Chat',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="chat" 
-              size={focused ? 28 : 24} 
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'} 
+            <MaterialIcons
+              name="chat"
+              size={focused ? 28 : 24}
+              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
             />
           ),
           tabBarLabelStyle: {
@@ -133,10 +133,10 @@ export default function TabLayout() {
           title: 'Resources',
           tabBarLabel: 'Resources',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="book" 
-              size={focused ? 28 : 24} 
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'} 
+            <MaterialIcons
+              name="book"
+              size={focused ? 28 : 24}
+              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
             />
           ),
           tabBarLabelStyle: {
@@ -151,10 +151,10 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="person" 
-              size={focused ? 28 : 24} 
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'} 
+            <MaterialIcons
+              name="person"
+              size={focused ? 28 : 24}
+              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
             />
           ),
           tabBarLabelStyle: {

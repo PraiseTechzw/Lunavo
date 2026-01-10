@@ -3,12 +3,14 @@
  * Mobile secondary navigation for all roles
  */
 
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { UserRole } from '@/app/types';
 import { createShadow } from '@/app/utils/platform-styles';
-import { getRoleMetadata, UserRole } from '@/lib/permissions';
+import { getRoleMetadata } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Modal, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -118,17 +120,20 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
         >
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <View>
-              <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
-                Menu
-              </ThemedText>
-              {role && (
-                <View style={[styles.roleBadge, { backgroundColor: getRoleMetadata(role as UserRole).accentColor }]}>
-                  <ThemedText type="small" style={styles.roleBadgeText}>
-                    {getRoleMetadata(role as UserRole).label}
-                  </ThemedText>
-                </View>
-              )}
+            <View style={styles.headerLogoSection}>
+              <PEACELogo size={50} />
+              <View>
+                <ThemedText type="h3" style={[styles.title, { color: colors.text }]}>
+                  PEACE
+                </ThemedText>
+                {role && (
+                  <View style={[styles.roleBadge, { backgroundColor: getRoleMetadata(role as UserRole).accentColor + '20' }]}>
+                    <ThemedText type="small" style={[styles.roleBadgeText, { color: getRoleMetadata(role as UserRole).accentColor }]}>
+                      {getRoleMetadata(role as UserRole).label}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -227,8 +232,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   title: {
-    fontWeight: '700',
-    fontSize: 24,
+    fontWeight: '800',
+    fontSize: 22,
+    lineHeight: 24,
+  },
+  headerLogoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
   closeButton: {
     width: 36,

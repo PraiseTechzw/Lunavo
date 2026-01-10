@@ -1,11 +1,11 @@
 import { OfflineIndicator } from "@/app/components/offline-indicator";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { UserRole } from "@/app/types";
 import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/app/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
-import { UserRole } from "@/lib/permissions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -63,21 +63,29 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === 'onboarding';
     const inWebRequired = segments[0] === 'web-required';
 
-    // 1. Mandatory Onboarding for unauthenticated users
-    if (!isAuthenticated && isOnboardingComplete === false && !inOnboarding) {
-      router.replace('/onboarding');
+    // 1. Mandatory Onboarding (Highest Priority)
+    if (isOnboardingComplete === false && !inOnboarding) {
+      AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
+        if (val === 'true') {
+          setIsOnboardingComplete(true);
+        } else {
+          console.log('[Navigation] Onboarding incomplete - redirecting');
+          router.replace('/onboarding');
+        }
+      });
       return;
     }
 
     // 2. Redirect to Login if onboarding is done but not authenticated
-    if (!isAuthenticated && isOnboardingComplete === true && !inAuthGroup && !inOnboarding) {
+    if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
+      console.log('[Navigation] Unauthenticated - redirecting to login');
       router.replace('/auth/login');
       return;
     }
 
     // 3. Authenticated User Redirection
     if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      // Load user role and redirect to appropriate default route
+      console.log('[Navigation] Authenticated - moving to dashboard');
       getCurrentUser().then(user => {
         if (user) {
           const role = user.role as UserRole;
@@ -87,7 +95,8 @@ export default function RootLayout() {
         } else {
           router.replace('/(tabs)');
         }
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('[Navigation] Error moving to dashboard:', err);
         router.replace('/(tabs)');
       });
     }

@@ -13,7 +13,11 @@ import { supabase } from './supabase';
 export interface CreateUserData {
   email: string;
   username?: string; // Anonymous username
+  full_name: string; // Real name
   student_number: string; // Required - CUT format: Letter + 8 digits + Letter (e.g., C23155538O)
+  program?: string; // e.g. BSc Computer Science
+  academic_year?: number; // 1-5
+  academic_semester?: number; // 1-2
   phone: string; // Required for crisis contact
   emergency_contact_name: string; // Required for crisis contact
   emergency_contact_phone: string; // Required for crisis contact
@@ -43,7 +47,12 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
       id: userId, // Use the auth user's ID
       email: userData.email,
       username: userData.username || null, // Anonymous username
+      full_name: userData.full_name,
       student_number: userData.student_number, // Required
+      program: userData.program,
+      academic_year: userData.academic_year,
+      academic_semester: userData.academic_semester,
+      academic_updated_at: new Date().toISOString(),
       phone: userData.phone, // Required for crisis contact
       emergency_contact_name: userData.emergency_contact_name, // Required
       emergency_contact_phone: userData.emergency_contact_phone, // Required
@@ -131,24 +140,32 @@ export async function checkUsernameAvailability(username: string): Promise<boole
     });
 
     if (error) {
-      // Fallback to direct query if function doesn't exist yet
-      console.warn('Function check_username_available not found, using direct query:', error);
-      const { data: queryData, error: queryError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', normalizedUsername)
-        .maybeSingle();
+      // PGRST202 means function not found.
+      if (error.code === 'PGRST202') {
+        console.warn('[Supabase] check_username_available RPC not found, falling back to direct query.');
+        const { data: queryData, error: queryError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', normalizedUsername)
+          .maybeSingle();
 
-      if (queryError && queryError.code !== 'PGRST116') {
-        throw queryError;
+        if (queryError && queryError.code !== 'PGRST116') {
+          throw queryError;
+        }
+
+        return !queryData;
       }
 
-      return !queryData;
+      throw error;
     }
 
     return data === true;
   } catch (error: any) {
-    console.error('Error checking username availability:', error);
+    if (error.message?.includes('Network request failed')) {
+      console.error('[Supabase] Connection error during username check. Please verify your internet.');
+    } else {
+      console.error('[Supabase] Error checking username availability:', error);
+    }
     // On error, assume taken to be safe
     return false;
   }
@@ -179,25 +196,71 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
     });
 
     if (error) {
-      // Fallback to direct query if function doesn't exist yet
-      console.warn('Function check_email_available not found, using direct query:', error);
-      const { data: queryData, error: queryError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      // PGRST202 means function not found. We only warn and fallback in this case.
+      if (error.code === 'PGRST202') {
+        console.warn('[Supabase] check_email_available RPC not found, falling back to direct query.');
+        const { data: queryData, error: queryError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
 
-      if (queryError && queryError.code !== 'PGRST116') {
-        throw queryError;
+        if (queryError && queryError.code !== 'PGRST116') {
+          throw queryError;
+        }
+        return !queryData;
       }
 
-      return !queryData;
+      // For any other error (like network failure), throw it to be caught by the catch block
+      throw error;
     }
 
     return data === true;
   } catch (error: any) {
-    console.error('Error checking email availability:', error);
-    // On error, assume taken to be safe
+    // If it's a network error, log it specifically
+    if (error.message?.includes('Network request failed')) {
+      console.error('[Supabase] Connection error during email check. Please verify your internet or Supabase URL.');
+    } else {
+      console.error('[Supabase] Error checking email availability:', error);
+    }
+    // On error, assume taken to be safe to prevent duplicate registrations
+    return false;
+  }
+}
+
+/**
+ * Check if student ID is available (not already in use by another user)
+ */
+export async function checkStudentIdAvailability(studentId: string): Promise<boolean> {
+  if (!studentId || !studentId.trim()) {
+    return false;
+  }
+
+  const normalizedId = studentId.toUpperCase().trim();
+
+  try {
+    const { data, error } = await supabase.rpc('check_student_id_available', {
+      check_id: normalizedId
+    });
+
+    if (error) {
+      if (error.code === 'PGRST202') {
+        console.warn('[Supabase] check_student_id_available RPC not found, falling back.');
+        const { data: queryData, error: queryError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('student_number', normalizedId)
+          .maybeSingle();
+
+        if (queryError && queryError.code !== 'PGRST116') throw queryError;
+        return !queryData;
+      }
+      throw error;
+    }
+
+    return data === true;
+  } catch (error: any) {
+    console.error('[Supabase] Error checking student ID availability:', error);
     return false;
   }
 }
@@ -1471,6 +1534,11 @@ function mapUserFromDB(data: any): User {
     username: data.username || undefined,
     isAnonymous: data.is_anonymous,
     role: data.role as User['role'],
+    fullName: data.full_name || undefined,
+    program: data.program || undefined,
+    academicYear: data.academic_year,
+    academicSemester: data.academic_semester,
+    academicUpdatedAt: data.academic_updated_at ? new Date(data.academic_updated_at) : undefined,
     createdAt: new Date(data.created_at),
     lastActive: new Date(data.last_active),
     profile_data: data.profile_data || {},
