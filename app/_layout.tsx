@@ -59,33 +59,47 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isInitialized) return;
 
-    const inAuthGroup = segments[0] === 'auth';
-    const inOnboarding = segments[0] === 'onboarding';
-    const inWebRequired = segments[0] === 'web-required';
+    const navGroup = segments[0];
 
-    // 1. Mandatory Onboarding (Highest Priority)
-    if (isOnboardingComplete === false && !inOnboarding) {
+    // Define public routes that don't require authentication
+    // 'auth' covers login, register, verify-email
+    // 'onboarding' covers the initial intro
+    // 'web-required' is a utility screen
+    const isPublicRoute =
+      navGroup === 'auth' ||
+      navGroup === 'onboarding' ||
+      navGroup === 'web-required' ||
+      navGroup === 'privacy' ||
+      navGroup === 'help';
+
+    // 1. Mandatory Onboarding Check
+    if (isOnboardingComplete === false && navGroup !== 'onboarding') {
       AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
         if (val === 'true') {
           setIsOnboardingComplete(true);
         } else {
-          console.log('[Navigation] Onboarding incomplete - redirecting');
+          console.log('[Auth Guard] Onboarding incomplete - redirecting');
           router.replace('/onboarding');
         }
       });
       return;
     }
 
-    // 2. Redirect to Login if onboarding is done but not authenticated
-    if (!isAuthenticated && !inAuthGroup && !inOnboarding) {
-      console.log('[Navigation] Unauthenticated - redirecting to login');
+    // 2. Strict Authentication Guard
+    // If user is NOT authenticated and trying to access a protected route (non-public)
+    if (!isAuthenticated && !isPublicRoute) {
+      console.log(`[Auth Guard] Unauthenticated user attempted to access protected route: /${segments.join('/')}`);
+      console.log('[Auth Guard] Redirecting to Login');
+
+      // Use replace to prevent going back to the protected route
       router.replace('/auth/login');
       return;
     }
 
     // 3. Authenticated User Redirection
-    if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      console.log('[Navigation] Authenticated - moving to dashboard');
+    // If user IS authenticated but is on a public auth page (like login), send them to dashboard
+    if (isAuthenticated && navGroup === 'auth') {
+      console.log('[Auth Guard] Authenticated user on auth page - redirecting to dashboard');
       getCurrentUser().then(user => {
         if (user) {
           const role = user.role as UserRole;
@@ -93,14 +107,15 @@ export default function RootLayout() {
           const defaultRoute = getDefaultRoute(role, platform);
           router.replace(defaultRoute as any);
         } else {
+          // Fallback if user data fetch fails but auth session exists
           router.replace('/(tabs)');
         }
       }).catch((err) => {
-        console.error('[Navigation] Error moving to dashboard:', err);
+        console.error('[Auth Guard] Error directing user:', err);
         router.replace('/(tabs)');
       });
     }
-  }, [isAuthenticated, segments, isInitialized]);
+  }, [isAuthenticated, segments, isInitialized, isOnboardingComplete]);
 
   // Comprehensive role-based navigation protection
   useEffect(() => {

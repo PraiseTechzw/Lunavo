@@ -18,6 +18,7 @@ import {
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -37,7 +38,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-// Motivational quotes
+// Extended Motivational quotes
 const motivationalQuotes = [
   "You're stronger than you think. Keep going!",
   "Every small step forward is progress. Celebrate it!",
@@ -46,6 +47,9 @@ const motivationalQuotes = [
   "Tomorrow is a fresh start. You've got this!",
   "Self-care isn't selfish. It's essential.",
   "You're doing better than you think. Keep going!",
+  "Breathe. You have got this.",
+  "One day at a time.",
+  "You are enough, just as you are.",
 ];
 
 export default function HomeScreen() {
@@ -58,13 +62,15 @@ export default function HomeScreen() {
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [postCount, setPostCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentQuote] = useState(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [user, setUser] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
+    // Random quote on mount
+    setCurrentQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [userRole]);
 
   const loadUserData = async () => {
@@ -113,8 +119,10 @@ export default function HomeScreen() {
   };
 
   const onRefresh = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     await loadUserData();
+    setCurrentQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
     setRefreshing(false);
   }, []);
 
@@ -137,11 +145,17 @@ export default function HomeScreen() {
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
         <DrawerHeader
-          title={`${getGreeting()}, ${userName}`}
-          onMenuPress={() => setDrawerVisible(true)}
+          title={userName ? `${getGreeting()}, ${userName}` : getGreeting()}
+          onMenuPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setDrawerVisible(true);
+          }}
           rightAction={{
             icon: 'notifications',
-            onPress: () => router.push('/notifications'),
+            onPress: () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/notifications');
+            },
           }}
         />
 
@@ -159,11 +173,11 @@ export default function HomeScreen() {
               colors={colors.gradients.primary as any}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.heroCard}
+              style={[styles.heroCard, PlatformStyles.shadow]}
             >
               <View style={styles.heroContent}>
                 <ThemedText type="h1" style={styles.heroTitle}>Mission: Wellness</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>{currentQuote}</ThemedText>
+                <ThemedText style={styles.heroSubtitle}>"{currentQuote}"</ThemedText>
 
                 <View style={styles.statsRow}>
                   <View style={styles.heroStat}>
@@ -183,11 +197,14 @@ export default function HomeScreen() {
             </LinearGradient>
           </Animated.View>
 
-          {/* Urgent Support Quick Access */}
+          {/* Urgent Support Quick Access - Pulsing Effect Idea */}
           <Animated.View entering={FadeInDown.delay(200).duration(800)}>
             <TouchableOpacity
               style={[styles.glassCard, { backgroundColor: colors.danger + '10', borderColor: colors.danger + '30' }]}
-              onPress={() => router.push('/urgent-support')}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                router.push('/urgent-support');
+              }}
               activeOpacity={0.8}
             >
               <View style={[styles.cardIconBox, { backgroundColor: colors.danger + '20' }]}>
@@ -220,7 +237,9 @@ export default function HomeScreen() {
                     selectedMood === mood.id && { borderColor: mood.color, backgroundColor: mood.color + '10', borderWidth: 2 }
                   ]}
                   onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setSelectedMood(mood.id);
+                    // Pass params via context/store in real app, here checking in
                     router.push('/check-in');
                   }}
                   activeOpacity={0.7}
@@ -236,8 +255,11 @@ export default function HomeScreen() {
           <View style={styles.gridContainer}>
             <Animated.View entering={FadeInDown.delay(600)} style={styles.gridItem}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/(tabs)/forum')}
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/forum');
+                }}
               >
                 <LinearGradient
                   colors={['#818CF8', '#4F46E5']}
@@ -252,8 +274,11 @@ export default function HomeScreen() {
 
             <Animated.View entering={FadeInDown.delay(700)} style={styles.gridItem}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/(tabs)/chat')}
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/chat');
+                }}
               >
                 <LinearGradient
                   colors={['#F472B6', '#DB2777']}
@@ -268,8 +293,11 @@ export default function HomeScreen() {
 
             <Animated.View entering={FadeInDown.delay(800)} style={styles.gridItem}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/(tabs)/resources')}
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/resources');
+                }}
               >
                 <LinearGradient
                   colors={['#34D399', '#059669']}
@@ -284,8 +312,11 @@ export default function HomeScreen() {
 
             <Animated.View entering={FadeInDown.delay(900)} style={styles.gridItem}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/book-counsellor')}
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/book-counsellor');
+                }}
               >
                 <LinearGradient
                   colors={['#FBBF24', '#D97706']}
@@ -304,7 +335,10 @@ export default function HomeScreen() {
             <Animated.View entering={FadeInDown.delay(1000)}>
               <TouchableOpacity
                 style={[styles.mentorCard, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/peer-educator/dashboard' as any)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push('/peer-educator/dashboard' as any);
+                }}
               >
                 <View style={styles.mentorInfo}>
                   <ThemedText type="h3" style={{ color: '#FFF' }}>Educator Dashboard</ThemedText>
@@ -327,7 +361,10 @@ export default function HomeScreen() {
         >
           <TouchableOpacity
             style={[styles.fab, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/create-post')}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/create-post');
+            }}
             activeOpacity={0.9}
           >
             <Ionicons name="add" size={28} color="#FFF" />
@@ -374,6 +411,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 28,
     marginBottom: Spacing.xs,
+    fontWeight: '800', // Bolder
   },
   heroSubtitle: {
     color: 'rgba(255,255,255,0.9)',
@@ -473,7 +511,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
-    ...PlatformStyles.shadow,
+    // Premium Shadow moved inline
   },
   actionIcon: {
     width: 44,
@@ -527,4 +565,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

@@ -34,6 +34,7 @@ export interface SignInData {
  */
 export async function signUp(userData: SignUpData): Promise<{ user: any; error: any }> {
   try {
+    console.log('[Auth Debug] Starting signUp process for:', userData.email);
     // Check if email already exists before attempting signup
     const { checkEmailAvailability, checkUsernameAvailability, checkStudentIdAvailability } = await import('./database');
     const emailAvailable = await checkEmailAvailability(userData.email);
@@ -65,6 +66,8 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       };
     }
 
+    console.log('[Auth Debug] All availability checks passed');
+
     // Sign up with Supabase Auth
     // We pass the user profile data as metadata so the Trigger can create the public.users record
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -73,6 +76,7 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       options: {
         data: {
           fullName: userData.fullName,
+          username: userData.username, // Add username here
           studentNumber: userData.studentNumber,
           program: userData.program,
           year: userData.year,
@@ -88,6 +92,7 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     });
 
     if (authError) {
+      console.error('[Auth Debug] Supabase Auth Error:', authError.message, authError);
       // Check if error is due to email already existing
       if (authError.message?.toLowerCase().includes('already registered') ||
         authError.message?.toLowerCase().includes('already exists') ||
@@ -101,8 +106,11 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     }
 
     if (!authData.user) {
+      console.error('[Auth Debug] No user returned from Supabase Auth');
       return { user: null, error: new Error('User creation failed') };
     }
+
+    console.log('[Auth Debug] Supabase Auth Success. User ID:', authData.user.id, 'Session:', !!authData.session);
 
     // The user record in public.users is automatically created by the trigger
     // We fetch it to return default user object
@@ -113,11 +121,14 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     try {
       if (authData.session) {
         // If we have a session, we can fetch the full user
+        console.log('[Auth Debug] Session active, fetching public.users profile...');
         const dbUser = await getUser(authData.user.id);
+        console.log('[Auth Debug] Profile fetched successfully');
         return { user: dbUser, error: null };
       }
     } catch (e) {
       console.log('Could not fetch public user immediately (likely due to RLS/Verification), returning auth data');
+      console.log('[Auth Debug] Profile fetch suppressed error:', e);
     }
 
     return { user: { id: authData.user.id, ...userData } as any, error: null };

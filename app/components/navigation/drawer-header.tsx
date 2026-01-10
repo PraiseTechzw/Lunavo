@@ -80,12 +80,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
+    justifyContent: 'flex-start', // Align left
+    gap: Spacing.xs,
+    marginLeft: Spacing.sm, // Add space from menu button
   },
   title: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 18, // Slightly smaller to fit names
   },
   actionButton: {
     width: 40,

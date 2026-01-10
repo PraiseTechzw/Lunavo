@@ -177,12 +177,15 @@ export default function RegisterScreen() {
   }, [formData.studentNumber]);
 
   const handleRegister = async () => {
+    console.log('[Register] Handle register called');
     if (!formData.acceptedTerms) {
+      console.log('[Register] Terms not accepted');
       Alert.alert('Required', 'Accept terms to proceed.');
       return;
     }
     setLoading(true);
     try {
+      console.log('[Register] Calling signUp with:', { ...formData, password: '***', confirmPassword: '***' });
       const { user, error } = await signUp({
         email: formData.email,
         password: formData.password,
@@ -197,9 +200,15 @@ export default function RegisterScreen() {
         emergencyContactPhone: formData.emergencyContactPhone,
         role: 'student',
       });
+
+      console.log('[Register] signUp result:', { hasUser: !!user, error });
+
       if (error) throw error;
+
+      console.log('[Register] Success. Navigating to verify-email.');
       router.replace({ pathname: '/auth/verify-email', params: { email: formData.email } });
     } catch (e: any) {
+      console.error('[Register] Error caught:', e);
       Alert.alert('Error', e.message);
     } finally {
       setLoading(false);
@@ -353,12 +362,12 @@ export default function RegisterScreen() {
                     label="Community Alias"
                     icon="at-outline"
                     value={formData.username}
-                    onChange={(v: string) => setFormData({ ...formData, username: v })}
-                    placeholder="choose_a_nickname"
+                    onChange={(v: string) => setFormData({ ...formData, username: v.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                    placeholder="lowercase_only"
                     statusIcon={usernameStatus === 'checking' ? <ActivityIndicator size="small" /> : usernameStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : usernameStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
                     colors={colors}
                   />
-                  <ThemedText style={styles.hintText}>This alias is visible to peers. It can be different from your real name.</ThemedText>
+                  <ThemedText style={styles.hintText}>Lowercase only (a-z, 0-9, _). Visible to peers.</ThemedText>
                 </View>
               )}
 

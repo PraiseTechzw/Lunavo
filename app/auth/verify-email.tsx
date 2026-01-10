@@ -38,7 +38,9 @@ export default function VerifyEmailScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  // 8-digit OTP state
+  const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -69,19 +71,45 @@ export default function VerifyEmailScreen() {
   }, [countdown]);
 
   const handleOtpChange = (value: string, index: number) => {
+    // Handle Paste (length > 1)
+    if (value.length > 1) {
+      const pastedDigits = value.replace(/[^0-9]/g, '').split('').slice(0, 8);
+      if (pastedDigits.length === 0) return;
+
+      const newOtp = [...otp];
+      pastedDigits.forEach((digit, i) => {
+        const targetIndex = index + i;
+        if (targetIndex < 8) {
+          newOtp[targetIndex] = digit;
+        }
+      });
+      setOtp(newOtp);
+
+      // Auto-focus the next empty slot or the last pasted slot
+      const nextIndex = Math.min(index + pastedDigits.length, 7);
+      inputRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    // Handle Single Input - allow digits only
     if (value && !/^\d$/.test(value)) return;
+
+    // Take last char if multiple (edge case)
+    const char = value.slice(-1);
+
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = char;
     setOtp(newOtp);
 
-    if (value && index < 5) {
+    // Auto-advance
+    if (char && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleVerify = async () => {
     const code = otp.join('');
-    if (code.length < 6) return;
+    if (code.length < 8) return;
 
     setLoading(true);
     try {
@@ -113,32 +141,44 @@ export default function VerifyEmailScreen() {
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
               <PEACELogo size={100} />
-              <ThemedText type="h1" style={styles.title}>Verify Link</ThemedText>
-              <ThemedText style={styles.subtitle}>Enter the 6-digit protocol sent to</ThemedText>
+              <ThemedText type="h1" style={styles.title}>Secure Link</ThemedText>
+              <ThemedText style={styles.subtitle}>Enter the 8-digit security protocol sent to</ThemedText>
               <ThemedText style={styles.emailText}>{email}</ThemedText>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(400).duration(800)} style={[styles.card, { backgroundColor: colors.card }]}>
               <View style={styles.otpRoot}>
                 {otp.map((digit, i) => (
-                  <TextInput
+                  <Animated.View
                     key={i}
-                    ref={el => { inputRefs.current[i] = el; }}
-                    style={[styles.otpBox, {
-                      color: colors.text,
-                      borderColor: digit ? colors.primary : colors.border,
-                      borderWidth: digit ? 2 : 1
-                    }]}
-                    maxLength={1}
-                    keyboardType="number-pad"
-                    value={digit}
-                    onChangeText={v => handleOtpChange(v, i)}
-                    onKeyPress={({ nativeEvent }) => {
-                      if (nativeEvent.key === 'Backspace' && !otp[i] && i > 0) {
-                        inputRefs.current[i - 1]?.focus();
-                      }
-                    }}
-                  />
+                    entering={FadeInDown.delay(400 + (i * 50)).springify()}
+                    style={{ width: '11%' }}
+                  >
+                    <TextInput
+                      ref={el => { inputRefs.current[i] = el; }}
+                      style={[styles.otpBox, {
+                        color: colors.text,
+                        backgroundColor: digit ? colors.primary + '10' : 'rgba(255,255,255,0.03)',
+                        borderColor: focusedIndex === i ? colors.primary : digit ? colors.primary + '50' : colors.border,
+                        borderWidth: focusedIndex === i ? 2 : digit ? 1.5 : 1,
+                        ...PlatformStyles.shadow,
+                        shadowColor: focusedIndex === i ? colors.primary : '#000',
+                        shadowOpacity: focusedIndex === i ? 0.3 : 0.1,
+                      }]}
+                      onFocus={() => setFocusedIndex(i)}
+                      onBlur={() => setFocusedIndex(null)}
+                      maxLength={8} // Allow enough length for paste detection
+                      keyboardType="number-pad"
+                      textContentType="oneTimeCode" // Help iOS autofill
+                      value={digit}
+                      onChangeText={v => handleOtpChange(v, i)}
+                      onKeyPress={({ nativeEvent }) => {
+                        if (nativeEvent.key === 'Backspace' && !otp[i] && i > 0) {
+                          inputRefs.current[i - 1]?.focus();
+                        }
+                      }}
+                    />
+                  </Animated.View>
                 ))}
               </View>
 
@@ -236,17 +276,16 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   otpBox: {
-    width: '14%',
     height: 60,
     borderRadius: BorderRadius.lg,
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '700',
-    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   verifyBtnWrapper: {
     ...PlatformStyles.premiumShadow,
     marginBottom: 20,
+    marginTop: 20,
   },
   verifyBtn: {
     height: 60,
