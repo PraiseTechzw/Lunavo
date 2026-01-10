@@ -1,6 +1,6 @@
-# Lunavo Platform Wiki
+# PEACE Platform Wiki
 
-Welcome to the Lunavo Platform documentation wiki. This comprehensive guide covers everything you need to know about the Lunavo student support platform.
+Welcome to the PEACE Platform documentation wiki. This comprehensive guide covers everything you need to know about the PEACE student support platform.
 
 ## 📚 Documentation Overview
 
@@ -52,9 +52,9 @@ Welcome to the Lunavo Platform documentation wiki. This comprehensive guide cove
 - [Testing guidelines](Development/Testing.md)
 - [Contributing guidelines](Development/Contributing.md)
 
-## 📖 About Lunavo
+## 📖 About PEACE
 
-Lunavo is a comprehensive student support platform designed for the Chinhoyi University of Technology (CUT). It provides:
+PEACE (Peer Education Club) is a comprehensive student support platform designed for the Chinhoyi University of Technology (CUT). It provides:
 
 - **Peer Support**: Connect students with peer educators
 - **Professional Counseling**: Access to counselors and life coaches
@@ -116,4 +116,4 @@ For questions or issues:
 
 **Last Updated**: December 2024  
 **Version**: 1.0.0  
-**Maintained by**: Lunavo Development Team
+**Maintained by**: PE Club (Peer Education Club) Development Team

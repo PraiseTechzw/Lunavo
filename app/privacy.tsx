@@ -70,7 +70,7 @@ However, no method of transmission over the internet is 100% secure.`,
 • Export your data
 • Opt-out of certain data processing
 
-Contact us at privacy@lunavo.edu to exercise these rights.`,
+Contact us at privacy@peaceclub.cut.ac.zw to exercise these rights.`,
     },
     {
       title: 'Third-Party Services',
@@ -135,7 +135,7 @@ Continued use of the platform after changes constitutes acceptance.`,
           {/* Introduction */}
           <View style={[styles.introCard, { backgroundColor: colors.card }]}>
             <ThemedText type="body" style={[styles.introText, { color: colors.text }]}>
-              At Lunavo, we are committed to protecting your privacy and ensuring the security of your personal information. This policy explains how we collect, use, and safeguard your data when you use our platform.
+              At PEACE, we are committed to protecting your privacy and ensuring the security of your personal information. As the official platform of the Peer Education Club (PE Club), this policy explains how we collect, use, and safeguard your data when you use our platform.
             </ThemedText>
           </View>
 
@@ -157,7 +157,7 @@ Continued use of the platform after changes constitutes acceptance.`,
             <ThemedText type="body" style={[styles.contactText, { color: colors.text }]}>
               Questions about privacy? Contact us at{' '}
               <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
-                privacy@lunavo.edu
+                privacy@peaceclub.cut.ac.zw
               </ThemedText>
             </ThemedText>
           </View>

@@ -66,9 +66,9 @@ export default function HelpScreen() {
   const contactOptions = [
     {
       title: 'Email Support',
-      description: 'support@lunavo.edu',
+      description: 'support@peaceclub.cut.ac.zw',
       icon: 'email' as const,
-      action: () => Linking.openURL('mailto:support@lunavo.edu'),
+      action: () => Linking.openURL('mailto:support@peaceclub.cut.ac.zw'),
     },
     {
       title: 'Emergency Hotline',
@@ -78,9 +78,9 @@ export default function HelpScreen() {
     },
     {
       title: 'Visit Website',
-      description: 'lunavo.edu/support',
+      description: 'peaceclub.cut.ac.zw',
       icon: 'language' as const,
-      action: () => Linking.openURL('https://lunavo.edu/support'),
+      action: () => Linking.openURL('https://peaceclub.cut.ac.zw'),
     },
   ];
 

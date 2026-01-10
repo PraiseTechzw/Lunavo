@@ -34,7 +34,7 @@ const COMMON_ITEMS: DrawerItem[] = [
   { id: 'help', label: 'Help & Support', icon: 'help-outline', route: '/help', section: 'main' },
   { id: 'privacy', label: 'Privacy Policy', icon: 'privacy-tip', route: '/privacy', section: 'main' },
   { id: 'feedback', label: 'Send Feedback', icon: 'feedback', route: '/feedback', section: 'main' },
-  { id: 'about', label: 'About Lunavo', icon: 'info', route: '/about', section: 'about' },
+  { id: 'about', label: 'About PEACE', icon: 'info', route: '/about', section: 'about' },
 ];
 
 const ROLE_SPECIFIC_ITEMS: Record<string, DrawerItem[]> = {
@@ -81,7 +81,7 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
 
   const roleItems = role ? ROLE_SPECIFIC_ITEMS[role] || [] : [];
   const allItems = [...roleItems, ...COMMON_ITEMS];
-  
+
   const groupedItems = allItems.reduce((acc, item) => {
     const section = item.section || 'main';
     if (!acc[section]) acc[section] = [];
@@ -186,7 +186,7 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <ThemedText type="small" style={[styles.footerText, { color: colors.icon }]}>
-              Lunavo v1.0.0
+              PEACE v1.0.0
             </ThemedText>
           </View>
         </ThemedView>
