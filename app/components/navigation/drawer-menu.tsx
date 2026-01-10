@@ -1,24 +1,28 @@
 /**
- * Drawer Menu Component
- * Mobile secondary navigation for all roles
+ * Premium Drawer Menu Component
+ * Mobile secondary navigation with user profile and role-aware sections
  */
 
 import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { UserRole } from '@/app/types';
-import { createShadow } from '@/app/utils/platform-styles';
+import { signOut } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/database';
 import { getRoleMetadata } from '@/lib/permissions';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Modal, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInRight, SlideInRight } from 'react-native-reanimated';
 
 interface DrawerItem {
   id: string;
   label: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   route?: string;
   onPress?: () => void;
   badge?: number;
@@ -33,42 +37,39 @@ interface DrawerMenuProps {
 }
 
 const COMMON_ITEMS: DrawerItem[] = [
-  { id: 'settings', label: 'Settings', icon: 'settings', route: '/profile-settings', section: 'main' },
-  { id: 'help', label: 'Help & Support', icon: 'help-outline', route: '/help', section: 'main' },
-  { id: 'privacy', label: 'Privacy Policy', icon: 'privacy-tip', route: '/privacy', section: 'main' },
-  { id: 'feedback', label: 'Send Feedback', icon: 'feedback', route: '/feedback', section: 'main' },
-  { id: 'about', label: 'About PEACE', icon: 'info', route: '/about', section: 'about' },
+  { id: 'settings', label: 'Settings', icon: 'cog-outline', route: '/profile-settings', section: 'main' },
+  { id: 'help', label: 'Help & Support', icon: 'lifebuoy', route: '/help', section: 'main' },
+  { id: 'privacy', label: 'Privacy Policy', icon: 'shield-lock-outline', route: '/privacy', section: 'main' },
+  { id: 'feedback', label: 'Send Feedback', icon: 'message-text-outline', route: '/feedback', section: 'main' },
+  { id: 'about', label: 'About PEACE', icon: 'information-outline', route: '/about', section: 'about' },
 ];
 
 const ROLE_SPECIFIC_ITEMS: Record<string, DrawerItem[]> = {
   'peer-educator': [
-    { id: 'dashboard', label: 'Peer Educator Dashboard', icon: 'dashboard', route: '/peer-educator/dashboard', section: 'role' },
-    { id: 'meetings', label: 'Meetings', icon: 'event', route: '/meetings', section: 'role' },
-    { id: 'club-info', label: 'Club Information', icon: 'groups', route: '/peer-educator/club-info', section: 'role' },
+    { id: 'dashboard', label: 'Educator Dashboard', icon: 'view-dashboard-outline', route: '/peer-educator/dashboard', section: 'role' },
+    { id: 'meetings', label: 'Meetings', icon: 'calendar-clock', route: '/meetings', section: 'role' },
+    { id: 'club-info', label: 'Club Info', icon: 'account-group-outline', route: '/peer-educator/club-info', section: 'role' },
   ],
   'peer-educator-executive': [
-    { id: 'dashboard', label: 'Executive Dashboard', icon: 'dashboard', route: '/peer-educator/dashboard', section: 'role' },
-    { id: 'meetings', label: 'Manage Meetings', icon: 'event', route: '/meetings', section: 'role' },
-    { id: 'club-info', label: 'Club Information', icon: 'groups', route: '/peer-educator/club-info', section: 'role' },
-    { id: 'members', label: 'Manage Members', icon: 'people', route: '/peer-educator/members', section: 'role' },
+    { id: 'dashboard', label: 'Executive Dashboard', icon: 'view-dashboard-variant-outline', route: '/peer-educator/dashboard', section: 'role' },
+    { id: 'meetings', label: 'Manage Meetings', icon: 'calendar-edit', route: '/meetings', section: 'role' },
+    { id: 'members', label: 'Manage Members', icon: 'account-multiple-outline', route: '/peer-educator/members', section: 'role' },
   ],
   moderator: [
-    { id: 'moderation', label: 'Moderation Queue', icon: 'security', route: '/admin/moderation', section: 'role' },
-    { id: 'reports', label: 'Reports', icon: 'report-problem', route: '/admin/reports', section: 'role' },
+    { id: 'moderation', label: 'Moderation Queue', icon: 'shield-alert-outline', route: '/admin/moderation', section: 'role' },
+    { id: 'reports', label: 'Reports', icon: 'flag-outline', route: '/admin/reports', section: 'role' },
   ],
   counselor: [
-    { id: 'dashboard', label: 'Counselor Dashboard', icon: 'dashboard', route: '/counselor/dashboard', section: 'role' },
-    { id: 'escalations', label: 'Escalations', icon: 'priority-high', route: '/counselor/escalations', section: 'role' },
+    { id: 'dashboard', label: 'Counselor Hub', icon: 'heart-pulse', route: '/counselor/dashboard', section: 'role' },
+    { id: 'escalations', label: 'Escalations', icon: 'alert-circle-outline', route: '/counselor/escalations', section: 'role' },
   ],
   'life-coach': [
-    { id: 'dashboard', label: 'Life Coach Dashboard', icon: 'dashboard', route: '/counselor/dashboard', section: 'role' },
-    { id: 'escalations', label: 'Escalations', icon: 'priority-high', route: '/counselor/escalations', section: 'role' },
+    { id: 'dashboard', label: 'Coach Dashboard', icon: 'hand-heart-outline', route: '/counselor/dashboard', section: 'role' },
   ],
   admin: [
-    { id: 'dashboard', label: 'Admin Dashboard', icon: 'dashboard', route: '/admin/dashboard', section: 'role' },
-    { id: 'analytics', label: 'Analytics', icon: 'analytics', route: '/admin/analytics', section: 'role' },
-    { id: 'moderation', label: 'Moderation', icon: 'security', route: '/admin/moderation', section: 'role' },
-    { id: 'users', label: 'User Management', icon: 'people', route: '/admin/users', section: 'role' },
+    { id: 'dashboard', label: 'Admin Panel', icon: 'console', route: '/admin/dashboard', section: 'role' },
+    { id: 'analytics', label: 'Analytics', icon: 'chart-box-outline', route: '/admin/analytics', section: 'role' },
+    { id: 'users', label: 'User Management', icon: 'account-cog-outline', route: '/admin/users', section: 'role' },
   ],
 };
 
@@ -76,11 +77,24 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const [user, setUser] = useState<any>(null);
 
-  // Only show on mobile
-  if (Platform.OS === 'web') {
-    return null;
-  }
+  useEffect(() => {
+    if (visible) {
+      loadUser();
+    }
+  }, [visible]);
+
+  const loadUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (e) {
+      console.error('Drawer: Failed to load user', e);
+    }
+  };
+
+  if (Platform.OS === 'web') return null;
 
   const roleItems = role ? ROLE_SPECIFIC_ITEMS[role] || [] : [];
   const allItems = [...roleItems, ...COMMON_ITEMS];
@@ -93,6 +107,7 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
   }, {} as Record<string, DrawerItem[]>);
 
   const handleNavigate = (item: DrawerItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (item.route) {
       router.push(item.route as any);
       onClose();
@@ -102,110 +117,111 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
     }
   };
 
+  const handleLogout = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/auth/login');
+          onClose();
+        },
+      },
+    ]);
+  };
+
+  const roleMeta = role ? getRoleMetadata(role as UserRole) : null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <ThemedView
-          style={[styles.drawer, { backgroundColor: colors.surface }]}
-          onStartShouldSetResponder={() => true}
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+
+        <Animated.View
+          entering={SlideInRight.duration(300)}
+          exiting={FadeOut.duration(200)}
+          style={[styles.drawer, { backgroundColor: colors.background }]}
         >
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <View style={styles.headerLogoSection}>
-              <PEACELogo size={50} />
-              <View>
-                <ThemedText type="h3" style={[styles.title, { color: colors.text }]}>
-                  PEACE
-                </ThemedText>
-                {role && (
-                  <View style={[styles.roleBadge, { backgroundColor: getRoleMetadata(role as UserRole).accentColor + '20' }]}>
-                    <ThemedText type="small" style={[styles.roleBadgeText, { color: getRoleMetadata(role as UserRole).accentColor }]}>
-                      {getRoleMetadata(role as UserRole).label}
-                    </ThemedText>
-                  </View>
-                )}
-              </View>
+          {/* User Profile Header */}
+          <LinearGradient
+            colors={colors.gradients.primary as any}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.header}
+          >
+            <View style={styles.avatarContainer}>
+              <MaterialCommunityIcons name="account-circle" size={60} color="rgba(255,255,255,0.9)" />
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.closeButton, { backgroundColor: colors.card }]}
-            >
-              <MaterialIcons name="close" size={24} color={colors.text} />
+            <ThemedText style={styles.userName}>{user?.pseudonym || 'Anonymous User'}</ThemedText>
+            {roleMeta && (
+              <View style={[styles.roleBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <ThemedText style={styles.roleText}>{roleMeta.label}</ThemedText>
+              </View>
+            )}
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <MaterialCommunityIcons name="close" size={24} color="#FFF" />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           {/* Navigation Items */}
-          <View style={styles.content}>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {Object.entries(groupedItems).map(([section, sectionItems]) => (
               <View key={section} style={styles.section}>
                 {section !== 'main' && (
-                  <ThemedText type="small" style={[styles.sectionLabel, { color: colors.icon }]}>
-                    {section.toUpperCase()}
+                  <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>
+                    {section === 'role' ? 'YOUR TOOLS' : section.toUpperCase()}
                   </ThemedText>
                 )}
-                {sectionItems.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() => handleNavigate(item)}
-                    style={[
-                      styles.menuItem,
-                      { backgroundColor: colors.card },
-                      createShadow(1, '#000', 0.05),
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.menuItemContent}>
-                      <MaterialIcons
-                        name={item.icon}
-                        size={24}
-                        color={item.danger ? colors.danger : colors.primary}
-                      />
+                {sectionItems.map((item, idx) => (
+                  <Animated.View key={item.id} entering={FadeInRight.delay(100 + idx * 50)}>
+                    <TouchableOpacity
+                      onPress={() => handleNavigate(item)}
+                      style={[styles.menuItem, { backgroundColor: colors.card }]}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.iconBox, { backgroundColor: (item.danger ? colors.danger : colors.primary) + '15' }]}>
+                        <MaterialCommunityIcons
+                          name={item.icon}
+                          size={22}
+                          color={item.danger ? colors.danger : colors.primary}
+                        />
+                      </View>
                       <ThemedText
-                        type="body"
-                        style={[
-                          styles.menuItemLabel,
-                          { color: item.danger ? colors.danger : colors.text },
-                        ]}
+                        style={[styles.menuLabel, { color: item.danger ? colors.danger : colors.text }]}
                       >
                         {item.label}
                       </ThemedText>
                       {item.badge && item.badge > 0 && (
                         <View style={[styles.badge, { backgroundColor: colors.danger }]}>
-                          <ThemedText type="small" style={styles.badgeText}>
-                            {item.badge > 99 ? '99+' : item.badge}
-                          </ThemedText>
+                          <ThemedText style={styles.badgeText}>{item.badge > 99 ? '99+' : item.badge}</ThemedText>
                         </View>
                       )}
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={20}
-                        color={colors.icon}
-                        style={styles.chevron}
-                      />
-                    </View>
-                  </TouchableOpacity>
+                      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+                  </Animated.View>
                 ))}
               </View>
             ))}
-          </View>
+
+            {/* Logout Button */}
+            <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, { borderColor: colors.danger + '30' }]}>
+              <MaterialCommunityIcons name="logout" size={20} color={colors.danger} />
+              <ThemedText style={[styles.logoutText, { color: colors.danger }]}>Sign Out</ThemedText>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
 
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <ThemedText type="small" style={[styles.footerText, { color: colors.icon }]}>
-              PEACE v1.0.0
-            </ThemedText>
+            <PEACELogo size={24} />
+            <ThemedText style={[styles.footerText, { color: colors.icon }]}>PEACE v1.0.0</ThemedText>
           </View>
-        </ThemedView>
-      </TouchableOpacity>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -213,38 +229,60 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    flexDirection: 'row',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   drawer: {
-    width: '85%',
-    maxWidth: 400,
+    width: '80%',
+    maxWidth: 320,
     height: '100%',
-    alignSelf: 'flex-end',
-    borderTopLeftRadius: BorderRadius.xl,
-    borderBottomLeftRadius: BorderRadius.xl,
+    ...PlatformStyles.premiumShadow,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
+    position: 'relative',
   },
-  title: {
-    fontWeight: '800',
-    fontSize: 22,
-    lineHeight: 24,
-  },
-  headerLogoSection: {
-    flexDirection: 'row',
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
+    marginBottom: 12,
   },
-  closeButton: {
+  userName: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  roleBadge: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  roleText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
     width: 36,
     height: 36,
-    borderRadius: BorderRadius.md,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -253,65 +291,71 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    marginLeft: Spacing.sm,
   },
   menuItem: {
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-    overflow: 'hidden',
-  },
-  menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xs,
     gap: Spacing.md,
   },
-  menuItemLabel: {
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuLabel: {
     flex: 1,
+    fontSize: 15,
     fontWeight: '500',
   },
   badge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 11,
     fontWeight: '700',
   },
-  chevron: {
-    marginLeft: 'auto',
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.lg,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  logoutText: {
+    fontWeight: '600',
+    fontSize: 15,
   },
   footer: {
-    padding: Spacing.md,
-    borderTopWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
   },
   footerText: {
     fontSize: 12,
-  },
-  roleBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    marginTop: 4,
-  },
-  roleBadgeText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 10,
-    textTransform: 'uppercase',
   },
 });

@@ -168,12 +168,12 @@ export async function signIn(credentials: SignInData): Promise<{ user: any; erro
     if (error) {
       console.log('[signIn] Supabase error:', error.message, 'Status:', error.status);
 
-      // Check if error is due to email not being confirmed
       const errorMessage = error.message?.toLowerCase() || '';
+
+      // Check for ACTUAL email not confirmed errors (not just any 400)
       if (errorMessage.includes('email not confirmed') ||
         errorMessage.includes('email not verified') ||
-        errorMessage.includes('not confirmed') ||
-        error.status === 400) {
+        errorMessage.includes('confirm your email')) {
         console.log('[signIn] Email not confirmed, redirecting to verification');
         return {
           user: null,
@@ -182,6 +182,18 @@ export async function signIn(credentials: SignInData): Promise<{ user: any; erro
           email: email
         };
       }
+
+      // Handle invalid credentials specifically (wrong email or password)
+      if (errorMessage.includes('invalid login credentials') ||
+        errorMessage.includes('invalid password') ||
+        errorMessage.includes('user not found')) {
+        console.log('[signIn] Invalid credentials');
+        return {
+          user: null,
+          error: new Error('Invalid email or password. Please check your credentials and try again.')
+        };
+      }
+
       return { user: null, error };
     }
 
