@@ -6,7 +6,7 @@ import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from './use-color-scheme';
 
 // Exclude gradients from color name keys since gradients are objects, not strings
-type ColorName = Exclude<keyof typeof Colors.light, 'gradients'>;
+type ColorName = Exclude<keyof typeof Colors.light, 'gradients' | 'glass'>;
 
 export function useThemeColor(
   props: { light?: string; dark?: string },

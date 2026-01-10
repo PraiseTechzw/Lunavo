@@ -34,6 +34,7 @@ export interface Escalation {
 
 export interface User {
   id: string;
+  email: string;
   pseudonym: string;
   username?: string; // Anonymous username (unique)
   isAnonymous: boolean;

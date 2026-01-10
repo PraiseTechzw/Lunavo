@@ -1,36 +1,43 @@
 /**
- * Profile Settings Screen
+ * Profile Settings Screen - Premium Version
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
-import { getPseudonym } from '@/app/utils/storage';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getCursorStyle, createShadow } from '@/app/utils/platform-styles';
+import { getPseudonym } from '@/app/utils/storage';
+import { useCurrentUser } from '@/hooks/use-auth-guard';
+import { getRoleMetadata, UserRole } from '@/lib/permissions';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { user, loading } = useCurrentUser();
   const [userName, setUserName] = useState('Alex');
   const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
-    loadUserInfo();
-  }, []);
+    if (user) {
+      setUserName(user.username || user.email.split('@')[0]);
+    } else {
+      loadUserInfo();
+    }
+  }, [user]);
 
   const loadUserInfo = async () => {
     const pseudonym = await getPseudonym();
@@ -39,144 +46,112 @@ export default function ProfileSettingsScreen() {
     }
   };
 
+  const roleMetadata = getRoleMetadata((user?.role as UserRole) || 'student');
+
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+    Alert.alert('Log Out', 'Are you sure you want to log out of PEACE?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: () => {
-          // Handle logout
-          router.replace('/onboarding');
-        },
+        onPress: () => router.replace('/onboarding'),
       },
     ]);
   };
 
+  const SettingRow = ({ icon, title, desc, action, type = 'chevron' }: any) => (
+    <TouchableOpacity
+      style={[styles.settingCard, { backgroundColor: colors.card }]}
+      onPress={action}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.settingIcon, { backgroundColor: colors.primary + '10' }]}>
+        <Ionicons name={icon} size={22} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <ThemedText style={{ fontWeight: '600' }}>{title}</ThemedText>
+        {desc && <ThemedText type="small" style={{ color: colors.icon }}>{desc}</ThemedText>}
+      </View>
+      {type === 'chevron' ? (
+        <Ionicons name="chevron-forward" size={18} color={colors.border} />
+      ) : (
+        <Switch
+          value={isAnonymous}
+          onValueChange={setIsAnonymous}
+          trackColor={{ false: colors.border, true: colors.primary }}
+        />
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={[styles.avatar, { backgroundColor: '#FFA500' }]}>
-            <ThemedText type="h2" style={{ color: '#FFFFFF' }}>
-              {userName[0]?.toUpperCase() || 'A'}
-            </ThemedText>
-          </View>
-          <ThemedText type="h2" style={styles.userName}>
-            {userName}
-          </ThemedText>
-          <ThemedText type="caption" style={styles.userRole}>
-            Student at Chinhoyi University of Technology
-          </ThemedText>
-        </View>
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <ThemedText type="h2">Settings</ThemedText>
+        <View style={{ width: 44 }} />
+      </View>
 
-        {/* Anonymous Toggle Card */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card },
-            createShadow(2, '#000', 0.1),
-          ]}
-        >
-          <View style={styles.cardContent}>
-            <View style={styles.cardText}>
-              <ThemedText type="body" style={styles.cardTitle}>
-                Go Anonymous
-              </ThemedText>
-              <ThemedText type="small" style={styles.cardDescription}>
-                Your name and profile picture will be hidden from others
-              </ThemedText>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Profile Identity Card */}
+        <Animated.View entering={FadeInDown.duration(600)}>
+          <LinearGradient
+            colors={[colors.surface, colors.background]}
+            style={[styles.identityCard, { borderColor: colors.border }]}
+          >
+            <View style={[styles.avatarLarge, { backgroundColor: roleMetadata.accentColor }]}>
+              <ThemedText style={styles.avatarText}>{userName[0]?.toUpperCase()}</ThemedText>
             </View>
-            <Switch
-              value={isAnonymous}
-              onValueChange={setIsAnonymous}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <ThemedText type="h2">{userName}</ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon }}>{roleMetadata.label}</ThemedText>
+
+            <View style={styles.badgeRow}>
+              <View style={[styles.roleLabel, { backgroundColor: roleMetadata.accentColor + '20' }]}>
+                <ThemedText style={{ color: roleMetadata.accentColor, fontSize: 10, fontWeight: '800' }}>
+                  VERIFIED {user?.role?.toUpperCase()}
+                </ThemedText>
+              </View>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        <View style={styles.section}>
+          <ThemedText type="h3" style={styles.sectionLabel}>Privacy & Safety</ThemedText>
+          <SettingRow
+            icon="eye-off-outline"
+            title="Anonymous Mode"
+            desc="Hide your identity in forum and chat"
+            type="switch"
+          />
+          <SettingRow
+            icon="shield-outline"
+            title="Purpose & Role"
+            desc={roleMetadata.description}
+            action={() => { }}
+          />
         </View>
 
-        {/* Settings Options */}
-        <View style={styles.settingsSection}>
-          <TouchableOpacity
-            style={[
-              styles.settingItem,
-              { backgroundColor: colors.card },
-              createShadow(1, '#000', 0.05),
-            ]}
-            onPress={() => Alert.alert('Account Information', 'Feature coming soon')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="person-outline" size={24} color={colors.text} />
-            <ThemedText type="body" style={styles.settingText}>
-              Account Information
-            </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.settingItem,
-              { backgroundColor: colors.card },
-              createShadow(1, '#000', 0.05),
-            ]}
-            onPress={() => Alert.alert('Notifications', 'Feature coming soon')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="notifications-outline" size={24} color={colors.text} />
-            <ThemedText type="body" style={styles.settingText}>
-              Notifications
-            </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.settingItem,
-              { backgroundColor: colors.card },
-              createShadow(1, '#000', 0.05),
-            ]}
-            onPress={() => Alert.alert('Privacy Policy', 'Feature coming soon')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="lock-closed-outline" size={24} color={colors.text} />
-            <ThemedText type="body" style={styles.settingText}>
-              Privacy Policy
-            </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-          </TouchableOpacity>
+        <View style={styles.section}>
+          <ThemedText type="h3" style={styles.sectionLabel}>Account</ThemedText>
+          <SettingRow icon="person-outline" title="Personal Info" action={() => { }} />
+          <SettingRow icon="notifications-outline" title="Notifications" action={() => { }} />
+          <SettingRow icon="lock-closed-outline" title="Security" action={() => { }} />
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsSection}>
+        <View style={styles.section}>
           <TouchableOpacity
-            style={[
-              styles.saveButton,
-              { backgroundColor: colors.primary },
-              createShadow(3, colors.primary, 0.3),
-            ]}
-            onPress={() => Alert.alert('Saved', 'Your changes have been saved.')}
-            activeOpacity={0.8}
-          >
-            <ThemedText type="body" style={[styles.saveButtonText, { color: '#FFFFFF' }]}>
-              Save Changes
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.logoutButton}
+            style={[styles.logoutBtn, { borderColor: colors.danger }]}
             onPress={handleLogout}
-            activeOpacity={0.7}
           >
-            <ThemedText type="body" style={[styles.logoutText, { color: colors.danger }]}>
-              Log Out
-            </ThemedText>
+            <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+            <ThemedText style={{ color: colors.danger, fontWeight: '700' }}>Log Out</ThemedText>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.footer}>
+          <ThemedText style={styles.versionText}>PEACE v1.0.0 (BETA)</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>
@@ -187,89 +162,97 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingTop: 60,
+    paddingBottom: Spacing.md,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
-  profileHeader: {
+  identityCard: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xxl,
+    borderWidth: 1,
+    marginBottom: Spacing.xl,
+    ...PlatformStyles.shadow,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
+  avatarLarge: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  userName: {
-    marginBottom: Spacing.xs,
-    fontWeight: '700',
+  avatarText: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '800',
   },
-  userRole: {
-    opacity: 0.7,
-  },
-  card: {
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardText: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  cardTitle: {
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  cardDescription: {
-    opacity: 0.7,
-  },
-  settingsSection: {
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.md,
-  },
-  settingText: {
-    flex: 1,
-    fontWeight: '500',
-  },
-  actionsSection: {
+  badgeRow: {
     marginTop: Spacing.md,
+  },
+  roleLabel: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  section: {
     marginBottom: Spacing.xl,
   },
-  saveButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
+  sectionLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
     marginBottom: Spacing.md,
+    fontWeight: '900',
   },
-  saveButtonText: {
-    fontWeight: '600',
-  },
-  logoutButton: {
-    padding: Spacing.md,
+  settingCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.sm,
+    ...PlatformStyles.shadow,
   },
-  logoutText: {
-    fontWeight: '600',
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 2,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+    opacity: 0.5,
+  },
+  versionText: {
+    fontSize: 12,
+    letterSpacing: 1,
   },
 });
-
-
-
-

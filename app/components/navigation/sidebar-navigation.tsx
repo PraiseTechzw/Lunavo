@@ -7,6 +7,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { getRoleLabel, UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -25,7 +26,7 @@ interface SidebarItem {
 }
 
 interface SidebarNavigationProps {
-  role: 'admin' | 'student-affairs';
+  role: UserRole;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -86,9 +87,14 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
       {/* Header */}
       <View style={styles.header}>
         {!isCollapsed && (
-          <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
-            PEACE
-          </ThemedText>
+          <View>
+            <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
+              PEACE
+            </ThemedText>
+            <ThemedText type="small" style={[styles.roleLabel, { color: colors.primary }]}>
+              {getRoleLabel(role)}
+            </ThemedText>
+          </View>
         )}
         <TouchableOpacity
           onPress={handleToggle}
@@ -202,6 +208,12 @@ const styles = StyleSheet.create({
   logo: {
     fontWeight: '700',
     fontSize: 20,
+  },
+  roleLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   toggleButton: {
     width: 32,

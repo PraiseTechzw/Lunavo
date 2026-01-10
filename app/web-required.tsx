@@ -1,15 +1,17 @@
 /**
- * Web Required Screen
+ * Web Required Screen - Premium Version
  * Shown when Student Affairs tries to access on mobile
  */
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
-import { Colors, Spacing } from '@/app/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function WebRequiredScreen() {
@@ -20,56 +22,53 @@ export default function WebRequiredScreen() {
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <View style={styles.content}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <MaterialIcons name="computer" size={64} color={colors.primary} />
-          </View>
-          
-          <ThemedText type="h1" style={[styles.title, { color: colors.text }]}>
-            Web Access Required
+        <Animated.View entering={FadeInDown.duration(800)} style={styles.content}>
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.iconCircle}
+          >
+            <MaterialIcons name="desktop-mac" size={60} color="#FFF" />
+          </LinearGradient>
+
+          <ThemedText type="h1" style={styles.title}>Web Portal Only</ThemedText>
+
+          <ThemedText type="body" style={styles.message}>
+            The Student Affairs Command Center contains sensitive data and administrative tools requiring a desktop-class interface for security compliance.
           </ThemedText>
-          
-          <ThemedText type="body" style={[styles.message, { color: colors.icon }]}>
-            The Student Affairs dashboard is only available on web browsers for security and data management purposes.
-          </ThemedText>
-          
-          <View style={styles.instructionsContainer}>
-            <ThemedText type="h3" style={[styles.instructionsTitle, { color: colors.text }]}>
-              How to Access:
+
+          <View style={[styles.instructionBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <ThemedText type="h3" style={{ marginBottom: Spacing.md, color: colors.primary }}>
+              Access Protocol:
             </ThemedText>
-            
+
             <View style={styles.step}>
-              <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                <ThemedText type="body" style={styles.stepNumberText}>1</ThemedText>
-              </View>
-              <ThemedText type="body" style={[styles.stepText, { color: colors.text }]}>
-                Open a web browser on your computer
-              </ThemedText>
+              <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+              <ThemedText style={styles.stepText}>Open your authorized workstation browser.</ThemedText>
             </View>
-            
             <View style={styles.step}>
-              <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                <ThemedText type="body" style={styles.stepNumberText}>2</ThemedText>
-              </View>
-              <ThemedText type="body" style={[styles.stepText, { color: colors.text }]}>
-                Navigate to the Lunavo web portal
-              </ThemedText>
+              <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+              <ThemedText style={styles.stepText}>Visit the PEACE Web Portal.</ThemedText>
             </View>
-            
             <View style={styles.step}>
-              <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                <ThemedText type="body" style={styles.stepNumberText}>3</ThemedText>
-              </View>
-              <ThemedText type="body" style={[styles.stepText, { color: colors.text }]}>
-                Log in with your Student Affairs credentials
-              </ThemedText>
+              <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+              <ThemedText style={styles.stepText}>Authenticate with your SA credentials.</ThemedText>
             </View>
           </View>
-          
-          <ThemedText type="small" style={[styles.footer, { color: colors.icon }]}>
-            For assistance, please contact the IT support team.
-          </ThemedText>
-        </View>
+
+          <TouchableOpacity
+            style={[styles.backBtn, { borderColor: colors.border }]}
+            onPress={() => router.replace('/auth/login')}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <ThemedText style={{ fontWeight: '600' }}>Back to Login</ThemedText>
+          </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <ThemedText type="small" style={{ color: colors.icon }}>
+              Encryption Status: ACTIVE (AES-256)
+            </ThemedText>
+          </View>
+        </Animated.View>
       </ThemedView>
     </SafeAreaView>
   );
@@ -86,66 +85,64 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   content: {
-    maxWidth: 500,
     width: '100%',
+    maxWidth: 400,
     alignItems: 'center',
   },
-  iconContainer: {
+  iconCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xl,
+    ...PlatformStyles.premiumShadow,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   message: {
-    fontSize: 16,
     textAlign: 'center',
+    opacity: 0.8,
     lineHeight: 24,
     marginBottom: Spacing.xl,
   },
-  instructionsContainer: {
+  instructionBox: {
     width: '100%',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    borderWidth: 1,
     marginBottom: Spacing.xl,
-  },
-  instructionsTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
   },
   step: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
-    marginTop: 2,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
-  stepNumberText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   stepText: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    gap: Spacing.sm,
   },
   footer: {
-    textAlign: 'center',
-    marginTop: Spacing.lg,
-    fontSize: 14,
+    marginTop: Spacing.xxl,
+    opacity: 0.5,
   },
 });

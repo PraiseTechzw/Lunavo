@@ -8,6 +8,7 @@ import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createShadow } from '@/app/utils/platform-styles';
+import { getRoleMetadata, UserRole } from '@/lib/permissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Modal, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -39,7 +40,7 @@ const COMMON_ITEMS: DrawerItem[] = [
 
 const ROLE_SPECIFIC_ITEMS: Record<string, DrawerItem[]> = {
   'peer-educator': [
-    { id: 'dashboard', label: 'Peer Dashboard', icon: 'dashboard', route: '/peer-educator/dashboard', section: 'role' },
+    { id: 'dashboard', label: 'Peer Educator Dashboard', icon: 'dashboard', route: '/peer-educator/dashboard', section: 'role' },
     { id: 'meetings', label: 'Meetings', icon: 'event', route: '/meetings', section: 'role' },
     { id: 'club-info', label: 'Club Information', icon: 'groups', route: '/peer-educator/club-info', section: 'role' },
   ],
@@ -117,9 +118,18 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
         >
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
-              Menu
-            </ThemedText>
+            <View>
+              <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
+                Menu
+              </ThemedText>
+              {role && (
+                <View style={[styles.roleBadge, { backgroundColor: getRoleMetadata(role as UserRole).accentColor }]}>
+                  <ThemedText type="small" style={styles.roleBadgeText}>
+                    {getRoleMetadata(role as UserRole).label}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
             <TouchableOpacity
               onPress={onClose}
               style={[styles.closeButton, { backgroundColor: colors.card }]}
@@ -279,5 +289,18 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    marginTop: 4,
+  },
+  roleBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
 });

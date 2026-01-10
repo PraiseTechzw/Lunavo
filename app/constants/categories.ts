@@ -11,7 +11,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Mental Health Support',
     description: 'Stress, depression, anxiety, suicidal thoughts, and emotional wellbeing',
     icon: 'medical-outline',
-    color: Colors.light.mentalHealth,
+    color: Colors.light.secondary, // Violet
     resources: [
       'CUT Counseling Services: +263 67 22203-5 Ext. 1297',
       'Zimbabwe Lifeline: +263 4 700 800',
@@ -23,7 +23,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Crisis Support',
     description: 'Immediate help for suicidal thoughts or emotional crises',
     icon: 'warning',
-    color: Colors.light.crisis,
+    color: Colors.light.danger, // Red
     resources: [
       'Emergency: 999',
       'Police: 995',
@@ -35,7 +35,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Drug & Substance Abuse',
     description: 'Support for drug and alcohol related concerns, addiction recovery',
     icon: 'medkit',
-    color: Colors.light.substance,
+    color: Colors.light.warning, // Amber
     resources: [
       'CUT Student Affairs - Drug & Substance Abuse Section: +263 67 22203-5 Ext. 1297',
       'Zimbabwe National AIDS Council: +263 4 791 000',
@@ -47,7 +47,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Sexual & Reproductive Health (SRH)',
     description: 'Safe sex, reproductive health, and family planning',
     icon: 'heart',
-    color: Colors.light.health,
+    color: '#EC4899', // Pink
     resources: [
       'CUT Health Services: +263 67 22203-5',
       'Zimbabwe National AIDS Council: +263 4 791 000',
@@ -84,7 +84,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Academic Support & Exam Stress',
     description: 'Study stress, exam anxiety, performance, and academic challenges',
     icon: 'library-outline',
-    color: Colors.light.academic,
+    color: Colors.light.primary, // Indigo
     resources: [
       'CUT Academic Support',
       'Study Skills Workshops',
@@ -97,7 +97,7 @@ export const CATEGORIES: Record<PostCategory, Category> = {
     name: 'Social & Personal',
     description: 'Friendship, social anxiety, and personal growth',
     icon: 'people',
-    color: Colors.light.social,
+    color: Colors.light.success, // Emerald
     resources: [
       'Student Clubs',
       'Social Skills Workshops',

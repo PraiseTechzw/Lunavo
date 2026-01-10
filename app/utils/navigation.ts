@@ -139,6 +139,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
     web: [
       '/(tabs)',
       '/peer-educator',
+      '/peer-educator/executive', // Explicit executive access
       '/create-post',
       '/post',
       '/topic',
@@ -291,7 +292,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
     ],
   },
   'student-affairs': {
-    mobile: [], // BLOCKED - Web only
+    mobile: [], // STRICTLY BLOCKED ON MOBILE
     web: [
       '/student-affairs',
       '/(tabs)/resources',
@@ -364,19 +365,19 @@ export function canAccessRoute(
   platform: 'mobile' | 'web' = isMobile ? 'mobile' : 'web'
 ): boolean {
   const access = ROUTE_ACCESS[role];
-  
+
   // Check if route is blocked
-  const isBlocked = access.blocked.some(blockedRoute => 
+  const isBlocked = access.blocked.some(blockedRoute =>
     route.startsWith(blockedRoute)
   );
   if (isBlocked) return false;
-  
+
   // Check if route is allowed
   const allowedRoutes = access[platform];
-  const isAllowed = allowedRoutes.some(allowedRoute => 
+  const isAllowed = allowedRoutes.some(allowedRoute =>
     route.startsWith(allowedRoute) || route === allowedRoute
   );
-  
+
   return isAllowed;
 }
 
@@ -395,7 +396,7 @@ export function getDefaultRoute(role: UserRole, platform: 'mobile' | 'web' = isM
   if (isStudentAffairsMobileBlocked(role, platform)) {
     return '/web-required';
   }
-  
+
   switch (role) {
     case 'student':
       return '/(tabs)';
@@ -426,11 +427,11 @@ export function getNavigationType(role: UserRole, platform: 'mobile' | 'web' = i
     }
     return 'tabs';
   }
-  
+
   // Mobile
   if (role === 'admin' || role === 'student-affairs') {
     return 'sidebar'; // Will be blocked for student-affairs
   }
-  
+
   return 'tabs';
 }

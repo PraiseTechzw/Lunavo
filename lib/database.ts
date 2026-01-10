@@ -28,7 +28,7 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
   // Get the current authenticated user's ID from Supabase Auth
   // If authUserId is provided (from signUp), use it directly
   let userId = authUserId;
-  
+
   if (!userId) {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
@@ -118,7 +118,7 @@ export async function checkUsernameAvailability(username: string): Promise<boole
   }
 
   const normalizedUsername = username.toLowerCase().trim();
-  
+
   // Check username format (alphanumeric, underscore, hyphen, 3-20 chars)
   if (!/^[a-z0-9_-]{3,20}$/.test(normalizedUsername)) {
     return false;
@@ -165,7 +165,7 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  
+
   // Basic email format validation
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
   if (!emailRegex.test(normalizedEmail)) {
@@ -285,7 +285,7 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
         reportedCount: 0,
         isFlagged: false,
       };
-      
+
       const escalation = detectEscalationLevel(tempPost);
       if (escalation.level !== 'none' && escalation.confidence >= 0.5) {
         escalationLevel = escalation.level;
@@ -685,7 +685,7 @@ export async function getEscalations(filters?: {
 
 export async function updateEscalation(escalationId: string, updates: Partial<Escalation>): Promise<Escalation> {
   const updateData: any = {};
-  
+
   if (updates.status) updateData.status = updates.status;
   if (updates.assignedTo !== undefined) updateData.assigned_to = updates.assignedTo || null;
   if (updates.resolvedAt) updateData.resolved_at = updates.resolvedAt.toISOString();
@@ -1105,7 +1105,7 @@ export async function createOrUpdateAttendance(attendanceData: CreateAttendanceD
         // Update engagement streak from meeting attendance
         const { updateEngagementStreakFromMeeting } = await import('./gamification');
         await updateEngagementStreakFromMeeting(attendanceData.userId, meeting.scheduledDate);
-        
+
         // Award points for meeting attendance
         const { awardMeetingAttendancePoints } = await import('./points-system');
         await awardMeetingAttendancePoints(attendanceData.userId);
@@ -1457,6 +1457,7 @@ export async function updateStreak(streakId: string, updates: {
 function mapUserFromDB(data: any): User {
   return {
     id: data.id,
+    email: data.email,
     pseudonym: data.pseudonym,
     username: data.username || undefined,
     isAnonymous: data.is_anonymous,

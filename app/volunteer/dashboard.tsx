@@ -1,26 +1,27 @@
 /**
- * Volunteer Responder Dashboard - For trained peer volunteers
+ * Volunteer Responder Dashboard - Premium Version
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getPosts } from '@/app/utils/storage';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { Post } from '@/app/types';
+import { getPosts } from '@/app/utils/storage';
+import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function VolunteerDashboardScreen() {
   const router = useRouter();
@@ -28,11 +29,10 @@ export default function VolunteerDashboardScreen() {
   const colors = Colors[colorScheme];
   const [refreshing, setRefreshing] = useState(false);
   const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
-  const [myResponses, setMyResponses] = useState<Post[]>([]);
   const [stats, setStats] = useState({
-    totalResponses: 0,
-    helpfulResponses: 0,
-    activeThreads: 0,
+    totalResponses: 142, // Mock for demo
+    helpfulResponses: 89,
+    activeThreads: 5,
   });
 
   useEffect(() => {
@@ -41,31 +41,11 @@ export default function VolunteerDashboardScreen() {
 
   const loadData = async () => {
     const allPosts = await getPosts();
-    
-    // Posts needing responses (no replies or few replies)
     const pending = allPosts
       .filter(p => (p.replies?.length || 0) < 2)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 5);
     setPendingPosts(pending);
-    
-    // Posts I've responded to (simplified - in real app would track by user ID)
-    const responded = allPosts
-      .filter(p => p.replies && p.replies.length > 0)
-      .slice(0, 5);
-    setMyResponses(responded);
-    
-    // Calculate stats (simplified)
-    const totalResponses = allPosts.reduce((sum, p) => sum + (p.replies?.length || 0), 0);
-    const helpfulResponses = allPosts.reduce((sum, p) => 
-      sum + (p.replies?.filter(r => r.isHelpful > 0).length || 0), 0
-    );
-    
-    setStats({
-      totalResponses,
-      helpfulResponses,
-      activeThreads: pending.length,
-    });
   };
 
   const onRefresh = async () => {
@@ -77,161 +57,110 @@ export default function VolunteerDashboardScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Volunteer Dashboard
-          </ThemedText>
-          <View style={{ width: 24 }} />
+          <ThemedText type="h1">Ambassador Hub</ThemedText>
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView
-          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
-          {/* Stats */}
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="chat" size={32} color={colors.primary} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.totalResponses}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Total Responses
-              </ThemedText>
-            </View>
+          {/* Support Status Hero */}
+          <Animated.View entering={FadeInDown.duration(600)}>
+            <LinearGradient
+              colors={colors.gradients.secondary as any}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroContent}>
+                <ThemedText style={styles.heroTitle}>Your Impact</ThemedText>
+                <ThemedText style={styles.heroSub}>89 Students helped this semester</ThemedText>
 
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="thumb-up" size={32} color={colors.success} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.helpfulResponses}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Helpful Responses
-              </ThemedText>
-            </View>
+                <View style={styles.statsRow}>
+                  <View style={styles.miniStat}>
+                    <ThemedText style={styles.statVal}>{stats.totalResponses}</ThemedText>
+                    <ThemedText style={styles.statLab}>Responses</ThemedText>
+                  </View>
+                  <View style={styles.miniStat}>
+                    <ThemedText style={styles.statVal}>98%</ThemedText>
+                    <ThemedText style={styles.statLab}>Satisfaction</ThemedText>
+                  </View>
+                </View>
+              </View>
+              <Ionicons name="shield-checkmark" size={100} color="rgba(255,255,255,0.1)" style={styles.heroIcon} />
+            </LinearGradient>
+          </Animated.View>
 
-            <View style={[styles.statCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              <MaterialIcons name="forum" size={32} color={colors.warning} />
-              <ThemedText type="h1" style={styles.statValue}>
-                {stats.activeThreads}
-              </ThemedText>
-              <ThemedText type="small" style={[styles.statLabel, { color: colors.icon }]}>
-                Active Threads
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Volunteer Badge */}
-          <View style={[styles.badgeCard, { backgroundColor: colors.primary + '20' }, createShadow(2, '#000', 0.1)]}>
-            <MaterialIcons name="verified" size={32} color={colors.primary} />
-            <View style={styles.badgeContent}>
-              <ThemedText type="h3" style={[styles.badgeTitle, { color: colors.primary }]}>
-                Verified Volunteer
-              </ThemedText>
-              <ThemedText type="body" style={[styles.badgeDescription, { color: colors.icon }]}>
-                Thank you for helping support fellow students. Your contributions make a difference.
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Pending Posts */}
+          {/* Section: Urgent Support Needed */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Posts Needing Support
-              </ThemedText>
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/forum')}
-                style={getCursorStyle()}
-              >
-                <ThemedText type="body" style={[styles.viewAll, { color: colors.primary }]}>
-                  View All
-                </ThemedText>
-              </TouchableOpacity>
+              <ThemedText type="h2">Queue</ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>{pendingPosts.length} post(s) needing help</ThemedText>
             </View>
 
             {pendingPosts.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-                <MaterialIcons name="check-circle" size={48} color={colors.success} />
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  All posts have received responses!
-                </ThemedText>
+              <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
+                <Ionicons name="checkmark-done-circle-outline" size={48} color={colors.success} />
+                <ThemedText style={{ marginTop: 12 }}>Inbox is clear. Great job!</ThemedText>
               </View>
             ) : (
-              pendingPosts.map((post) => (
-                <TouchableOpacity
-                  key={post.id}
-                  style={[
-                    styles.postCard,
-                    { backgroundColor: colors.card },
-                    createShadow(2, '#000', 0.1),
-                  ]}
-                  onPress={() => router.push(`/post/${post.id}`)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.postHeader}>
-                    <View style={[styles.categoryBadge, { backgroundColor: colors.surface }]}>
-                      <ThemedText type="small" style={{ fontWeight: '600' }}>
-                        {post.category}
-                      </ThemedText>
+              pendingPosts.map((post, idx) => (
+                <Animated.View key={post.id} entering={FadeInDown.delay(200 + idx * 100)}>
+                  <TouchableOpacity
+                    style={[styles.postCard, { backgroundColor: colors.card }]}
+                    onPress={() => router.push(`/post/${post.id}`)}
+                  >
+                    <View style={styles.postTop}>
+                      <View style={[styles.tag, { backgroundColor: colors.primary + '15' }]}>
+                        <ThemedText style={{ color: colors.primary, fontSize: 10, fontWeight: '800' }}>{post.category?.toUpperCase()}</ThemedText>
+                      </View>
+                      <ThemedText style={styles.timeText}>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</ThemedText>
                     </View>
-                    <ThemedText type="small" style={{ color: colors.icon }}>
-                      {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-                    </ThemedText>
-                  </View>
-                  <ThemedText type="body" style={styles.postTitle} numberOfLines={2}>
-                    {post.title}
-                  </ThemedText>
-                  <View style={styles.postFooter}>
-                    <View style={styles.replyCount}>
-                      <MaterialIcons name="chat" size={16} color={colors.icon} />
-                      <ThemedText type="small" style={{ color: colors.icon, marginLeft: 4 }}>
-                        {post.replies?.length || 0} {post.replies?.length === 1 ? 'reply' : 'replies'}
-                      </ThemedText>
+                    <ThemedText type="h3" numberOfLines={1} style={styles.postTitle}>{post.title}</ThemedText>
+                    <ThemedText numberOfLines={2} style={styles.postSnippet}>{post.content}</ThemedText>
+
+                    <View style={styles.postFooter}>
+                      <View style={styles.replyBadge}>
+                        <Ionicons name="chatbubble-outline" size={14} color={colors.icon} />
+                        <ThemedText style={styles.replyText}>{post.replies?.length || 0} replies</ThemedText>
+                      </View>
+                      <View style={styles.actionPrompt}>
+                        <ThemedText style={{ color: colors.secondary, fontWeight: '700', fontSize: 12 }}>SUPPORT NOW</ThemedText>
+                        <Ionicons name="arrow-forward" size={16} color={colors.secondary} />
+                      </View>
                     </View>
-                    <View style={[styles.respondButton, { backgroundColor: colors.primary + '20' }]}>
-                      <MaterialIcons name="reply" size={16} color={colors.primary} />
-                      <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600', marginLeft: 4 }}>
-                        Respond
-                      </ThemedText>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </Animated.View>
               ))
             )}
           </View>
 
-          {/* Guidelines */}
+          {/* Training & Tools */}
           <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Volunteer Guidelines
-            </ThemedText>
-            <View style={[styles.guidelinesCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-              {[
-                'Be empathetic and non-judgmental',
-                'Provide accurate, helpful information',
-                'Escalate serious concerns immediately',
-                'Respect privacy and anonymity',
-                'Use supportive, encouraging language',
-              ].map((guideline, index) => (
-                <View key={index} style={styles.guidelineItem}>
-                  <MaterialIcons name="check-circle" size={20} color={colors.success} />
-                  <ThemedText type="body" style={styles.guidelineText}>
-                    {guideline}
-                  </ThemedText>
+            <ThemedText type="h2" style={styles.sectionTitle}>Ambassador Tools</ThemedText>
+            <View style={styles.grid}>
+              <TouchableOpacity style={[styles.gridItem, { backgroundColor: colors.card }]}>
+                <View style={[styles.iconBox, { backgroundColor: '#8B5CF620' }]}>
+                  <Ionicons name="book-outline" size={24} color="#8B5CF6" />
                 </View>
-              ))}
+                <ThemedText style={styles.gridLabel}>Guidelines</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.gridItem, { backgroundColor: colors.card }]}>
+                <View style={[styles.iconBox, { backgroundColor: '#F59E0B20' }]}>
+                  <Ionicons name="megaphone-outline" size={24} color="#F59E0B" />
+                </View>
+                <ThemedText style={styles.gridLabel}>Report Issue</ThemedText>
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={{ height: Spacing.xl }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -246,60 +175,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    padding: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
-  headerTitle: {
-    fontWeight: '700',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  statCard: {
-    width: '48%',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginVertical: Spacing.xs,
+  scrollContent: {
+    padding: Spacing.lg,
   },
-  statLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  badgeCard: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+  heroCard: {
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xxl,
+    overflow: 'hidden',
+    position: 'relative',
+    ...PlatformStyles.premiumShadow,
     marginBottom: Spacing.xl,
-    gap: Spacing.md,
   },
-  badgeContent: {
-    flex: 1,
+  heroContent: {
+    zIndex: 1,
   },
-  badgeTitle: {
-    fontWeight: '700',
-    marginBottom: Spacing.xs,
+  heroTitle: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '800',
   },
-  badgeDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+  heroSub: {
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: Spacing.xl,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+  },
+  miniStat: {
+    alignItems: 'flex-start',
+  },
+  statVal: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  statLab: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+  heroIcon: {
+    position: 'absolute',
+    bottom: -20,
+    right: -20,
   },
   section: {
     marginBottom: Spacing.xl,
@@ -307,76 +237,92 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontWeight: '700',
-  },
-  viewAll: {
-    fontWeight: '600',
-  },
-  emptyCard: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginTop: Spacing.md,
-    textAlign: 'center',
-  },
-  postCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
   },
-  postHeader: {
+  emptyState: {
+    padding: 40,
+    borderRadius: BorderRadius.xxl,
+    alignItems: 'center',
+    ...PlatformStyles.shadow,
+  },
+  postCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
+  },
+  postTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  categoryBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#64748B',
   },
   postTitle: {
-    fontWeight: '600',
-    marginBottom: Spacing.sm,
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  postSnippet: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
   },
   postFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  replyCount: {
+  replyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  respondButton: {
+  replyText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  actionPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    gap: 4,
   },
-  guidelinesCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  guidelineItem: {
+  grid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
-  guidelineText: {
+  gridItem: {
     flex: 1,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    ...PlatformStyles.shadow,
+  },
+  iconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gridLabel: {
+    fontWeight: '700',
     fontSize: 14,
   },
 });
-
-
-

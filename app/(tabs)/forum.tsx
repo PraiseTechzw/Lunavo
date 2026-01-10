@@ -1,85 +1,63 @@
 /**
- * Peer Support Forum - Level 1: Find Support (Topic Cards View)
- * Shows all support topics/categories as cards with stats
+ * Peer Support Forum - Premium Topic Cards View
  */
 
 import { FAB as FABButton } from '@/app/components/navigation/fab-button';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { PostCategory } from '@/app/types';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { getTopicStats, TopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Icon mapping for categories (matching the design)
 const getCategoryIcon = (category: PostCategory): string => {
   const iconMap: Record<PostCategory, string> = {
-    'mental-health': 'sentiment-dissatisfied', // Purple brain/head icon
-    'crisis': 'warning',
-    'substance-abuse': 'medkit',
-    'sexual-health': 'heart',
-    'stis-hiv': 'heart-circle',
-    'family-home': 'home',
-    'academic': 'library-books',
-    'social': 'people',
-    'relationships': 'people-outline',
-    'campus': 'school',
-    'general': 'chatbubbles',
+    'mental-health': 'head-outline',
+    'crisis': 'alert-circle-outline',
+    'substance-abuse': 'medkit-outline',
+    'sexual-health': 'heart-outline',
+    'stis-hiv': 'shield-checkmark-outline',
+    'family-home': 'home-outline',
+    'academic': 'book-outline',
+    'social': 'people-outline',
+    'relationships': 'chatbubbles-outline',
+    'campus': 'business-outline',
+    'general': 'help-circle-outline',
   };
-  return iconMap[category] || 'help-circle';
+  return iconMap[category] || 'help-circle-outline';
 };
 
-// Get display name for category
 const getCategoryDisplayName = (category: PostCategory): string => {
   const nameMap: Record<PostCategory, string> = {
-    'mental-health': 'Depression & Anxiety',
-    'crisis': 'Crisis Support',
-    'substance-abuse': 'Addiction',
-    'sexual-health': 'Sexual Health',
-    'stis-hiv': 'STIs/HIV',
-    'family-home': 'Family & Home',
-    'academic': 'Academic Support',
-    'social': 'Social & Personal',
-    'relationships': 'Relationship Advice',
-    'campus': 'Campus Life',
-    'general': 'General Support',
+    'mental-health': 'Wellness & Mind',
+    'crisis': 'Urgent Help',
+    'substance-abuse': 'Recovery',
+    'sexual-health': 'Vitality',
+    'stis-hiv': 'Protection',
+    'family-home': 'Sanctuary',
+    'academic': 'Scholarship',
+    'social': 'Connection',
+    'relationships': 'Harmony',
+    'campus': 'Civitas',
+    'general': 'Common Room',
   };
   return nameMap[category] || category;
-};
-
-// Get short description for category
-const getCategoryDescription = (category: PostCategory): string => {
-  const descMap: Record<PostCategory, string> = {
-    'mental-health': 'A safe space to share coping strategies and experiences.',
-    'crisis': 'Immediate support for urgent situations.',
-    'substance-abuse': 'Support for recovery and healthy choices.',
-    'sexual-health': 'Safe space for sexual and reproductive health questions.',
-    'stis-hiv': 'Education and support for STI/HIV prevention.',
-    'family-home': 'Navigating family dynamics and home challenges.',
-    'academic': 'Study stress, exam anxiety, and academic performance.',
-    'social': 'Friendship, social anxiety, and personal growth.',
-    'relationships': 'Navigating complex dynamics in family and partnerships.',
-    'campus': 'Campus resources and student life support.',
-    'general': 'Other concerns and questions.',
-  };
-  return descMap[category] || 'Connect with others who understand.';
 };
 
 export default function ForumScreen() {
@@ -97,11 +75,8 @@ export default function ForumScreen() {
   useEffect(() => {
     loadTopicStats();
     setupRealtimeSubscriptions();
-
     return () => {
-      if (postsChannelRef.current) {
-        unsubscribe(postsChannelRef.current);
-      }
+      if (postsChannelRef.current) unsubscribe(postsChannelRef.current);
     };
   }, []);
 
@@ -113,13 +88,7 @@ export default function ForumScreen() {
     try {
       setLoading(true);
       const stats = await getTopicStats();
-      
-      // Sort by trending (recent posts) or member count
-      const sorted = selectedFilter === 'trending'
-        ? [...stats].sort((a, b) => b.recentPostCount - a.recentPostCount)
-        : [...stats].sort((a, b) => b.memberCount - a.memberCount);
-      
-      setTopicStats(sorted);
+      setTopicStats(stats);
     } catch (error) {
       console.error('Error loading topic stats:', error);
     } finally {
@@ -129,29 +98,19 @@ export default function ForumScreen() {
 
   const filterTopics = () => {
     let filtered = [...topicStats];
-
-    // Filter by search query
     if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(stat => {
         const category = CATEGORIES[stat.category as PostCategory];
-        const name = getCategoryDisplayName(stat.category);
-        const desc = getCategoryDescription(stat.category);
-        const searchLower = searchQuery.toLowerCase();
-        return (
-          name.toLowerCase().includes(searchLower) ||
-          desc.toLowerCase().includes(searchLower) ||
-          category.name.toLowerCase().includes(searchLower)
-        );
+        return category.name.toLowerCase().includes(searchLower) ||
+          getCategoryDisplayName(stat.category).toLowerCase().includes(searchLower);
       });
     }
-
-    // Sort by filter
     if (selectedFilter === 'trending') {
       filtered.sort((a, b) => b.recentPostCount - a.recentPostCount);
     } else {
       filtered.sort((a, b) => b.memberCount - a.memberCount);
     }
-
     setDisplayedTopics(filtered);
   };
 
@@ -162,188 +121,109 @@ export default function ForumScreen() {
   };
 
   const setupRealtimeSubscriptions = () => {
-    // Subscribe to new posts to update stats in real-time
-    const newPostsChannel = subscribeToPosts(() => {
-      // Refresh stats when new posts are created
-      loadTopicStats();
-    });
-
-    postsChannelRef.current = newPostsChannel;
+    postsChannelRef.current = subscribeToPosts(() => loadTopicStats());
   };
 
-  const formatMemberCount = (count: number): string => {
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k`;
-    }
-    return count.toString();
-  };
-
-  const handleTopicPress = (category: PostCategory) => {
-    router.push(`/topic/${category}` as any);
-  };
-
-  const renderTopicCard = ({ item }: { item: TopicStats }) => {
+  const renderTopicCard = ({ item, index }: { item: TopicStats, index: number }) => {
     const category = CATEGORIES[item.category as PostCategory];
     const iconName = getCategoryIcon(item.category);
     const displayName = getCategoryDisplayName(item.category);
-    const description = getCategoryDescription(item.category);
 
     return (
-      <TouchableOpacity
-        style={[
-          styles.topicCard,
-          { backgroundColor: colors.card },
-          createShadow(2, '#000', 0.1),
-        ]}
-        onPress={() => handleTopicPress(item.category)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.topicCardContent}>
-          {/* Icon */}
-          <View style={[styles.topicIcon, { backgroundColor: category.color + '20' }]}>
-            <Ionicons name={iconName as any} size={32} color={category.color} />
+      <Animated.View entering={FadeInDown.delay(index * 50).duration(600)}>
+        <TouchableOpacity
+          style={[styles.topicCard, { backgroundColor: colors.card }]}
+          onPress={() => router.push(`/topic/${item.category}` as any)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.iconBox, { backgroundColor: category.color + '15' }]}>
+            <Ionicons name={iconName as any} size={28} color={category.color} />
           </View>
 
-          {/* Content */}
           <View style={styles.topicInfo}>
-            <ThemedText type="h3" style={[styles.topicTitle, { color: colors.text }]}>
-              {displayName}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.topicDescription, { color: colors.icon }]} numberOfLines={2}>
-              {description}
-            </ThemedText>
+            <ThemedText type="h3" style={styles.topicTitle}>{displayName}</ThemedText>
+            <ThemedText type="small" style={{ color: colors.icon }}>{category.description}</ThemedText>
 
-            {/* Stats */}
-            <View style={styles.topicStats}>
-              <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={16} color={colors.icon} />
-                <ThemedText type="small" style={[styles.statText, { color: colors.icon }]}>
-                  {formatMemberCount(item.memberCount)}
-                </ThemedText>
+            <View style={styles.statsRow}>
+              <View style={styles.statChip}>
+                <Ionicons name="people-outline" size={12} color={colors.icon} />
+                <ThemedText style={styles.statText}>{item.memberCount}</ThemedText>
               </View>
-              <View style={[styles.statItem, styles.onlineStat]}>
-                <View style={[styles.onlineDot, { backgroundColor: '#10B981' }]} />
-                <ThemedText type="small" style={[styles.statText, { color: '#10B981' }]}>
-                  {item.onlineCount} Online
-                </ThemedText>
-              </View>
+              {item.recentPostCount > 0 && (
+                <View style={[styles.statChip, { backgroundColor: colors.success + '20' }]}>
+                  <Ionicons name="trending-up" size={12} color={colors.success} />
+                  <ThemedText style={[styles.statText, { color: colors.success }]}>+{item.recentPostCount}</ThemedText>
+                </View>
+              )}
             </View>
           </View>
 
-          {/* Arrow */}
-          <MaterialIcons name="arrow-forward-ios" size={20} color={colors.icon} />
-        </View>
-      </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={20} color={colors.border} />
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
-
-  const filterOptions = [
-    { id: 'all' as const, label: 'All' },
-    { id: 'trending' as const, label: 'Trending' },
-  ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Find Support
-          </ThemedText>
+        <View style={styles.header}>
+          <ThemedText type="h1">Community</ThemedText>
+          <ThemedText style={{ color: colors.icon }}>Find your circle of support</ThemedText>
+        </View>
+
+        <View style={styles.searchSection}>
+          <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="search" size={20} color={colors.icon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search topics..."
+              placeholderTextColor={colors.icon}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </View>
+
+        <View style={styles.filterSection}>
           <TouchableOpacity
-            style={[styles.createButton, getCursorStyle()]}
-            onPress={() => router.push('/create-post')}
+            style={[styles.filterTab, selectedFilter === 'all' && { borderBottomColor: colors.primary }]}
+            onPress={() => setSelectedFilter('all')}
           >
-            <MaterialIcons name="edit" size={24} color={colors.primary} />
+            <ThemedText style={[styles.filterLabel, selectedFilter === 'all' && { color: colors.primary }]}>Discovery</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterTab, selectedFilter === 'trending' && { borderBottomColor: colors.primary }]}
+            onPress={() => setSelectedFilter('trending')}
+          >
+            <ThemedText style={[styles.filterLabel, selectedFilter === 'trending' && { color: colors.primary }]}>Active Now</ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search for topics..."
-            placeholderTextColor={colors.icon}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Filter Tabs */}
-        <View style={styles.filtersContainer}>
-          <FlatList
-            horizontal
-            data={filterOptions}
-            renderItem={({ item }) => {
-              const isSelected = selectedFilter === item.id;
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: isSelected ? colors.primary : colors.surface,
-                    },
-                  ]}
-                  onPress={() => setSelectedFilter(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText
-                    type="small"
-                    style={{
-                      color: isSelected ? '#FFFFFF' : colors.text,
-                      fontWeight: '600',
-                    }}
-                  >
-                    {item.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            }}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContent}
-          />
-        </View>
-
-        {/* Topics List */}
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText type="body" style={[styles.loadingText, { color: colors.icon }]}>
-              Loading topics...
-            </ThemedText>
           </View>
         ) : (
           <FlatList
             data={displayedTopics}
             renderItem={renderTopicCard}
-            keyExtractor={(item) => item.category}
-            contentContainerStyle={styles.topicsContent}
+            keyExtractor={item => item.category}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
             }
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="forum" size={48} color={colors.icon} />
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  No topics found. Try a different search.
-                </ThemedText>
-              </View>
-            }
           />
         )}
-        
-        {/* FAB - Create Post (Mobile Only) */}
-        {Platform.OS !== 'web' && (
-          <FABButton
-            icon="add"
-            label="Create Post"
-            onPress={() => router.push('/create-post')}
-            position="bottom-right"
-            color={colors.primary}
-          />
-        )}
+
+        <FABButton
+          icon="add"
+          label="Share Story"
+          onPress={() => router.push('/create-post')}
+          position="bottom-right"
+          color={colors.primary}
+        />
       </ThemedView>
     </SafeAreaView>
   );
@@ -357,129 +237,89 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  headerTitle: {
-    fontWeight: '700',
-    fontSize: 24,
+  searchSection: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  createButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: BorderRadius.md,
-  },
-  searchContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+    height: 50,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
   },
   searchInput: {
     flex: 1,
+    marginLeft: Spacing.sm,
     fontSize: 16,
-    paddingVertical: Spacing.xs,
   },
-  filtersContainer: {
+  filterSection: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
+    gap: Spacing.lg,
   },
-  filtersContent: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+  filterTab: {
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    marginRight: Spacing.sm,
+  filterLabel: {
+    fontWeight: '700',
+    color: '#64748B',
   },
-  topicsContent: {
+  listContent: {
     padding: Spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   topicCard: {
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  topicCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xxl,
+    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
   },
-  topicIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
+  iconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.xl,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: Spacing.md,
   },
   topicInfo: {
     flex: 1,
   },
   topicTitle: {
-    fontWeight: '700',
-    fontSize: 18,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
-  topicDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: Spacing.sm,
+  statsRow: {
+    flexDirection: 'row',
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
-  topicStats: {
+  statChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
     gap: 4,
   },
-  onlineStat: {
-    marginLeft: Spacing.sm,
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   statText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
   },
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: Spacing.xxl,
-  },
-  emptyText: {
-    opacity: 0.7,
-    textAlign: 'center',
-    marginTop: Spacing.md,
   },
 });

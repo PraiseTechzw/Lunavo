@@ -8,13 +8,15 @@ import { useEffect, useRef } from 'react';
 import {
   Animated,
   Modal,
+  Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
-  Platform,
+  TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Colors } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -27,6 +29,8 @@ interface ToastProps {
 }
 
 const Toast = ({ visible, message, type = 'info', duration = 3000, onHide }: ToastProps) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -92,14 +96,14 @@ const Toast = ({ visible, message, type = 'info', duration = 3000, onHide }: Toa
   const getColor = () => {
     switch (type) {
       case 'success':
-        return '#10B981';
+        return colors.success;
       case 'error':
-        return '#EF4444';
+        return colors.danger;
       case 'warning':
-        return '#F59E0B';
+        return colors.warning;
       case 'info':
       default:
-        return '#3B82F6';
+        return colors.primary;
     }
   };
 
