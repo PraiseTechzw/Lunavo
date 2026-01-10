@@ -131,7 +131,10 @@ export default function PEExecutiveDashboard() {
                 <View style={styles.actionGrid}>
                     <TouchableOpacity
                         style={[styles.actionCard, { backgroundColor: colors.card }]}
-                        onPress={() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            router.push('/peer-educator/executive/new-resource');
+                        }}
                     >
                         <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.actionGradient}>
                             <MaterialCommunityIcons name="plus-circle" size={32} color="#FFF" />
@@ -141,7 +144,10 @@ export default function PEExecutiveDashboard() {
 
                     <TouchableOpacity
                         style={[styles.actionCard, { backgroundColor: colors.card }]}
-                        onPress={() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            router.push('/peer-educator/executive/new-meeting');
+                        }}
                     >
                         <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.actionGradient}>
                             <MaterialCommunityIcons name="calendar-plus" size={32} color="#FFF" />
