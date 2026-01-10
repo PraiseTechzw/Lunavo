@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
-const ONBOARDING_KEY = "@lunavo:onboarding_complete";
+const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -37,7 +37,7 @@ export default function RootLayout() {
       // Handle notification taps
       const subscription = addNotificationResponseListener((response) => {
         const data = response.notification.request.content.data;
-        
+
         // Navigate based on notification data
         if (data?.postId) {
           router.push(`/post/${data.postId}` as any);
@@ -187,170 +187,170 @@ export default function RootLayout() {
             },
           }}
         >
-      {!isOnboardingComplete && (
-        <Stack.Screen 
-          name="onboarding" 
-          options={{ headerShown: false }} 
-        />
-      )}
-      <Stack.Screen 
-        name="auth" 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="(tabs)" 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="post/[id]" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="create-post" 
-        options={{ 
-          headerShown: false,
-          presentation: 'modal',
-        }} 
-      />
-      <Stack.Screen 
-        name="check-in" 
-        options={{ 
-          headerShown: false,
-          presentation: 'modal',
-        }} 
-      />
-      <Stack.Screen 
-        name="chat/[id]" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="book-counsellor" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="profile-settings" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="admin" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="mentorship" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="academic-help" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="urgent-support" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="volunteer/dashboard" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="report" 
-        options={{ 
-          headerShown: false,
-          presentation: 'modal',
-        }} 
-      />
-      <Stack.Screen 
-        name="notifications" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="counselor" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="student-affairs" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="web-required" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="peer-educator" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="meetings" 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
-      <Stack.Screen 
-        name="accessibility-settings" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="help" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="privacy" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="feedback" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      <Stack.Screen 
-        name="about" 
-        options={{ 
-          headerShown: false,
-          presentation: 'card',
-        }} 
-      />
-      </Stack>
+          {!isOnboardingComplete && (
+            <Stack.Screen
+              name="onboarding"
+              options={{ headerShown: false }}
+            />
+          )}
+          <Stack.Screen
+            name="auth"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="post/[id]"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="create-post"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="check-in"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="chat/[id]"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="book-counsellor"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="profile-settings"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="admin"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="mentorship"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="academic-help"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="urgent-support"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="volunteer/dashboard"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="report"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="notifications"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="counselor"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="student-affairs"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="web-required"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="peer-educator"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="meetings"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="accessibility-settings"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="help"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="privacy"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="feedback"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="about"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+        </Stack>
       </View>
     </>
   );
