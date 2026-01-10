@@ -51,9 +51,9 @@ const ROLE_SPECIFIC_ITEMS: Record<string, DrawerItem[]> = {
     { id: 'club-info', label: 'Club Info', icon: 'account-group-outline', route: '/peer-educator/club-info', section: 'role' },
   ],
   'peer-educator-executive': [
-    { id: 'dashboard', label: 'Executive Dashboard', icon: 'view-dashboard-variant-outline', route: '/peer-educator/dashboard', section: 'role' },
-    { id: 'meetings', label: 'Manage Meetings', icon: 'calendar-edit', route: '/meetings', section: 'role' },
-    { id: 'members', label: 'Manage Members', icon: 'account-multiple-outline', route: '/peer-educator/members', section: 'role' },
+    { id: 'dashboard', label: 'Executive Dashboard', icon: 'view-dashboard-variant-outline', route: '/executive', section: 'role' },
+    { id: 'meetings', label: 'Manage Meetings', icon: 'calendar-edit', route: '/executive/events', section: 'role' },
+    { id: 'members', label: 'Manage Members', icon: 'account-multiple-outline', route: '/executive/members', section: 'role' },
   ],
   moderator: [
     { id: 'moderation', label: 'Moderation Queue', icon: 'shield-alert-outline', route: '/admin/moderation', section: 'role' },
