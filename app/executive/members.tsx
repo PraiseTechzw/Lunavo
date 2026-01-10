@@ -2,28 +2,28 @@
  * Member Management - Executive view of all peer educators
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { User } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getPosts, getReplies } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  TextInput,
   Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import { supabase } from '@/lib/supabase';
-import { getReplies, getPosts } from '@/lib/database';
-import { User } from '@/app/types';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 interface MemberStats {
   totalResponses: number;
@@ -35,12 +35,12 @@ export default function MemberManagementScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
     ['peer-educator-executive', 'admin'],
-    '/(tabs)'
+    '/peer-educator/dashboard'
   );
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [members, setMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
   const [filteredMembers, setFilteredMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
@@ -80,6 +80,7 @@ export default function MemberManagementScreen() {
 
           return {
             id: member.id,
+            email: member.email,
             pseudonym: member.pseudonym,
             isAnonymous: member.is_anonymous,
             role: member.role,

@@ -2,36 +2,36 @@
  * Club Analytics - Executive view of club statistics
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getMeetingAttendance, getMeetings, getPosts, getReplies } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getMeetings, getMeetingAttendance, getPosts, getReplies } from '@/lib/database';
-import { supabase } from '@/lib/supabase';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function ClubAnalyticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
     ['peer-educator-executive', 'admin'],
-    '/(tabs)'
+    '/peer-educator/dashboard'
   );
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [analytics, setAnalytics] = useState({
     totalMembers: 0,
@@ -59,7 +59,7 @@ export default function ClubAnalyticsScreen() {
 
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const activeMembers = members?.filter((m: any) => 
+      const activeMembers = members?.filter((m: any) =>
         new Date(m.last_active) >= thirtyDaysAgo
       ).length || 0;
 
@@ -151,7 +151,7 @@ export default function ClubAnalyticsScreen() {
                 </ThemedText>
               </View>
               <View style={styles.statItem}>
-                <MaterialIcons name="person-check" size={32} color={colors.success} />
+                <MaterialIcons name="person" size={32} color={colors.success} />
                 <ThemedText type="h2" style={styles.statValue}>
                   {analytics.activeMembers}
                 </ThemedText>

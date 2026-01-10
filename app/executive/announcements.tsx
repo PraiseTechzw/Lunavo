@@ -2,29 +2,28 @@
  * Announcements Management - Create, edit, delete announcements
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Announcement } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   Alert,
+  ScrollView,
+  StyleSheet,
   Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
-import { getCurrentUser } from '@/lib/database';
-import { Announcement } from '@/app/types';
-import { format } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ANNOUNCEMENTS_KEY = '@lunavo:announcements';
 
@@ -32,16 +31,16 @@ export default function AnnouncementsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
     ['peer-educator-executive', 'admin'],
-    '/(tabs)'
+    '/peer-educator/dashboard'
   );
-  
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  
+
   // Form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -124,17 +123,17 @@ export default function AnnouncementsScreen() {
 
     try {
       let updated: Announcement[];
-      
+
       if (editingAnnouncement) {
         updated = announcements.map((a) =>
           a.id === editingAnnouncement.id
             ? {
-                ...a,
-                title,
-                content,
-                isPublished,
-                scheduledFor: scheduledFor || undefined,
-              }
+              ...a,
+              title,
+              content,
+              isPublished,
+              scheduledFor: scheduledFor || undefined,
+            }
             : a
         );
         Alert.alert('Success', 'Announcement updated.');

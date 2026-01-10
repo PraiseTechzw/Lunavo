@@ -2,35 +2,33 @@
  * Executive Meeting Management - Create, edit, delete meetings
  */
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { Meeting, MeetingType } from '@/app/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
 import {
-  getMeetings,
   createMeeting,
-  updateMeeting,
   deleteMeeting,
-  getCurrentUser,
+  getMeetings,
+  updateMeeting
 } from '@/lib/database';
 import { scheduleAllMeetingReminders } from '@/lib/notification-triggers';
-import { Meeting, MeetingType } from '@/app/types';
-import { format, isPast } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { MaterialIcons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Note: DateTimePicker requires @react-native-community/datetimepicker package
 // For now, using a simple date input. Install the package for full date picker functionality.
 
@@ -38,18 +36,18 @@ export default function ExecutiveMeetingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
     ['peer-educator-executive', 'admin'],
-    '/(tabs)'
+    '/peer-educator/dashboard'
   );
-  
+
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -67,7 +65,7 @@ export default function ExecutiveMeetingsScreen() {
   const loadMeetings = async () => {
     try {
       const allMeetings = await getMeetings();
-      setMeetings(allMeetings.sort((a, b) => 
+      setMeetings(allMeetings.sort((a, b) =>
         new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime()
       ));
     } catch (error) {
@@ -156,10 +154,10 @@ export default function ExecutiveMeetingsScreen() {
           meetingType,
           createdBy: user.id,
         });
-        
+
         // Schedule reminders for all peer educators
         await scheduleAllMeetingReminders(newMeeting.id, newMeeting.title, newMeeting.scheduledDate);
-        
+
         Alert.alert('Success', 'Meeting created and reminders scheduled.');
       }
       setShowCreateModal(false);

@@ -120,6 +120,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
     mobile: [
       '/(tabs)',
       '/peer-educator',
+      '/executive',
       '/create-post',
       '/post',
       '/topic',
@@ -139,7 +140,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
     web: [
       '/(tabs)',
       '/peer-educator',
-      '/peer-educator/executive', // Explicit executive access
+      '/executive', // Explicit executive access
       '/create-post',
       '/post',
       '/topic',

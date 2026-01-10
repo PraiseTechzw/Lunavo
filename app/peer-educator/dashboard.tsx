@@ -161,7 +161,7 @@ export default function PeerEducatorDashboard() {
 
                   {user?.role === 'peer-educator-executive' || user?.role === 'admin' ? (
                     <TouchableOpacity
-                      onPress={() => router.push('/peer-educator/executive')}
+                      onPress={() => router.push('/executive')}
                       style={[styles.returnButton, { backgroundColor: 'rgba(16, 185, 129, 0.4)', marginLeft: Spacing.xs }]}
                     >
                       <MaterialCommunityIcons name="shield-star" size={18} color="#FFF" />

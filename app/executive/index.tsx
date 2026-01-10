@@ -1,6 +1,7 @@
 /**
  * Peer Educator Executive Dashboard - "Command Center"
  * Advanced controls for team management, meetings, and global resources.
+ * Standalone suite at /executive
  */
 
 import { ThemedText } from '@/app/components/themed-text';
@@ -113,7 +114,7 @@ export default function PEExecutiveDashboard() {
                         <ThemedText style={styles.headerTitle}>Executive Console</ThemedText>
                         <ThemedText style={styles.headerSubtitle}>Network Orchestration & Oversight</ThemedText>
                     </View>
-                    <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.surface }]} onPress={() => router.back()}>
+                    <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.surface }]} onPress={() => router.replace('/peer-educator/dashboard')}>
                         <MaterialCommunityIcons name="chevron-down" size={28} color={colors.text} />
                     </TouchableOpacity>
                 </View>
@@ -127,13 +128,13 @@ export default function PEExecutiveDashboard() {
                 </Animated.View>
 
                 {/* Administration Actions */}
-                <ThemedText style={styles.sectionTitle}>Administration</ThemedText>
-                <View style={styles.actionGrid}>
+                <ThemedText style={styles.sectionTitle}>Quick Management</ThemedText>
+                <View style={[styles.actionGrid, { marginBottom: Spacing.md }]}>
                     <TouchableOpacity
                         style={[styles.actionCard, { backgroundColor: colors.card }]}
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            router.push('/peer-educator/executive/new-resource');
+                            router.push('/executive/new-resource');
                         }}
                     >
                         <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.actionGradient}>
@@ -146,13 +147,48 @@ export default function PEExecutiveDashboard() {
                         style={[styles.actionCard, { backgroundColor: colors.card }]}
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            router.push('/peer-educator/executive/new-meeting');
+                            router.push('/executive/new-meeting');
                         }}
                     >
                         <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.actionGradient}>
                             <MaterialCommunityIcons name="calendar-plus" size={32} color="#FFF" />
                         </LinearGradient>
                         <ThemedText style={styles.actionText}>Schedule Meeting</ThemedText>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Secondary Actions Grid */}
+                <View style={styles.secondaryActionGrid}>
+                    <TouchableOpacity
+                        style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                        onPress={() => router.push('/executive/members')}
+                    >
+                        <MaterialCommunityIcons name="account-multiple-check" size={24} color={colors.primary} />
+                        <ThemedText style={styles.secondaryActionText}>Members</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                        onPress={() => router.push('/executive/events')}
+                    >
+                        <MaterialCommunityIcons name="calendar-star" size={24} color="#10B981" />
+                        <ThemedText style={styles.secondaryActionText}>Events</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                        onPress={() => router.push('/executive/analytics')}
+                    >
+                        <MaterialCommunityIcons name="chart-box" size={24} color="#3B82F6" />
+                        <ThemedText style={styles.secondaryActionText}>Analytics</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                        onPress={() => router.push('/executive/announcements')}
+                    >
+                        <MaterialCommunityIcons name="bullhorn" size={24} color="#EC4899" />
+                        <ThemedText style={styles.secondaryActionText}>News</ThemedText>
                     </TouchableOpacity>
                 </View>
 
@@ -295,6 +331,27 @@ const styles = StyleSheet.create({
     actionText: {
         fontSize: 13,
         fontWeight: '600',
+    },
+    secondaryActionGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+        marginBottom: Spacing.lg,
+    },
+    secondaryActionCard: {
+        flex: 1,
+        minWidth: (width - Spacing.md * 2 - Spacing.sm * 3) / 4,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        ...PlatformStyles.shadow,
+    },
+    secondaryActionText: {
+        fontSize: 11,
+        fontWeight: '700',
+        opacity: 0.8,
     },
     teamContainer: {
         borderRadius: BorderRadius.xl,
