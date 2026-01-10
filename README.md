@@ -11,10 +11,10 @@ A comprehensive student support platform designed for the Chinhoyi University of
 
 2. **Set up environment variables**
    - Create `.env` file with Supabase credentials
-   - See [Wiki - Supabase Setup](wiki/Getting-Started/Supabase-Setup.md)
+   - See [Wiki - Supabase Setup](docs/wiki/Getting-Started/Supabase-Setup.md)
 
 3. **Run database migrations**
-   - See [Wiki - Database Migration](wiki/Getting-Started/Database-Migration.md)
+   - See [Wiki - Database Migration](docs/wiki/Getting-Started/Database-Migration.md)
 
 4. **Start the app**
    ```bash
@@ -23,17 +23,17 @@ A comprehensive student support platform designed for the Chinhoyi University of
 
 ## 📚 Documentation
 
-**Comprehensive documentation is available in the [Wiki](wiki/Home.md)**
+**Comprehensive documentation is available in the [Wiki](docs/wiki/Home.md)**
 
 ### Quick Links
 
-- [Installation & Setup](wiki/Getting-Started/Installation-and-Setup.md)
-- [Quick Start Guide](wiki/Getting-Started/Quick-Start.md)
-- [Developer Guide](wiki/Development/Developer-Guide.md)
-- [Architecture Overview](wiki/Development/Architecture.md)
-- [Authentication System](wiki/Features/Authentication.md)
-- [Role-Based Navigation](wiki/Features/Role-Based-Navigation.md)
-- [Escalation System](wiki/Features/Escalation-System.md)
+- [Installation & Setup](docs/wiki/Getting-Started/Installation-and-Setup.md)
+- [Quick Start Guide](docs/wiki/Getting-Started/Quick-Start.md)
+- [Developer Guide](docs/wiki/Development/Developer-Guide.md)
+- [Architecture Overview](docs/wiki/Development/Architecture.md)
+- [Authentication System](docs/wiki/Features/Authentication.md)
+- [Role-Based Navigation](docs/wiki/Features/Role-Based-Navigation.md)
+- [Escalation System](docs/wiki/Features/Escalation-System.md)
 
 ## 🎯 Features
 
@@ -68,7 +68,7 @@ The platform supports 8 distinct user roles:
 
 ## 📖 Learn More
 
-- [Wiki Documentation](wiki/Home.md) - Complete documentation
+- [Wiki Documentation](docs/wiki/Home.md) - Complete documentation
 - [Expo Documentation](https://docs.expo.dev/)
 - [Supabase Documentation](https://supabase.com/docs)
 
@@ -76,8 +76,8 @@ The platform supports 8 distinct user roles:
 
 **Current Status**: 85% Complete - Production Ready
 
-See [Implementation Status](wiki/Implementation-Status/Current-Status.md) for details.
+See [Implementation Status](docs/wiki/Implementation-Status/Current-Status.md) for details.
 
 ---
 
-**For detailed setup instructions, see the [Wiki](wiki/Home.md)**
+**For detailed setup instructions, see the [Wiki](docs/wiki/Home.md)**
