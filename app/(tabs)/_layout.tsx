@@ -1,15 +1,16 @@
 /**
- * Tab navigation layout - Role-aware
- * Different tabs shown based on user role
+ * Premium Floating Tab Navigation
  */
 
-import { Colors } from '@/app/constants/theme';
+import { Colors, PlatformStyles } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { UserRole } from '@/app/types';
 import { getCurrentUser } from '@/lib/database';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -31,20 +32,10 @@ export default function TabLayout() {
     }
   };
 
-  // Determine which tabs to show based on role
   const shouldShowTab = (tabName: string): boolean => {
-    if (!userRole) return true; // Show all tabs while loading
-
-    // Counselors and Life Coaches should not see Forum
-    if (tabName === 'forum' && (userRole === 'counselor' || userRole === 'life-coach')) {
-      return false;
-    }
-
-    // Student Affairs should not see Forum or Chat
-    if ((tabName === 'forum' || tabName === 'chat') && userRole === 'student-affairs') {
-      return false;
-    }
-
+    if (!userRole) return true;
+    if (tabName === 'forum' && (userRole === 'counselor' || userRole === 'life-coach')) return false;
+    if ((tabName === 'forum' || tabName === 'chat') && userRole === 'student-affairs') return false;
     return true;
   };
 
@@ -52,118 +43,135 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FFFFFF', // Bright white for active tab
-        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)', // More transparent for inactive tabs
+        tabBarShowLabel: false, // Cleaner look
+        tabBarActiveTintColor: '#6366f1', // Indigo Primary
+        tabBarInactiveTintColor: '#94a3b8', // Slate 400
         tabBarStyle: {
-          backgroundColor: colorScheme === 'dark' ? colors.background : '#101822', // Dark blue background
-          borderTopColor: 'rgba(255, 255, 255, 0.1)',
-          borderTopWidth: 1,
-          height: 80,
+          position: 'absolute',
+          bottom: 25,
+          left: 20,
+          right: 20,
+          backgroundColor: colorScheme === 'dark' ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 24,
+          height: 64,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+          ...PlatformStyles.premiumShadow, // Strong shadow for floating effect
+          elevation: 10,
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        tabBarIconStyle: {
-          marginTop: 4,
+        tabBarItemStyle: {
+          height: 64,
+          paddingTop: 0,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons
-              name="home"
-              size={focused ? 28 : 24}
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "home-variant" : "home-variant-outline"}
+                size={28}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
           ),
-          tabBarLabelStyle: {
-            fontWeight: '700',
-            fontSize: 13,
-          },
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
         }}
       />
       <Tabs.Screen
         name="forum"
         options={{
-          title: 'Forum',
-          tabBarLabel: 'Forum',
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons
-              name="forum"
-              size={focused ? 28 : 24}
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "account-group" : "account-group-outline"}
+                size={28}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
           ),
-          tabBarLabelStyle: {
-            fontWeight: '500',
-            fontSize: 12,
-          },
-          // Hide forum tab for counselors and student affairs
           ...(shouldShowTab('forum') ? {} : { href: null }),
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Chat',
-          tabBarLabel: 'Chat',
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons
-              name="chat"
-              size={focused ? 28 : 24}
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "forum" : "forum-outline"} // Speech bubbles
+                size={26}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
           ),
-          tabBarLabelStyle: {
-            fontWeight: '500',
-            fontSize: 12,
-          },
-          // Hide chat tab for student affairs
           ...(shouldShowTab('chat') ? {} : { href: null }),
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
         }}
       />
       <Tabs.Screen
         name="resources"
         options={{
-          title: 'Resources',
-          tabBarLabel: 'Resources',
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons
-              name="book"
-              size={focused ? 28 : 24}
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "book-open-page-variant" : "book-open-blank-variant"} // Detailed book
+                size={26}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
           ),
-          tabBarLabelStyle: {
-            fontWeight: '500',
-            fontSize: 12,
-          },
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons
-              name="person"
-              size={focused ? 28 : 24}
-              color={focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "account-circle" : "account-circle-outline"}
+                size={28}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
           ),
-          tabBarLabelStyle: {
-            fontWeight: '500',
-            fontSize: 12,
-          },
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
         }}
       />
     </Tabs>
   );
 }
 
+const styles = StyleSheet.create({
+  activeTabContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    top: 2,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 4,
+  },
+});

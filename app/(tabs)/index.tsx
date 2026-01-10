@@ -1,5 +1,5 @@
 /**
- * Home Dashboard Screen - Enhanced Premium Version
+ * Home Dashboard Screen - Enhanced Premium Version with Crafted Icons
  */
 
 import { DrawerHeader } from '@/app/components/navigation/drawer-header';
@@ -17,7 +17,7 @@ import {
   hasCheckedInToday
 } from '@/app/utils/storage';
 import { getCurrentUser } from '@/lib/database';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -69,7 +69,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadUserData();
-    // Random quote on mount
     setCurrentQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [userRole]);
 
@@ -167,37 +166,44 @@ export default function HomeScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
-          {/* Welcome Dashboard Card */}
+          {/* Welcome Dashboard Card - Premium Redesign */}
           <Animated.View entering={FadeInDown.duration(800)}>
             <LinearGradient
-              colors={colors.gradients.primary as any}
+              colors={['#4F46E5', '#7C3AED', '#DB2777']} // Indigo -> Purple -> Pink
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={[styles.heroCard, PlatformStyles.shadow]}
+              style={[styles.heroCard, PlatformStyles.premiumShadow]}
             >
+              {/* Unique 'Crafted' Background */}
+              <View style={styles.patternCircle1} />
+              <View style={styles.patternCircle2} />
+              <MaterialCommunityIcons name="meditation" size={140} color="rgba(255,255,255,0.08)" style={styles.bgIcon} />
+
               <View style={styles.heroContent}>
+                <View style={styles.badgeContainer}>
+                  <MaterialCommunityIcons name="target-variant" size={16} color="#FFF" />
+                  <ThemedText style={styles.badgeText}>Daily Mission</ThemedText>
+                </View>
+
                 <ThemedText type="h1" style={styles.heroTitle}>Mission: Wellness</ThemedText>
                 <ThemedText style={styles.heroSubtitle}>"{currentQuote}"</ThemedText>
 
-                <View style={styles.statsRow}>
+                <View style={styles.glassStatsContainer}>
                   <View style={styles.heroStat}>
                     <ThemedText style={styles.statNumber}>{checkInStreak}</ThemedText>
-                    <ThemedText style={styles.statLabel}>Day Streak</ThemedText>
+                    <ThemedText style={styles.statLabel}>Day Streak 🔥</ThemedText>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.heroStat}>
                     <ThemedText style={styles.statNumber}>{postCount}</ThemedText>
-                    <ThemedText style={styles.statLabel}>Peer Posts</ThemedText>
+                    <ThemedText style={styles.statLabel}>Community 🌍</ThemedText>
                   </View>
                 </View>
-              </View>
-              <View style={styles.heroIconCircle}>
-                <Ionicons name="sparkles" size={40} color="rgba(255,255,255,0.4)" />
               </View>
             </LinearGradient>
           </Animated.View>
 
-          {/* Urgent Support Quick Access - Pulsing Effect Idea */}
+          {/* Urgent Support Quick Access */}
           <Animated.View entering={FadeInDown.delay(200).duration(800)}>
             <TouchableOpacity
               style={[styles.glassCard, { backgroundColor: colors.danger + '10', borderColor: colors.danger + '30' }]}
@@ -208,7 +214,7 @@ export default function HomeScreen() {
               activeOpacity={0.8}
             >
               <View style={[styles.cardIconBox, { backgroundColor: colors.danger + '20' }]}>
-                <MaterialIcons name="sos" size={28} color={colors.danger} />
+                <MaterialCommunityIcons name="alert-octagon" size={28} color={colors.danger} />
               </View>
               <View style={styles.cardInfo}>
                 <ThemedText type="h3" style={{ color: colors.danger }}>Crisis Support</ThemedText>
@@ -239,7 +245,6 @@ export default function HomeScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setSelectedMood(mood.id);
-                    // Pass params via context/store in real app, here checking in
                     router.push('/check-in');
                   }}
                   activeOpacity={0.7}
@@ -251,7 +256,7 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
 
-          {/* Main Action Grid */}
+          {/* Main Action Grid - Premium Crafted Icons */}
           <View style={styles.gridContainer}>
             <Animated.View entering={FadeInDown.delay(600)} style={styles.gridItem}>
               <TouchableOpacity
@@ -263,9 +268,9 @@ export default function HomeScreen() {
               >
                 <LinearGradient
                   colors={['#818CF8', '#4F46E5']}
-                  style={styles.actionIcon}
+                  style={styles.craftedIconBox}
                 >
-                  <Ionicons name="people" size={24} color="#FFF" />
+                  <MaterialCommunityIcons name="account-group" size={28} color="#FFF" />
                 </LinearGradient>
                 <ThemedText type="h3">Forum</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>PEACE Community</ThemedText>
@@ -282,9 +287,9 @@ export default function HomeScreen() {
               >
                 <LinearGradient
                   colors={['#F472B6', '#DB2777']}
-                  style={styles.actionIcon}
+                  style={styles.craftedIconBox}
                 >
-                  <Ionicons name="chatbubbles" size={24} color="#FFF" />
+                  <MaterialCommunityIcons name="forum-outline" size={28} color="#FFF" />
                 </LinearGradient>
                 <ThemedText type="h3">Chat</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>Anonymous Talk</ThemedText>
@@ -301,9 +306,9 @@ export default function HomeScreen() {
               >
                 <LinearGradient
                   colors={['#34D399', '#059669']}
-                  style={styles.actionIcon}
+                  style={styles.craftedIconBox}
                 >
-                  <Ionicons name="library" size={24} color="#FFF" />
+                  <MaterialCommunityIcons name="book-open-page-variant" size={28} color="#FFF" />
                 </LinearGradient>
                 <ThemedText type="h3">Vault</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>Wellness Library</ThemedText>
@@ -320,9 +325,9 @@ export default function HomeScreen() {
               >
                 <LinearGradient
                   colors={['#FBBF24', '#D97706']}
-                  style={styles.actionIcon}
+                  style={styles.craftedIconBox}
                 >
-                  <Ionicons name="calendar" size={24} color="#FFF" />
+                  <MaterialCommunityIcons name="hand-heart" size={28} color="#FFF" />
                 </LinearGradient>
                 <ThemedText type="h3">Help</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>Seek Council</ThemedText>
@@ -344,8 +349,8 @@ export default function HomeScreen() {
                   <ThemedText type="h3" style={{ color: '#FFF' }}>Educator Dashboard</ThemedText>
                   <ThemedText style={{ color: 'rgba(255,255,255,0.8)' }}>Manage support and responses</ThemedText>
                 </View>
-                <View style={styles.mentorBadge}>
-                  <Ionicons name="shield-checkmark" size={24} color={colors.primary} />
+                <View style={[styles.mentorBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <MaterialCommunityIcons name="shield-account" size={28} color="#FFF" />
                 </View>
               </TouchableOpacity>
             </Animated.View>
@@ -354,7 +359,7 @@ export default function HomeScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Global Action Button */}
+        {/* Global Action Button - FAB */}
         <Animated.View
           entering={FadeInDown.delay(1200)}
           style={[styles.fabContainer, createShadow(10, colors.primary, 0.4)]}
@@ -398,43 +403,82 @@ const styles = StyleSheet.create({
   heroCard: {
     borderRadius: BorderRadius.xxl,
     padding: Spacing.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: Spacing.xl,
     overflow: 'hidden',
+    minHeight: 220, // Taller
   },
   heroContent: {
     flex: 1,
     zIndex: 2,
+    justifyContent: 'space-between',
+  },
+  // Decorative Patterns
+  patternCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  patternCircle2: {
+    position: 'absolute',
+    bottom: -80,
+    left: -20,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  bgIcon: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+    zIndex: 1,
+    transform: [{ rotate: '-15deg' }],
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 16,
+  },
+  badgeText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   heroTitle: {
     color: '#FFF',
-    fontSize: 28,
+    fontSize: 32,
     marginBottom: Spacing.xs,
-    fontWeight: '800', // Bolder
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
   heroSubtitle: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
+    fontSize: 15,
     fontStyle: 'italic',
-    marginBottom: Spacing.xl,
-    lineHeight: 20,
+    marginBottom: 24,
+    lineHeight: 22,
+    opacity: 0.8,
   },
-  heroIconCircle: {
-    position: 'absolute',
-    right: -20,
-    top: -20,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsRow: {
+  glassStatsContainer: {
     flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    gap: Spacing.lg,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   heroStat: {
     alignItems: 'flex-start',
@@ -511,15 +555,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
-    // Premium Shadow moved inline
   },
-  actionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
+  craftedIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: BorderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+    // Add shine effect logic in future or via view styles
   },
   actionDesc: {
     color: '#64748B',
@@ -540,7 +584,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
