@@ -3,7 +3,7 @@
  */
 
 import { generatePseudonym } from '@/app/utils/anonymization';
-import { createUser, getUser } from './database';
+import { getUser } from './database';
 import { supabase } from './supabase';
 
 export interface SignUpData {
@@ -66,9 +66,25 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
     }
 
     // Sign up with Supabase Auth
+    // We pass the user profile data as metadata so the Trigger can create the public.users record
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
+      options: {
+        data: {
+          fullName: userData.fullName,
+          studentNumber: userData.studentNumber,
+          program: userData.program,
+          year: userData.year,
+          semester: userData.semester,
+          phone: userData.phone,
+          emergencyContactName: userData.emergencyContactName,
+          emergencyContactPhone: userData.emergencyContactPhone,
+          role: userData.role || 'student',
+          pseudonym: generatePseudonym(), // Generate pseudonym here
+          ...userData.profileData
+        }
+      }
     });
 
     if (authError) {
@@ -88,31 +104,23 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       return { user: null, error: new Error('User creation failed') };
     }
 
-    // Generate pseudonym
-    const pseudonym = generatePseudonym();
+    // The user record in public.users is automatically created by the trigger
+    // We fetch it to return default user object
+    // Note: If email confirmation is required, this fetch might fail due to RLS if no session is active
+    // But that's acceptable as the user needs to verify email anyway
 
-    // Create user record in database
-    // Pass the auth user ID directly to avoid session timing issues
-    // Note: Password is handled by Supabase Auth, not stored in users table
-    const dbUser = await createUser({
-      email: userData.email,
-      username: userData.username ? userData.username.toLowerCase().trim() : undefined,
-      full_name: userData.fullName,
-      student_number: userData.studentNumber,
-      program: userData.program,
-      academic_year: userData.year,
-      academic_semester: userData.semester,
-      phone: userData.phone,
-      emergency_contact_name: userData.emergencyContactName,
-      emergency_contact_phone: userData.emergencyContactPhone,
-      location: userData.location,
-      preferred_contact_method: userData.preferredContactMethod,
-      role: userData.role || 'student',
-      pseudonym,
-      profile_data: userData.profileData || {},
-    }, authData.user.id); // Pass the auth user ID directly
+    // Attempt to get the user, but don't fail if we can't (just return auth user structure)
+    try {
+      if (authData.session) {
+        // If we have a session, we can fetch the full user
+        const dbUser = await getUser(authData.user.id);
+        return { user: dbUser, error: null };
+      }
+    } catch (e) {
+      console.log('Could not fetch public user immediately (likely due to RLS/Verification), returning auth data');
+    }
 
-    return { user: dbUser, error: null };
+    return { user: { id: authData.user.id, ...userData } as any, error: null };
   } catch (error: any) {
     return { user: null, error };
   }
