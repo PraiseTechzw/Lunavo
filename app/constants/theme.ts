@@ -212,6 +212,11 @@ export const PlatformStyles = {
       elevation: 10,
     },
   }),
+
+  fontFamily: Platform.select({
+    ios: 'System',
+    android: 'System',
+    web: 'System',
+    default: 'System',
+  }),
 };
-
-

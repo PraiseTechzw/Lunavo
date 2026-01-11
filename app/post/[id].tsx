@@ -2,31 +2,32 @@
  * Post detail screen - view a post and its replies
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { CategoryBadge } from '@/app/components/category-badge';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Post, Reply } from '@/app/types';
+import { generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
+import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
+import { getPseudonym } from '@/app/utils/storage';
+import { createReply, getCurrentUser, getPost, getReplies, updatePost } from '@/lib/database';
+import { RealtimeChannel, subscribeToPostUpdates, subscribeToReplies, subscribeToReplyChanges, unsubscribe } from '@/lib/realtime';
+import { Ionicons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { CategoryBadge } from '@/app/components/category-badge';
-import { Post, Reply } from '@/app/types';
-import { getPosts, getReplies, addReply, updatePost } from '@/app/utils/storage';
-import { generatePseudonym, getPseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { formatDistanceToNow } from 'date-fns';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getContainerStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { Ionicons } from '@expo/vector-icons';
-import { subscribeToReplies, subscribeToReplyChanges, subscribeToPostUpdates, unsubscribe, RealtimeChannel } from '@/lib/realtime';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,8 +60,8 @@ export default function PostDetailScreen() {
 
   const loadPost = async () => {
     try {
-      const allPosts = await getPosts();
-      const foundPost = allPosts.find((p) => p.id === id);
+      if (!id) return;
+      const foundPost = await getPost(id);
       if (foundPost) {
         setPost(foundPost);
         const postReplies = await getReplies(id);
@@ -127,21 +128,21 @@ export default function PostDetailScreen() {
       const pseudonym = (await getPseudonym()) || generatePseudonym();
       const sanitizedContent = sanitizeContent(replyContent);
 
-      const newReply: Reply = {
-        id: `reply_${Date.now()}`,
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to reply.');
+        return;
+      }
+
+      const newReply = await createReply({
         postId: post.id,
-        authorId: `user_${Date.now()}`,
-        authorPseudonym: pseudonym,
+        authorId: user.id,
         content: sanitizedContent,
         isAnonymous: true,
-        isHelpful: 0,
-        isFromVolunteer: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        reportedCount: 0,
-      };
+        // Calculate isFromVolunteer based on user role if needed, or backend handles it
+        isFromVolunteer: ['peer-educator', 'counselor'].includes(user.role),
+      });
 
-      await addReply(newReply);
       setReplies([...replies, newReply]);
       setReplyContent('');
 
@@ -160,6 +161,7 @@ export default function PostDetailScreen() {
   };
 
   const handleReport = () => {
+    if (!post) return;
     router.push(`/report?targetType=post&targetId=${post.id}`);
   };
 

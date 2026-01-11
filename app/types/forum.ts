@@ -4,16 +4,13 @@
 
 export type PostCategory =
     | 'mental-health'
-    | 'crisis'
     | 'substance-abuse'
     | 'sexual-health'
     | 'stis-hiv'
     | 'family-home'
     | 'academic'
-    | 'social'
     | 'relationships'
-    | 'campus'
-    | 'general';
+    | (string & {});
 
 export type PostStatus = 'active' | 'escalated' | 'resolved' | 'archived';
 

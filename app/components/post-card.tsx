@@ -2,16 +2,15 @@
  * Post card component for displaying posts in the feed
  */
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Post } from '@/app/types';
-import { CategoryBadge } from './category-badge';
+import { CATEGORIES } from '@/app/constants/categories';
+import { Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Post, PostCategory } from '@/app/types';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius, PlatformStyles } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { formatDistanceToNow } from 'date-fns';
 
 // Generate consistent color for avatar based on post ID
 const getAvatarColor = (id: string): string => {
@@ -34,80 +33,86 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const likeCount = post.upvotes || 0;
   const avatarColor = getAvatarColor(post.id);
 
-  // Map category to display name and color
-  const getCategoryInfo = (category: string) => {
-    const categoryMap: Record<string, { label: string; bgColor: string; textColor: string }> = {
-      'academic': { label: 'Academics', bgColor: '#E8F5E9', textColor: '#4CAF50' },
-      'relationships': { label: 'Relationships', bgColor: '#E3F2FD', textColor: '#2196F3' },
-      'mental-health': { label: 'Depression', bgColor: '#F3E5F5', textColor: '#9C27B0' },
-      'social': { label: 'Social', bgColor: '#FFF3E0', textColor: '#FF9800' },
-      'crisis': { label: 'Crisis', bgColor: '#FFEBEE', textColor: '#F44336' },
-    };
-    return categoryMap[category] || { label: category, bgColor: '#F5F5F5', textColor: '#757575' };
-  };
-
-  const categoryInfo = getCategoryInfo(post.category);
+  // Get category info from constants
+  const category = CATEGORIES[post.category as PostCategory] || CATEGORIES.general;
+  // Use category color for background with low opacity, and full color for text
+  const categoryBgColor = category.color + '15'; // 15 = ~8% opacity
+  const categoryTextColor = category.color;
 
   return (
-    <TouchableOpacity 
-      onPress={onPress} 
-      activeOpacity={0.7}
-      style={getCursorStyle()}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.9}
+      style={[getCursorStyle(), styles.container]}
     >
       <ThemedView
         style={[
           styles.card,
-          createShadow(2, '#000', 0.1),
           {
             backgroundColor: colors.card,
             borderColor: colors.border,
-            borderWidth: 1,
-            borderLeftWidth: isEscalated ? 4 : 1,
             borderLeftColor: isEscalated ? colors.danger : colors.border,
           },
         ]}
       >
-        {/* User Info */}
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-            <MaterialIcons name="person" size={20} color="#FFFFFF" />
+        <View style={styles.cardHeader}>
+          <View style={styles.userInfo}>
+            <View style={[styles.avatar, { backgroundColor: avatarColor + '30' }]}>
+              <ThemedText style={[styles.avatarText, { color: avatarColor }]}>
+                {post.authorPseudonym?.[0]?.toUpperCase() || 'A'}
+              </ThemedText>
+            </View>
+            <View>
+              <ThemedText type="body" style={styles.userName}>
+                {post.authorPseudonym || 'Anonymous Student'}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                just now
+              </ThemedText>
+            </View>
           </View>
-          <ThemedText type="body" style={styles.userName}>
-            Anonymous Student
+
+          <View style={[styles.categoryBadge, { backgroundColor: categoryBgColor }]}>
+            <ThemedText style={[styles.categoryText, { color: categoryTextColor }]}>
+              {category.name}
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={styles.cardBody}>
+          <ThemedText type="h3" style={styles.title}>
+            {post.title}
+          </ThemedText>
+
+          <ThemedText type="body" numberOfLines={3} style={[styles.content, { color: colors.text + 'CC' }]}>
+            {post.content}
           </ThemedText>
         </View>
 
-        {/* Title */}
-        <ThemedText type="h3" style={styles.title}>
-          {post.title}
-        </ThemedText>
+        <View style={[styles.cardFooter, { borderTopColor: colors.border + '30' }]}>
+          <View style={styles.engagement}>
+            <TouchableOpacity style={styles.engagementItem}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.surface }]}>
+                <MaterialIcons name="favorite-border" size={16} color={colors.icon} />
+              </View>
+              <ThemedText style={styles.engagementText}>
+                {likeCount}
+              </ThemedText>
+            </TouchableOpacity>
 
-        {/* Content */}
-        <ThemedText type="body" numberOfLines={3} style={styles.content}>
-          {post.content}
-        </ThemedText>
-
-        {/* Category Tag */}
-        <View style={[styles.categoryTag, { backgroundColor: categoryInfo.bgColor }]}>
-          <ThemedText type="small" style={[styles.categoryText, { color: categoryInfo.textColor }]}>
-            {categoryInfo.label}
-          </ThemedText>
-        </View>
-
-        {/* Engagement Metrics */}
-        <View style={styles.engagement}>
-          <View style={styles.engagementItem}>
-            <MaterialIcons name="favorite-border" size={18} color={colors.icon} />
-            <Text style={[styles.engagementText, { color: colors.icon }]}>
-              {likeCount}
-            </Text>
+            <TouchableOpacity style={styles.engagementItem}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.surface }]}>
+                <MaterialIcons name="chat-bubble-outline" size={16} color={colors.icon} />
+              </View>
+              <ThemedText style={styles.engagementText}>
+                {replyCount}
+              </ThemedText>
+            </TouchableOpacity>
           </View>
-          <View style={styles.engagementItem}>
-            <MaterialIcons name="chat-bubble-outline" size={18} color={colors.icon} />
-            <Text style={[styles.engagementText, { color: colors.icon }]}>
-              {replyCount} {replyCount === 1 ? 'Reply' : 'Replies'}
-            </Text>
-          </View>
+
+          <TouchableOpacity style={styles.shareIcon}>
+            <MaterialIcons name="share" size={18} color={colors.icon} />
+          </TouchableOpacity>
         </View>
       </ThemedView>
     </TouchableOpacity>
@@ -115,62 +120,106 @@ export function PostCard({ post, onPress }: PostCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+  container: {
     marginBottom: Spacing.md,
+  },
+  card: {
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.md,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '800',
   },
   userName: {
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  title: {
-    marginBottom: Spacing.sm,
     fontWeight: '700',
-    fontSize: 16,
-  },
-  content: {
-    marginBottom: Spacing.sm,
     fontSize: 14,
-    lineHeight: 20,
-    opacity: 0.7,
+    letterSpacing: -0.2,
   },
-  categoryTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.sm,
+  categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  cardBody: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  title: {
+    marginBottom: 6,
+    fontWeight: '800',
+    fontSize: 17,
+    letterSpacing: -0.3,
+  },
+  content: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderTopWidth: 1,
   },
   engagement: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   engagementItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+  },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   engagementText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '700',
+    opacity: 0.7,
+  },
+  shareIcon: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.5,
   },
 });
 

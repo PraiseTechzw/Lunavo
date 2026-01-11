@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,21 +40,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const DRAFT_KEY = 'post_draft';
 
 // Icon mapping for categories
-const getCategoryIconName = (category: PostCategory): string => {
+const getCategoryIcon = (category: PostCategory): string => {
   const iconMap: Record<PostCategory, string> = {
-    'mental-health': 'medical-outline',
-    'crisis': 'warning',
-    'substance-abuse': 'medkit',
-    'sexual-health': 'heart',
-    'stis-hiv': 'heart-circle',
+    'mental-health': 'leaf-outline',
+    'crisis': 'pulse-outline',
+    'substance-abuse': 'fitness-outline',
+    'sexual-health': 'heart-circle-outline',
+    'stis-hiv': 'shield-outline',
     'family-home': 'home-outline',
-    'academic': 'library-outline',
-    'social': 'people',
-    'relationships': 'heart-circle',
-    'campus': 'school',
-    'general': 'chatbubbles',
+    'academic': 'school-outline',
+    'social': 'people-circle-outline',
+    'relationships': 'infinite-outline',
+    'campus': 'business-outline',
+    'general': 'chatbubbles-outline',
   };
-  return iconMap[category] || 'help-circle';
+  return iconMap[category] || 'help-circle-outline';
 };
 
 export default function CreatePostScreen() {
@@ -62,6 +62,7 @@ export default function CreatePostScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const contentInputRef = useRef<TextInput>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [availableCategories, setAvailableCategories] = useState<PostCategory[]>([]);
@@ -77,6 +78,11 @@ export default function CreatePostScreen() {
   const [hasTriggerWarning, setHasTriggerWarning] = useState(false);
   const [categoryConfidence, setCategoryConfidence] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
@@ -86,7 +92,7 @@ export default function CreatePostScreen() {
     const { start, end } = contentSelection;
     const newContent = content.substring(0, start) + textToInsert + content.substring(end);
     setContent(newContent);
-    
+
     // Update cursor position after insertion
     setTimeout(() => {
       const newCursorPos = start + textToInsert.length;
@@ -100,15 +106,15 @@ export default function CreatePostScreen() {
   const wrapTextWithMarkdown = (before: string, after: string) => {
     const { start, end } = contentSelection;
     const selectedText = content.substring(start, end);
-    
+
     if (selectedText) {
       // Wrap selected text
-      const newContent = 
-        content.substring(0, start) + 
-        before + selectedText + after + 
+      const newContent =
+        content.substring(0, start) +
+        before + selectedText + after +
         content.substring(end);
       setContent(newContent);
-      
+
       // Update cursor position
       setTimeout(() => {
         const newCursorPos = start + before.length + selectedText.length + after.length;
@@ -146,7 +152,7 @@ export default function CreatePostScreen() {
       Alert.alert('Error', 'Please enter a URL');
       return;
     }
-    
+
     const linkMarkdown = `[${linkText.trim() || linkUrl.trim()}](${linkUrl.trim()})`;
     insertTextAtCursor(linkMarkdown);
     setShowLinkModal(false);
@@ -196,7 +202,7 @@ export default function CreatePostScreen() {
       // Read the image file
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       // Generate unique filename with proper extension
       const uriParts = imageUri.split('.');
       const fileExt = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
@@ -204,9 +210,9 @@ export default function CreatePostScreen() {
       const filePath = `post-images/${fileName}`;
 
       // Determine content type
-      const contentType = fileExt === 'png' ? 'image/png' : 
-                         fileExt === 'gif' ? 'image/gif' : 
-                         fileExt === 'webp' ? 'image/webp' : 'image/jpeg';
+      const contentType = fileExt === 'png' ? 'image/png' :
+        fileExt === 'gif' ? 'image/gif' :
+          fileExt === 'webp' ? 'image/webp' : 'image/jpeg';
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -270,16 +276,16 @@ export default function CreatePostScreen() {
       setLoadingCategories(true);
       // Get topic stats to see which categories have posts
       const stats = await getTopicStats();
-      
+
       // Filter to only categories that have at least 1 post
       // Always include 'general' as a fallback option
       const categoriesWithPosts = stats
-        .filter(stat => stat.postCount > 0 || stat.category === 'general')
+        .filter(stat => stat.recentPostCount > 0 || stat.category === 'general')
         .map(stat => stat.category)
         .sort((a, b) => {
           const statA = stats.find(s => s.category === a);
           const statB = stats.find(s => s.category === b);
-          return (statB?.postCount || 0) - (statA?.postCount || 0);
+          return (statB?.recentPostCount || 0) - (statA?.recentPostCount || 0);
         });
 
       // If no categories have posts yet, show all categories
@@ -356,12 +362,12 @@ export default function CreatePostScreen() {
       if (!title.trim() && !content.trim()) return;
 
       const analysis = analyzePost(title, content, selectedCategory);
-      
+
       // Update suggested category if confidence is high and category is available
       if (analysis.categorization.confidence > 0.6 && availableCategories.includes(analysis.categorization.category)) {
         setSuggestedCategory(analysis.categorization.category);
         setCategoryConfidence(analysis.categorization.confidence);
-        
+
         // Auto-select if confidence is very high
         if (analysis.categorization.confidence > 0.8) {
           setSelectedCategory(analysis.categorization.category);
@@ -530,7 +536,7 @@ export default function CreatePostScreen() {
                   {availableCategories.map((categoryId) => {
                     const category = CATEGORIES[categoryId];
                     const isSelected = selectedCategory === categoryId;
-                    
+
                     return (
                       <TouchableOpacity
                         key={categoryId}

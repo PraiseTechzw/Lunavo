@@ -3,13 +3,98 @@
  * All database operations go through these functions
  */
 
-import { ActivityLog, Announcement, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
+import { CATEGORIES } from '@/app/constants/categories';
+import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
 import * as ExpoFileSystem from 'expo-file-system';
 import { supabase } from './supabase';
 
 // ============================================
 // USER OPERATIONS
 // ============================================
+
+// ============================================
+
+export interface TopicStats {
+  category: PostCategory;
+  memberCount: number;
+  recentPostCount: number;
+  categoryDetails?: Category;
+}
+
+export async function createCategory(category: Category): Promise<void> {
+  const { error } = await supabase
+    .from('categories')
+    .insert([{
+      slug: category.id,
+      name: category.name,
+      description: category.description,
+      icon: category.icon,
+      color: category.color,
+    }]);
+
+  if (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return Object.values(CATEGORIES);
+  }
+
+  return data.map(cat => ({
+    id: cat.slug as PostCategory,
+    name: cat.name,
+    description: cat.description,
+    icon: cat.icon,
+    color: cat.color,
+  }));
+}
+
+export async function getTopicStats(): Promise<TopicStats[]> {
+  try {
+    const dbCategories = await getCategories();
+    const stats: TopicStats[] = [];
+
+    // Calculate stats for each category
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('category, created_at, author_id')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days
+
+    const { data: allPosts } = await supabase
+      .from('posts')
+      .select('category, author_id');
+
+    for (const category of dbCategories) {
+      // Recent posts
+      const recentCount = posts?.filter(p => p.category === category.id).length || 0;
+
+      // Member count (unique authors)
+      const uniqueAuthors = new Set(allPosts?.filter(p => p.category === category.id).map(p => p.author_id));
+      const memberCount = uniqueAuthors.size || 0;
+
+      stats.push({
+        category: category.id,
+        memberCount: memberCount,
+        recentPostCount: recentCount,
+        categoryDetails: category,
+      });
+    }
+
+    return stats;
+  } catch (error) {
+    console.error('Error fetching topic stats:', error);
+    return [];
+  }
+}
 
 export interface CreateUserData {
   email: string;
