@@ -7,7 +7,7 @@ import { CATEGORIES } from '@/app/constants/categories';
 import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportMessage, SupportSession, User } from '@/app/types';
 import * as ExpoFileSystem from 'expo-file-system';
 import { checkAllBadges } from './gamification';
-import { awardPostCreatedPoints } from './points-system';
+import { awardPostCreatedPoints, awardReplyPoints } from './points-system';
 import { supabase } from './supabase';
 
 // ============================================
