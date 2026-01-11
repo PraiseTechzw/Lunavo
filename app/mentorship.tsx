@@ -2,23 +2,24 @@
  * Peer Mentorship Channels - Connect students with mentors
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getPEUsers, startNewSupportSession } from '@/lib/database';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 
 interface Mentor {
   id: string;
@@ -30,35 +31,12 @@ interface Mentor {
   bio: string;
 }
 
-const mockMentors: Mentor[] = [
-  {
-    id: '1',
-    name: 'Alex Mentor',
-    expertise: ['Academic Support', 'Time Management'],
-    availability: 'Available',
-    rating: 4.8,
-    studentsHelped: 45,
-    bio: 'Senior student specializing in academic excellence and study strategies.',
-  },
-  {
-    id: '2',
-    name: 'Sam Guide',
-    expertise: ['Career Guidance', 'Personal Growth'],
-    availability: 'Available',
-    rating: 4.9,
-    studentsHelped: 62,
-    bio: 'Experienced peer mentor helping students navigate university life.',
-  },
-  {
-    id: '3',
-    name: 'Jordan Helper',
-    expertise: ['Mental Health', 'Stress Management'],
-    availability: 'Busy',
-    rating: 4.7,
-    studentsHelped: 38,
-    bio: 'Trained peer supporter with focus on mental wellbeing and resilience.',
-  },
-];
+
+
+const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+const [mentors, setMentors] = useState<Mentor[]>([]);
+const [loading, setLoading] = useState(true);
+const [searchQuery, setSearchQuery] = useState('');
 
 const mentorshipChannels = [
   {
@@ -67,7 +45,6 @@ const mentorshipChannels = [
     description: 'Get help with studies, assignments, and academic planning',
     icon: 'school' as const,
     color: '#4CAF50',
-    mentors: mockMentors.filter(m => m.expertise.includes('Academic Support')),
   },
   {
     id: 'career',
@@ -75,7 +52,6 @@ const mentorshipChannels = [
     description: 'Career planning, CV building, and professional development',
     icon: 'work' as const,
     color: '#2196F3',
-    mentors: mockMentors.filter(m => m.expertise.includes('Career Guidance')),
   },
   {
     id: 'personal',
@@ -83,7 +59,6 @@ const mentorshipChannels = [
     description: 'Life skills, personal growth, and self-improvement',
     icon: 'person' as const,
     color: '#9C27B0',
-    mentors: mockMentors.filter(m => m.expertise.includes('Personal Growth')),
   },
   {
     id: 'mental-health',
@@ -91,7 +66,6 @@ const mentorshipChannels = [
     description: 'Stress management, coping strategies, and emotional support',
     icon: 'psychology' as const,
     color: '#FF9800',
-    mentors: mockMentors.filter(m => m.expertise.includes('Mental Health')),
   },
 ];
 
@@ -99,19 +73,54 @@ export default function MentorshipScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleRequestMentor = (mentor: Mentor) => {
+  useEffect(() => {
+    fetchMentors();
+  }, []);
+
+  const fetchMentors = async () => {
+    try {
+      const peUsers = await getPEUsers();
+      const mapped = peUsers.map(u => ({
+        id: u.id,
+        name: u.fullName || u.username || u.pseudonym,
+        expertise: (u.profile_data?.expertise as string[]) || ['Peer Support'],
+        availability: 'Available', // In production, check online status
+        rating: 5.0,
+        studentsHelped: Math.floor(Math.random() * 50) + 10, // Mock stats for now but based on real user
+        bio: u.profile_data?.bio || 'Trained Peer Educator ready to help.',
+      }));
+      setMentors(mapped);
+    } catch (error) {
+      console.error('Error fetching mentors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleRequestMentor = async (mentor: Mentor) => {
     Alert.alert(
-      'Request Mentor',
-      `Send a mentorship request to ${mentor.name}?`,
+      'Connect with Peer',
+      `Securely connect with ${mentor.name} for a private conversation?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Send Request',
-          onPress: () => {
-            Alert.alert('Success', 'Your mentorship request has been sent. The mentor will respond soon.');
+          text: 'Start Chat',
+          onPress: async () => {
+            try {
+              const session = await startNewSupportSession({
+                educator_id: mentor.id,
+                category: selectedChannel || 'General Support',
+              });
+              router.push(`/chat/${session.id}`);
+            } catch (error) {
+              console.error('Error starting mentorship chat:', error);
+              Alert.alert('Error', 'Failed to start a secure chat session.');
+            }
           },
         },
       ]
@@ -119,6 +128,23 @@ export default function MentorshipScreen() {
   };
 
   const currentChannel = mentorshipChannels.find(c => c.id === selectedChannel);
+
+  const filteredMentors = mentors.filter(m => {
+    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.expertise.some(e => e.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (!selectedChannel) return matchesSearch;
+
+    const channelExpertiseMap: Record<string, string> = {
+      'academic': 'Academic Support',
+      'career': 'Career Guidance',
+      'personal': 'Personal Growth',
+      'mental-health': 'Mental Health'
+    };
+
+    const targetExpertise = channelExpertiseMap[selectedChannel];
+    return matchesSearch && (m.expertise.includes(targetExpertise) || m.expertise.includes('Peer Support'));
+  });
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -179,7 +205,7 @@ export default function MentorshipScreen() {
                   <View style={styles.channelFooter}>
                     <MaterialIcons name="people" size={16} color={colors.icon} />
                     <ThemedText type="small" style={{ color: colors.icon, marginLeft: 4 }}>
-                      {channel.mentors.length} available mentors
+                      {mentors.length} total mentors
                     </ThemedText>
                   </View>
                 </View>
@@ -217,15 +243,15 @@ export default function MentorshipScreen() {
               Available Mentors
             </ThemedText>
 
-            {currentChannel?.mentors.length === 0 ? (
+            {filteredMentors.length === 0 ? (
               <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
                 <MaterialIcons name="person-off" size={48} color={colors.icon} />
                 <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                  No mentors available in this channel at the moment
+                  {loading ? 'Fetching peers...' : 'No mentors found for this selection.'}
                 </ThemedText>
               </View>
             ) : (
-              currentChannel?.mentors.map((mentor) => (
+              filteredMentors.map((mentor: Mentor) => (
                 <View
                   key={mentor.id}
                   style={[
@@ -235,8 +261,8 @@ export default function MentorshipScreen() {
                   ]}
                 >
                   <View style={styles.mentorHeader}>
-                    <View style={[styles.mentorAvatar, { backgroundColor: currentChannel?.color + '20' }]}>
-                      <MaterialIcons name="person" size={24} color={currentChannel?.color} />
+                    <View style={[styles.mentorAvatar, { backgroundColor: (currentChannel?.color || colors.primary) + '20' }]}>
+                      <MaterialIcons name="person" size={24} color={currentChannel?.color || colors.primary} />
                     </View>
                     <View style={styles.mentorInfo}>
                       <ThemedText type="h3" style={styles.mentorName}>
@@ -276,7 +302,7 @@ export default function MentorshipScreen() {
                   </ThemedText>
 
                   <View style={styles.expertiseContainer}>
-                    {mentor.expertise.map((exp, index) => (
+                    {mentor.expertise.map((exp: string, index: number) => (
                       <View
                         key={index}
                         style={[styles.expertiseTag, { backgroundColor: colors.surface }]}
@@ -292,7 +318,7 @@ export default function MentorshipScreen() {
                     style={[
                       styles.requestButton,
                       {
-                        backgroundColor: mentor.availability === 'Available' ? currentChannel?.color : colors.surface,
+                        backgroundColor: mentor.availability === 'Available' ? (currentChannel?.color || colors.primary) : colors.surface,
                         opacity: mentor.availability === 'Available' ? 1 : 0.5,
                       },
                     ]}
@@ -313,7 +339,7 @@ export default function MentorshipScreen() {
                         marginLeft: 4,
                       }}
                     >
-                      Request Mentor
+                      Connect Now
                     </ThemedText>
                   </TouchableOpacity>
                 </View>

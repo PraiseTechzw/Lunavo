@@ -9,3 +9,21 @@ END $$;
 
 -- Also add helpful indexes for sorting
 CREATE INDEX IF NOT EXISTS idx_ss_updated_at ON public.support_sessions(updated_at DESC);
+
+-- Fix RLS for support_sessions to allow students to see their own sessions
+DROP POLICY IF EXISTS "ss_select" ON public.support_sessions;
+CREATE POLICY "ss_select" ON public.support_sessions FOR SELECT
+USING (
+    status = 'pending' 
+    OR educator_id = auth.uid() 
+    OR student_pseudonym = (SELECT pseudonym FROM public.users WHERE id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "ss_update" ON public.support_sessions;
+CREATE POLICY "ss_update" ON public.support_sessions FOR UPDATE
+USING (
+    status = 'pending' 
+    OR educator_id = auth.uid() 
+    OR student_pseudonym = (SELECT pseudonym FROM public.users WHERE id = auth.uid())
+);
+

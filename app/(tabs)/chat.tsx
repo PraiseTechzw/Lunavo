@@ -181,7 +181,10 @@ export default function ChatListScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <ThemedText type="h1">Messages</ThemedText>
-          <TouchableOpacity style={styles.headerAction}>
+          <TouchableOpacity
+            style={styles.headerAction}
+            onPress={() => router.push('/mentorship')}
+          >
             <Ionicons name="create-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
