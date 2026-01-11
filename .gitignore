@@ -42,3 +42,24 @@ app-example
 # generated native folders
 /ios
 /android
+
+# EAS
+.eas/
+eas-build-*.tar.gz
+
+# Credentials & Secrets
+google-service-account.json
+*.keystore
+*.jks
+credentials.json
+service-account*.json
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+*.app
+
+# Logs
+*.log
+logs/
