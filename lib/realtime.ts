@@ -368,3 +368,52 @@ export function subscribeToReplyChanges(
   return channel;
 }
 
+/**
+ * Subscribe to new messages in a session
+ */
+export function subscribeToMessages(
+  sessionId: string,
+  callback: (message: any) => void
+): RealtimeChannel {
+  const channel = supabase
+    .channel(`messages:${sessionId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'support_messages',
+        filter: `session_id=eq.${sessionId}`,
+      },
+      (payload) => {
+        callback(payload.new);
+      }
+    )
+    .subscribe();
+
+  return channel;
+}
+
+/**
+ * Subscribe to support sessions for a user
+ */
+export function subscribeToSupportSessions(
+  callback: (session: any) => void
+): RealtimeChannel {
+  const channel = supabase
+    .channel('support_sessions_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'support_sessions',
+      },
+      (payload) => {
+        callback(payload.new);
+      }
+    )
+    .subscribe();
+
+  return channel;
+}

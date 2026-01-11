@@ -6,13 +6,16 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { getCurrentUser, getUser, getUserSupportSessions } from '@/lib/database';
+import { subscribeToSupportSessions, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -37,47 +40,64 @@ interface Chat {
   accentColor?: string;
 }
 
-const mockChats: Chat[] = [
-  {
-    id: '1',
-    name: 'Peer Supporter',
-    lastMessage: 'Take your time. I\'m here to listen whenever you\'re ready.',
-    time: new Date(Date.now() - 1000 * 60 * 30),
-    unread: 0,
-    isOnline: true,
-    lastMessageType: 'text',
-    accentColor: '#6366F1',
-  },
-  {
-    id: '2',
-    name: 'Support Team',
-    lastMessage: 'We received your message. How can we help?',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    unread: 2,
-    isOnline: false,
-    lastMessageType: 'text',
-    accentColor: '#10B981',
-  },
-  {
-    id: '3',
-    name: 'Counselor Sarah',
-    lastMessage: '📎 Attachment: Wellness Guide.pdf',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    unread: 0,
-    isOnline: true,
-    lastMessageType: 'image',
-    accentColor: '#8B5CF6',
-  },
-];
+
 
 export default function ChatListScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [chats, setChats] = useState<Chat[]>(mockChats);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'online'>('all');
+
+  useEffect(() => {
+    fetchChats();
+
+    const channel = subscribeToSupportSessions(() => {
+      fetchChats(); // Refresh when any session changes (e.g. preview update)
+    });
+
+    return () => {
+      unsubscribe(channel);
+    };
+  }, []);
+
+  const fetchChats = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      const sessions = await getUserSupportSessions(user.id);
+
+      const mappedChats: Chat[] = await Promise.all(sessions.map(async (session) => {
+        let displayName = 'Peer Supporter';
+        if (session.educator_id) {
+          const educator = await getUser(session.educator_id);
+          if (educator) displayName = educator.pseudonym;
+        }
+
+        return {
+          id: session.id,
+          name: displayName,
+          lastMessage: session.preview || 'No messages yet',
+          time: new Date(session.created_at),
+          unread: 0, // TODO: Implement unread count
+          isOnline: session.status === 'active',
+          lastMessageType: 'text',
+          accentColor: session.priority === 'urgent' ? '#EF4444' : '#6366F1',
+        };
+      }));
+
+      setChats(mappedChats);
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const filteredChats = chats.filter(chat => {
     const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -98,7 +118,7 @@ export default function ChatListScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    fetchChats();
   };
 
   const renderChatItem = ({ item, index }: { item: Chat, index: number }) => (
@@ -229,13 +249,19 @@ export default function ChatListScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContent}>
-              <Ionicons name="chatbubbles-outline" size={80} color={colors.icon + '40'} />
-              <ThemedText type="h2" style={{ marginTop: Spacing.md }}>Silence is key.</ThemedText>
-              <ThemedText style={{ color: colors.icon, textAlign: 'center' }}>
-                Your private conversations will appear here.
-              </ThemedText>
-            </View>
+            loading ? (
+              <View style={styles.emptyContent}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <View style={styles.emptyContent}>
+                <Ionicons name="chatbubbles-outline" size={80} color={colors.icon + '40'} />
+                <ThemedText type="h2" style={{ marginTop: Spacing.md }}>Silence is key.</ThemedText>
+                <ThemedText style={{ color: colors.icon, textAlign: 'center' }}>
+                  Your private conversations will appear here.
+                </ThemedText>
+              </View>
+            )
           }
         />
       </ThemedView>

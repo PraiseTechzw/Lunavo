@@ -4,7 +4,7 @@
  */
 
 import { CATEGORIES } from '@/app/constants/categories';
-import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
+import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportMessage, SupportSession, User } from '@/app/types';
 import * as ExpoFileSystem from 'expo-file-system';
 import { supabase } from './supabase';
 
@@ -1722,7 +1722,7 @@ export async function updateStreak(streakId: string, updates: {
 }
 
 // ============================================
-// PEER EDUCATOR OPERATIONS
+// PEER EDUCATOR & SUPPORT OPERATIONS
 // ============================================
 
 export async function getActivityLogs(userId: string): Promise<ActivityLog[]> {
@@ -1763,11 +1763,85 @@ export async function getSupportSessions(status?: string): Promise<SupportSessio
   return data || [];
 }
 
+export async function getUserSupportSessions(userId: string): Promise<SupportSession[]> {
+  // First get the user's pseudonym
+  const user = await getUser(userId);
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('support_sessions')
+    .select('*')
+    .or(`educator_id.eq.${userId},student_pseudonym.eq.${user.pseudonym}`)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createSupportSession(session: Omit<SupportSession, 'id' | 'created_at'>): Promise<SupportSession> {
+  const { data, error } = await supabase
+    .from('support_sessions')
+    .insert(session)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Starts a new support session for the current user
+ */
+export async function startNewSupportSession(params: {
+  educator_id?: string;
+  category: string;
+  priority?: 'normal' | 'urgent';
+}): Promise<SupportSession> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not authenticated');
+
+  return createSupportSession({
+    student_pseudonym: user.pseudonym,
+    educator_id: params.educator_id || null,
+    category: params.category,
+    status: 'pending',
+    priority: params.priority || 'normal',
+    preview: 'Session started',
+    updated_at: new Date().toISOString(),
+    accepted_at: null,
+    resolved_at: null,
+    notes: null
+  });
+}
+
+
 export async function updateSupportSession(id: string, updates: Partial<SupportSession>): Promise<SupportSession> {
   const { data, error } = await supabase
     .from('support_sessions')
     .update(updates)
     .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getSupportMessages(sessionId: string): Promise<SupportMessage[]> {
+  const { data, error } = await supabase
+    .from('support_messages')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function sendSupportMessage(message: Omit<SupportMessage, 'id' | 'created_at' | 'is_read'>): Promise<SupportMessage> {
+  const { data, error } = await supabase
+    .from('support_messages')
+    .insert(message)
     .select()
     .single();
 
@@ -2014,57 +2088,7 @@ export async function deleteAnnouncement(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// ============================================
-// CHAT & SUPPORT SESSIONS
-// ============================================
 
-export async function getSupportSessions(userId: string): Promise<SupportSession[]> {
-  // First get the user's pseudonym
-  const user = await getUser(userId);
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from('support_sessions')
-    .select('*')
-    .or(`educator_id.eq.${userId},student_pseudonym.eq.${user.pseudonym}`)
-    .order('updated_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
-}
-
-export async function createSupportSession(session: Omit<SupportSession, 'id' | 'created_at'>): Promise<SupportSession> {
-  const { data, error } = await supabase
-    .from('support_sessions')
-    .insert(session)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function getSupportMessages(sessionId: string): Promise<SupportMessage[]> {
-  const { data, error } = await supabase
-    .from('support_messages')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
-}
-
-export async function sendSupportMessage(message: Omit<SupportMessage, 'id' | 'created_at' | 'is_read'>): Promise<SupportMessage> {
-  const { data, error } = await supabase
-    .from('support_messages')
-    .insert(message)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
 
 
 function mapAnnouncementFromDB(dbAnn: any): Announcement {
