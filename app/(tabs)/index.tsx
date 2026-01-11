@@ -8,7 +8,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { UserRole } from '@/app/types';
+import { Announcement, UserRole } from '@/app/types';
 import { createShadow } from '@/app/utils/platform-styles';
 import {
   getCheckInStreak,
@@ -16,7 +16,7 @@ import {
   getPseudonym,
   hasCheckedInToday
 } from '@/app/utils/storage';
-import { getCurrentUser } from '@/lib/database';
+import { getAnnouncements, getCurrentUser } from '@/lib/database';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -61,6 +61,7 @@ export default function HomeScreen() {
   const [checkInStreak, setCheckInStreak] = useState(0);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -107,14 +108,16 @@ export default function HomeScreen() {
   };
 
   const loadStats = async () => {
-    const [streak, checkedIn, posts] = await Promise.all([
+    const [streak, checkedIn, posts, anns] = await Promise.all([
       getCheckInStreak(),
       hasCheckedInToday(),
       getPosts(),
+      getAnnouncements(),
     ]);
     setCheckInStreak(streak);
     setHasCheckedIn(checkedIn);
     setPostCount(posts.length);
+    setAnnouncements(anns.filter(a => a.isPublished));
   };
 
   const onRefresh = useCallback(async () => {
@@ -166,6 +169,134 @@ export default function HomeScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
+          {/* Critical Alerts Section */}
+          {announcements.filter(a => a.priority === 'critical').map((alert) => (
+            <Animated.View entering={FadeInDown.duration(600)} key={alert.id} style={{ marginBottom: 20 }}>
+              <LinearGradient
+                colors={[colors.danger, '#991B1B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.alertCard, PlatformStyles.premiumShadow]}
+              >
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    padding: 8,
+                    borderRadius: 12,
+                  }}>
+                    <MaterialCommunityIcons name="alert-decagram" size={24} color="#FFF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={{ color: '#FFF', fontWeight: '800', fontSize: 16, marginBottom: 4 }}>
+                      {alert.title}
+                    </ThemedText>
+                    <ThemedText style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 18 }}>
+                      {alert.content}
+                    </ThemedText>
+                    {alert.actionLink && (
+                      <TouchableOpacity style={{
+                        marginTop: 12,
+                        backgroundColor: '#FFF',
+                        alignSelf: 'flex-start',
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20
+                      }}>
+                        <ThemedText style={{ color: colors.danger, fontWeight: '700', fontSize: 12 }}>
+                          {alert.actionLabel || 'View Details'}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </LinearGradient>
+            </Animated.View>
+          ))}
+
+          {/* Featured/Spotlight Announcements */}
+          {announcements.filter(a => a.type === 'spotlight' && a.priority !== 'critical').length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+              {announcements.filter(a => a.type === 'spotlight' && a.priority !== 'critical').map((spotlight, index) => (
+                <TouchableOpacity
+                  key={spotlight.id}
+                  style={[styles.spotlightCard, { backgroundColor: colors.card, marginRight: 16 }, PlatformStyles.premiumShadow]}
+                  activeOpacity={0.9}
+                >
+                  {spotlight.imageUrl ? (
+                    <View style={{ height: 120, backgroundColor: '#EEE', borderRadius: 16, marginBottom: 12, overflow: 'hidden' }}>
+                      {/* Image would go here, using a placeholder for now if no Image component */}
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary }}>
+                        <MaterialIcons name="image" size={40} color="#FFF" />
+                      </View>
+                    </View>
+                  ) : (
+                    <LinearGradient
+                      colors={[colors.primary, '#4338CA']}
+                      style={{ height: 80, borderRadius: 16, marginBottom: 12, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <MaterialCommunityIcons name="bullhorn" size={32} color="#FFF" />
+                    </LinearGradient>
+                  )}
+                  <View style={{ paddingHorizontal: 4 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <ThemedText style={{ color: colors.primary, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>
+                        {spotlight.type}
+                      </ThemedText>
+                      {spotlight.priority === 'high' && (
+                        <View style={{ backgroundColor: colors.warning + '20', paddingHorizontal: 6, borderRadius: 4 }}>
+                          <ThemedText style={{ color: colors.warning, fontSize: 10, fontWeight: '700' }}>HIGH</ThemedText>
+                        </View>
+                      )}
+                    </View>
+                    <ThemedText style={{ fontWeight: '700', fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{spotlight.title}</ThemedText>
+                    <ThemedText style={{ fontSize: 12, color: colors.icon }} numberOfLines={2}>{spotlight.content}</ThemedText>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Updates & Events Marquee (if any general ones exist) */}
+          {announcements.some(a => a.type === 'general' || a.type === 'event') && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
+                <MaterialCommunityIcons name="newspaper-variant-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+                <ThemedText type="body" style={{ fontWeight: '600', fontSize: 16 }}>Latest Updates</ThemedText>
+              </View>
+              {announcements.filter(a => (a.type === 'general' || a.type === 'event') && a.priority !== 'critical').slice(0, 3).map(news => (
+                <View key={news.id} style={{
+                  backgroundColor: colors.card,
+                  padding: 16,
+                  borderRadius: 16,
+                  marginBottom: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.03)'
+                }}>
+                  <View style={{
+                    width: 40, height: 40,
+                    borderRadius: 20,
+                    backgroundColor: news.type === 'event' ? '#ECFDF5' : '#EFF6FF',
+                    justifyContent: 'center', alignItems: 'center',
+                    marginRight: 12
+                  }}>
+                    <MaterialCommunityIcons
+                      name={news.type === 'event' ? 'calendar-star' : 'information-variant'}
+                      size={20}
+                      color={news.type === 'event' ? '#059669' : '#2563EB'}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={{ fontWeight: '600', marginBottom: 2 }}>{news.title}</ThemedText>
+                    <ThemedText style={{ fontSize: 12, color: colors.icon }} numberOfLines={1}>{news.content}</ThemedText>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.icon} />
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Welcome Dashboard Card - Premium Redesign */}
           <Animated.View entering={FadeInDown.duration(800)}>
             <LinearGradient
@@ -608,4 +739,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  alertCard: {
+    borderRadius: 20,
+    padding: 20,
+  },
+  spotlightCard: {
+    width: 280,
+    padding: 12,
+    borderRadius: 24,
+  }
 });

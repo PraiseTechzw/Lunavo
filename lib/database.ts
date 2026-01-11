@@ -3,7 +3,8 @@
  * All database operations go through these functions
  */
 
-import { ActivityLog, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
+import { ActivityLog, Announcement, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportSession, User } from '@/app/types';
+import * as ExpoFileSystem from 'expo-file-system';
 import { supabase } from './supabase';
 
 // ============================================
@@ -1311,6 +1312,53 @@ export async function updateResource(resourceId: string, updates: Partial<Create
   return data;
 }
 
+/**
+ * Uploads a file to the system-resources storage bucket
+ */
+export async function uploadResourceFile(uri: string, userId: string): Promise<string> {
+  try {
+    console.log('Starting robust upload for URI:', uri);
+
+    // Using expo-file-system to read file as base64 is the most stable method on Android
+    const base64 = await ExpoFileSystem.readAsStringAsync(uri, {
+      encoding: 'base64' as any,
+    });
+
+    // Convert base64 to ArrayBuffer using the fetch(data:) trick (most reliable in RN)
+    // This creates an internal Blob from the base64 string and then we grab its data
+    const response = await fetch(`data:application/octet-stream;base64,${base64}`);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const fileExt = uri.split('.').pop()?.split('?')[0].toLowerCase() || 'bin';
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    console.log('Uploading base64-converted buffer to path:', filePath, 'Size:', arrayBuffer.byteLength);
+
+    const { data, error } = await supabase.storage
+      .from('system-resources')
+      .upload(filePath, arrayBuffer, {
+        contentType: 'application/octet-stream', // Safer default
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase Storage Upload Error:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('system-resources')
+      .getPublicUrl(filePath);
+
+    console.log('Upload successful. Public URL:', publicUrl);
+    return publicUrl;
+  } catch (error: any) {
+    console.error('Final Error in uploadResourceFile:', error);
+    throw error;
+  }
+}
+
 export async function deleteResource(resourceId: string): Promise<void> {
   const { error } = await supabase
     .from('resources')
@@ -1596,19 +1644,19 @@ export async function getNetworkStats(): Promise<{
   activeSessions: number;
   totalPEs: number;
 }> {
-  const [sessions, logs, pes] = await Promise.all([
+  const [sessions, logs, pes, active] = await Promise.all([
     supabase.from('support_sessions').select('id', { count: 'exact' }),
     supabase.from('pe_activity_logs').select('duration_minutes'),
     supabase.from('users').select('id', { count: 'exact' }).in('role', ['peer-educator', 'peer-educator-executive']),
     supabase.from('support_sessions').select('id', { count: 'exact' }).eq('status', 'active')
   ]);
 
-  const totalMinutes = (logs.data || []).reduce((acc, log) => acc + (log.duration_minutes || 0), 0);
+  const totalMinutes = (logs.data || []).reduce((acc: number, log: any) => acc + (log.duration_minutes || 0), 0);
 
   return {
     totalSessions: sessions.count || 0,
     totalHours: Math.round(totalMinutes / 60),
-    activeSessions: (await supabase.from('support_sessions').select('id', { count: 'exact' }).eq('status', 'active')).count || 0,
+    activeSessions: active.count || 0,
     totalPEs: pes.count || 0
   };
 }
@@ -1740,4 +1788,101 @@ function mapAttendanceFromDB(data: any): MeetingAttendance {
     notes: data.notes || undefined,
   };
 }
+
+
+// ============================================
+// ANNOUNCEMENTS OPERATIONS
+// ============================================
+
+export async function getAnnouncements(): Promise<Announcement[]> {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map(mapAnnouncementFromDB);
+}
+
+export async function createAnnouncement(announcement: Omit<Announcement, 'id' | 'createdAt'>): Promise<Announcement> {
+  const { data, error } = await supabase
+    .from('announcements')
+    .insert({
+      title: announcement.title,
+      content: announcement.content,
+      created_by: announcement.createdBy,
+      scheduled_for: announcement.scheduledFor?.toISOString() || null,
+      is_published: announcement.isPublished,
+      priority: announcement.priority,
+      type: announcement.type,
+      image_url: announcement.imageUrl || null,
+      action_link: announcement.actionLink || null,
+      action_label: announcement.actionLabel || null,
+      expires_at: announcement.expiresAt?.toISOString() || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapAnnouncementFromDB(data);
+}
+
+export async function updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement> {
+  const updateData: any = {};
+  if (updates.title) updateData.title = updates.title;
+  if (updates.content) updateData.content = updates.content;
+  if (updates.scheduledFor !== undefined) updateData.scheduled_for = updates.scheduledFor?.toISOString() || null;
+  if (updates.isPublished !== undefined) updateData.is_published = updates.isPublished;
+  if (updates.priority) updateData.priority = updates.priority;
+  if (updates.type) updateData.type = updates.type;
+  if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl || null;
+  if (updates.actionLink !== undefined) updateData.action_link = updates.actionLink || null;
+  if (updates.actionLabel !== undefined) updateData.action_label = updates.actionLabel || null;
+  if (updates.expiresAt !== undefined) updateData.expires_at = updates.expiresAt?.toISOString() || null;
+
+  const { data, error } = await supabase
+    .from('announcements')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return mapAnnouncementFromDB(data);
+}
+
+export async function deleteAnnouncement(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('announcements')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+function mapAnnouncementFromDB(dbAnn: any): Announcement {
+  return {
+    id: dbAnn.id,
+    title: dbAnn.title,
+    content: dbAnn.content,
+    createdBy: dbAnn.created_by,
+    createdAt: new Date(dbAnn.created_at),
+    scheduledFor: dbAnn.scheduled_for ? new Date(dbAnn.scheduled_for) : undefined,
+    isPublished: dbAnn.is_published,
+    priority: dbAnn.priority || 'normal',
+    type: dbAnn.type || 'general',
+    imageUrl: dbAnn.image_url || undefined,
+    actionLink: dbAnn.action_link || undefined,
+    actionLabel: dbAnn.action_label || undefined,
+    expiresAt: dbAnn.expires_at ? new Date(dbAnn.expires_at) : undefined,
+  };
+}
+
 

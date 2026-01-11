@@ -2,7 +2,7 @@
  * System and operational types (Meetings, Notifications)
  */
 
-export type NotificationType = 'reply' | 'escalation' | 'meeting' | 'achievement' | 'system';
+export type NotificationType = 'reply' | 'escalation' | 'meeting' | 'achievement' | 'system' | 'announcement';
 
 export interface Notification {
     id: string;
@@ -47,4 +47,11 @@ export interface Announcement {
     createdAt: Date;
     scheduledFor?: Date;
     isPublished: boolean;
+    // Enhanced Professional Fields
+    priority: 'low' | 'normal' | 'high' | 'critical';
+    type: 'general' | 'alert' | 'event' | 'spotlight';
+    imageUrl?: string;
+    actionLink?: string;
+    actionLabel?: string;
+    expiresAt?: Date;
 }

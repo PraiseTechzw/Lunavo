@@ -5,7 +5,7 @@
 
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles } from '@/app/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { ActivityLog, SupportSession } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
@@ -161,7 +161,7 @@ export default function PeerEducatorDashboard() {
 
                   {user?.role === 'peer-educator-executive' || user?.role === 'admin' ? (
                     <TouchableOpacity
-                      onPress={() => router.push('/executive')}
+                      onPress={() => router.push('/executive' as any)}
                       style={[styles.returnButton, { backgroundColor: 'rgba(16, 185, 129, 0.4)', marginLeft: Spacing.xs }]}
                     >
                       <MaterialCommunityIcons name="shield-star" size={18} color="#FFF" />

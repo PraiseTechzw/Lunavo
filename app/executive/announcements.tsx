@@ -9,8 +9,13 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Announcement } from '@/app/types';
 import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import {
+  createAnnouncement,
+  deleteAnnouncement,
+  getAnnouncements,
+  updateAnnouncement
+} from '@/lib/database';
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -24,8 +29,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const ANNOUNCEMENTS_KEY = '@lunavo:announcements';
 
 export default function AnnouncementsScreen() {
   const router = useRouter();
@@ -47,6 +50,13 @@ export default function AnnouncementsScreen() {
   const [isPublished, setIsPublished] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
 
+  // Enhanced Fields
+  const [priority, setPriority] = useState<'low' | 'normal' | 'high' | 'critical'>('normal');
+  const [type, setType] = useState<'general' | 'alert' | 'event' | 'spotlight'>('general');
+  const [imageUrl, setImageUrl] = useState('');
+  const [actionLink, setActionLink] = useState('');
+  const [actionLabel, setActionLabel] = useState('');
+
   useEffect(() => {
     if (user) {
       loadAnnouncements();
@@ -55,16 +65,8 @@ export default function AnnouncementsScreen() {
 
   const loadAnnouncements = async () => {
     try {
-      // Load from AsyncStorage (in production, this would come from database)
-      const announcementsJson = await AsyncStorage.getItem(ANNOUNCEMENTS_KEY);
-      if (announcementsJson) {
-        const stored = JSON.parse(announcementsJson);
-        setAnnouncements(stored.map((a: any) => ({
-          ...a,
-          createdAt: new Date(a.createdAt),
-          scheduledFor: a.scheduledFor ? new Date(a.scheduledFor) : undefined,
-        })));
-      }
+      const data = await getAnnouncements();
+      setAnnouncements(data);
     } catch (error) {
       console.error('Error loading announcements:', error);
     }
@@ -76,6 +78,11 @@ export default function AnnouncementsScreen() {
     setContent('');
     setIsPublished(false);
     setScheduledFor(null);
+    setPriority('normal');
+    setType('general');
+    setImageUrl('');
+    setActionLink('');
+    setActionLabel('');
     setShowCreateModal(true);
   };
 
@@ -85,6 +92,11 @@ export default function AnnouncementsScreen() {
     setContent(announcement.content);
     setIsPublished(announcement.isPublished);
     setScheduledFor(announcement.scheduledFor || null);
+    setPriority(announcement.priority);
+    setType(announcement.type);
+    setImageUrl(announcement.imageUrl || '');
+    setActionLink(announcement.actionLink || '');
+    setActionLabel(announcement.actionLabel || '');
     setShowCreateModal(true);
   };
 
@@ -99,10 +111,9 @@ export default function AnnouncementsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const updated = announcements.filter((a) => a.id !== announcement.id);
-              setAnnouncements(updated);
-              await AsyncStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(updated));
+              await deleteAnnouncement(announcement.id);
               Alert.alert('Success', 'Announcement deleted.');
+              loadAnnouncements();
             } catch (error) {
               console.error('Error deleting announcement:', error);
               Alert.alert('Error', 'Failed to delete announcement.');
@@ -122,37 +133,36 @@ export default function AnnouncementsScreen() {
     if (!user) return;
 
     try {
-      let updated: Announcement[];
-
       if (editingAnnouncement) {
-        updated = announcements.map((a) =>
-          a.id === editingAnnouncement.id
-            ? {
-              ...a,
-              title,
-              content,
-              isPublished,
-              scheduledFor: scheduledFor || undefined,
-            }
-            : a
-        );
+        await updateAnnouncement(editingAnnouncement.id, {
+          title,
+          content,
+          isPublished,
+          scheduledFor: scheduledFor || undefined,
+          priority,
+          type,
+          imageUrl: imageUrl.trim() || undefined,
+          actionLink: actionLink.trim() || undefined,
+          actionLabel: actionLabel.trim() || undefined,
+        });
         Alert.alert('Success', 'Announcement updated.');
       } else {
-        const newAnnouncement: Announcement = {
-          id: Date.now().toString(),
+        await createAnnouncement({
           title,
           content,
           createdBy: user.id,
-          createdAt: new Date(),
           scheduledFor: scheduledFor || undefined,
           isPublished,
-        };
-        updated = [newAnnouncement, ...announcements];
+          priority,
+          type,
+          imageUrl: imageUrl.trim() || undefined,
+          actionLink: actionLink.trim() || undefined,
+          actionLabel: actionLabel.trim() || undefined,
+        });
         Alert.alert('Success', 'Announcement created.');
       }
 
-      setAnnouncements(updated);
-      await AsyncStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(updated));
+      loadAnnouncements();
       setShowCreateModal(false);
     } catch (error) {
       console.error('Error saving announcement:', error);
@@ -203,9 +213,35 @@ export default function AnnouncementsScreen() {
                 >
                   <View style={styles.announcementHeader}>
                     <View style={styles.announcementInfo}>
-                      <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
-                        {announcement.title}
-                      </ThemedText>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+                          {announcement.title}
+                        </ThemedText>
+                        <View style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 4,
+                          backgroundColor: announcement.priority === 'critical' ? colors.danger :
+                            announcement.priority === 'high' ? colors.warning :
+                              colors.primary + '20'
+                        }}>
+                          <ThemedText style={{ fontSize: 10, fontWeight: '700', color: announcement.priority === 'critical' ? '#FFF' : colors.text }}>
+                            {announcement.priority.toUpperCase()}
+                          </ThemedText>
+                        </View>
+                        <View style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 4,
+                          backgroundColor: colors.surface,
+                          borderWidth: 1,
+                          borderColor: colors.border
+                        }}>
+                          <ThemedText style={{ fontSize: 10, color: colors.text }}>
+                            {announcement.type.toUpperCase()}
+                          </ThemedText>
+                        </View>
+                      </View>
                       <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
                         {format(announcement.createdAt, 'MMM dd, yyyy • HH:mm')}
                       </ThemedText>
@@ -326,6 +362,86 @@ export default function AnnouncementsScreen() {
                   multiline
                   numberOfLines={8}
                   textAlignVertical="top"
+                />
+
+                <ThemedText type="body" style={{ marginBottom: 8, fontWeight: '600' }}>Priority</ThemedText>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  {(['low', 'normal', 'high', 'critical'] as const).map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      onPress={() => setPriority(p)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor: priority === p ? colors.primary : colors.surface,
+                        borderWidth: 1,
+                        borderColor: priority === p ? colors.primary : colors.border,
+                      }}
+                    >
+                      <ThemedText style={{ color: priority === p ? '#FFF' : colors.text, fontSize: 12, fontWeight: '600' }}>
+                        {p.toUpperCase()}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <ThemedText type="body" style={{ marginBottom: 8, fontWeight: '600' }}>Type</ThemedText>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  {(['general', 'alert', 'event', 'spotlight'] as const).map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      onPress={() => setType(t)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor: type === t ? colors.primary : colors.surface,
+                        borderWidth: 1,
+                        borderColor: type === t ? colors.primary : colors.border,
+                      }}
+                    >
+                      <ThemedText style={{ color: type === t ? '#FFF' : colors.text, fontSize: 12, fontWeight: '600' }}>
+                        {t.toUpperCase()}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={[
+                    styles.input,
+                    createInputStyle(),
+                    { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                  ]}
+                  placeholder="Image URL (optional)"
+                  placeholderTextColor={colors.icon}
+                  value={imageUrl}
+                  onChangeText={setImageUrl}
+                />
+
+                <TextInput
+                  style={[
+                    styles.input,
+                    createInputStyle(),
+                    { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                  ]}
+                  placeholder="Action Link (e.g., https://...)"
+                  placeholderTextColor={colors.icon}
+                  value={actionLink}
+                  onChangeText={setActionLink}
+                />
+
+                <TextInput
+                  style={[
+                    styles.input,
+                    createInputStyle(),
+                    { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                  ]}
+                  placeholder="Action Button Label (e.g., Register Now)"
+                  placeholderTextColor={colors.icon}
+                  value={actionLabel}
+                  onChangeText={setActionLabel}
                 />
 
                 <View style={styles.switchContainer}>

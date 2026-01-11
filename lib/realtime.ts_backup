@@ -5,7 +5,6 @@
 import { Post, Reply } from '@/app/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-export type { RealtimeChannel };
 
 /**
  * Subscribe to new posts

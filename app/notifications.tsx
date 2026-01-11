@@ -2,27 +2,27 @@
  * Notifications Center Screen
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Notification, NotificationType } from '@/app/types';
+import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { getCurrentUser } from '@/lib/auth';
+import { getNotifications, markNotificationAsRead } from '@/lib/database';
+import { RealtimeChannel, subscribeToNotifications, subscribeToSystemNotifications, unsubscribe } from '@/lib/realtime';
+import { MaterialIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
   FlatList,
-  TouchableOpacity,
   RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getNotifications, markNotificationAsRead, createNotification } from '@/lib/database';
-import { getCurrentUser } from '@/lib/auth';
-import { subscribeToNotifications, unsubscribe, RealtimeChannel } from '@/lib/realtime';
-import { formatDistanceToNow } from 'date-fns';
-import { Notification, NotificationType } from '@/app/types';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -32,6 +32,7 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState<'all' | NotificationType>('all');
   const [refreshing, setRefreshing] = useState(false);
   const notificationsChannelRef = useRef<RealtimeChannel | null>(null);
+  const systemChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     loadNotifications();
@@ -40,6 +41,9 @@ export default function NotificationsScreen() {
     return () => {
       if (notificationsChannelRef.current) {
         unsubscribe(notificationsChannelRef.current);
+      }
+      if (systemChannelRef.current) {
+        unsubscribe(systemChannelRef.current);
       }
     };
   }, []);
@@ -65,7 +69,23 @@ export default function NotificationsScreen() {
         setNotifications((prev) => [newNotification, ...prev]);
       });
 
+      const sysChannel = subscribeToSystemNotifications((sysNotif) => {
+        // Map system notification to Notification type
+        const newNotif: Notification = {
+          id: sysNotif.id,
+          userId: user.id,
+          type: 'system',
+          title: sysNotif.title,
+          message: sysNotif.message,
+          data: sysNotif.data,
+          read: false,
+          createdAt: new Date(sysNotif.created_at || new Date()),
+        };
+        setNotifications((prev) => [newNotif, ...prev]);
+      });
+
       notificationsChannelRef.current = channel;
+      systemChannelRef.current = sysChannel;
     } catch (error) {
       console.error('Error setting up real-time subscription:', error);
     }
@@ -189,7 +209,7 @@ export default function NotificationsScreen() {
         />
       </View>
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={styles.itemHeader}>
           <ThemedText
             type="body"
             style={[
@@ -386,7 +406,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  header: {
+  itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
