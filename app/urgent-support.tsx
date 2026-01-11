@@ -2,25 +2,24 @@
  * Urgent Support & Crisis Resources Screen - Premium Version
  */
 
-import { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius, PlatformStyles } from '@/app/constants/theme';
+import { startNewSupportSession } from '@/lib/database';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, FadeInRight, FadeIn } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import {
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CrisisResource {
   id: string;
@@ -109,7 +108,18 @@ export default function UrgentSupportScreen() {
           <Animated.View entering={FadeInDown.delay(500)}>
             <TouchableOpacity
               style={[styles.chatAction, { backgroundColor: colors.secondary + '10', borderColor: colors.secondary + '30' }]}
-              onPress={() => router.push('/chat/crisis')}
+              onPress={async () => {
+                try {
+                  const session = await startNewSupportSession({
+                    category: 'Crisis',
+                    priority: 'urgent'
+                  });
+                  router.push(`/chat/${session.id}`);
+                } catch (error) {
+                  console.error('Error starting crisis chat:', error);
+                  Alert.alert('Error', 'Failed to start a secure chat session.');
+                }
+              }}
             >
               <View style={styles.chatActionLeft}>
                 <Ionicons name="chatbubbles" size={30} color={colors.secondary} />
