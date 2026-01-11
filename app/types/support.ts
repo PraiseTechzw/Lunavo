@@ -49,7 +49,7 @@ export interface SupportSession {
     category: string | null;
     preview: string | null;
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
     accepted_at: string | null;
     resolved_at: string | null;
     notes: string | null;

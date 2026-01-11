@@ -1807,7 +1807,7 @@ export async function startNewSupportSession(params: {
     status: 'pending',
     priority: params.priority || 'normal',
     preview: 'Session started',
-    updated_at: new Date().toISOString(),
+
     accepted_at: null,
     resolved_at: null,
     notes: null
