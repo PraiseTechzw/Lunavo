@@ -6,7 +6,9 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { supabase } from '@/lib/supabase'; // Direct Supabase for "Full Integration"
+import { createCheckIn, getCurrentUser } from '@/lib/database';
+import { updateCheckInStreak } from '@/lib/gamification';
+import { awardCheckInPoints } from '@/lib/points-system'; // Direct Supabase for "Full Integration"
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -117,23 +119,24 @@ export default function CheckInScreen() {
     setAiInsight(insight);
 
     try {
-      // 1. Save to Supabase (Full Integration)
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (user) {
-        // Use upsert to handle multiple check-ins: Update if exists for today
-        const { error } = await supabase.from('check_ins').upsert({
-          user_id: user.id,
+        await createCheckIn({
+          userId: user.id,
           mood: selectedMood,
-          note: note.trim() || null,
+          feelingStrength: 5,
+          note: note.trim() || undefined,
           date: new Date().toISOString().split('T')[0],
-        }, { onConflict: 'user_id,date' });
-        if (error) {
-          console.error("CheckIn Error", error);
-          throw error;
-        }
+        });
+
+        // Award points and update streak
+        await Promise.all([
+          awardCheckInPoints(user.id),
+          updateCheckInStreak(user.id),
+        ]);
       }
 
-      // 2. Show Insight Modal with fake "processing" delay
+      // Show Insight Modal with processing delay
       setTimeout(() => {
         setIsSubmitting(false);
         setShowInsight(true);
@@ -142,7 +145,8 @@ export default function CheckInScreen() {
 
     } catch (error) {
       setIsSubmitting(false);
-      Alert.alert('Error', 'Could not save to cloud. Please check connection.');
+      Alert.alert('Error', 'Could not save check-in. Please try again.');
+      console.error('Check-in error:', error);
     }
   };
 

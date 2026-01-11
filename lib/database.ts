@@ -6,6 +6,8 @@
 import { CATEGORIES } from '@/app/constants/categories';
 import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportMessage, SupportSession, User } from '@/app/types';
 import * as ExpoFileSystem from 'expo-file-system';
+import { checkAllBadges } from './gamification';
+import { awardPostCreatedPoints } from './points-system';
 import { supabase } from './supabase';
 
 // ============================================
@@ -524,6 +526,14 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
     }
   }
 
+  // Award points for creating post
+  try {
+    await awardPostCreatedPoints(postData.authorId);
+    await checkAllBadges(postData.authorId);
+  } catch (pointsError) {
+    console.error('Error awarding points:', pointsError);
+  }
+
   return post;
 }
 
@@ -710,7 +720,17 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
     };
   }
 
-  return mapReplyFromDB(data, authorPseudonym);
+  const reply = mapReplyFromDB(data, authorPseudonym);
+
+  // Award points for reply
+  try {
+    await awardReplyPoints(replyData.authorId);
+    await checkAllBadges(replyData.authorId);
+  } catch (pointsError) {
+    console.error('Error awarding points:', pointsError);
+  }
+
+  return reply;
 }
 
 export async function getReplies(postId: string): Promise<Reply[]> {

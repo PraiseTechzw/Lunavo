@@ -9,7 +9,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { getPseudonym } from '@/app/utils/storage';
 import { getCurrentUser, getPosts, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
-import { getUserPoints } from '@/lib/points-system';
+import { getPointsHistory, getUserPoints, POINTS_CONFIG } from '@/lib/points-system';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,6 +42,9 @@ export default function ProfileScreen() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pointsHistory, setPointsHistory] = useState<any[]>([]);
+  const [level, setLevel] = useState(1);
+  const [nextLevelPoints, setNextLevelPoints] = useState(100);
 
   useEffect(() => {
     loadData();
@@ -57,12 +60,20 @@ export default function ProfileScreen() {
       setUserName(savedPseudonym ? savedPseudonym.split(/(?=[A-Z])/)[0] : currentUser.pseudonym || 'Student');
 
       if (currentUser.id) {
-        const [userBadges, allPosts, points, checkIn] = await Promise.all([
+        const [userBadges, allPosts, points, checkIn, history] = await Promise.all([
           getUserBadges(currentUser.id),
           getPosts(),
           getUserPoints(currentUser.id),
           getStreakInfo(currentUser.id, 'check-in'),
+          getPointsHistory(currentUser.id, 10),
         ]);
+
+        // Calculate level (100 points per level)
+        const calculatedLevel = Math.floor(points / 100) + 1;
+        const pointsInCurrentLevel = points % 100;
+        setLevel(calculatedLevel);
+        setNextLevelPoints(100 - pointsInCurrentLevel);
+        setPointsHistory(history);
 
         setBadges(userBadges.slice(0, 4));
         setBadgeCount(userBadges.length);
@@ -177,6 +188,82 @@ export default function ProfileScreen() {
                   </Animated.View>
                 ))}
               </ScrollView>
+            </View>
+          )}
+
+          {/* Points Breakdown */}
+          <View style={styles.section}>
+            <ThemedText type="h2" style={styles.sectionTitle}>Points Breakdown</ThemedText>
+            <View style={[styles.levelCard, { backgroundColor: colors.card }]}>
+              <View style={styles.levelHeader}>
+                <View>
+                  <ThemedText type="h3">Level {level}</ThemedText>
+                  <ThemedText style={styles.levelSubtext}>{nextLevelPoints} points to Level {level + 1}</ThemedText>
+                </View>
+                <View style={[styles.levelBadge, { backgroundColor: colors.primary + '20' }]}>
+                  <MaterialIcons name="emoji-events" size={24} color={colors.primary} />
+                </View>
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { width: `${((100 - nextLevelPoints) / 100) * 100}%`, backgroundColor: colors.primary }]} />
+              </View>
+            </View>
+
+            <View style={styles.pointsGrid}>
+              <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
+                <Ionicons name="calendar-outline" size={20} color="#10B981" />
+                <ThemedText style={styles.pointsValue}>+{POINTS_CONFIG.checkIn}</ThemedText>
+                <ThemedText style={styles.pointsLabel}>Check-in</ThemedText>
+              </View>
+              <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
+                <Ionicons name="heart-outline" size={20} color="#EF4444" />
+                <ThemedText style={styles.pointsValue}>+{POINTS_CONFIG.helpfulResponse}</ThemedText>
+                <ThemedText style={styles.pointsLabel}>Helpful</ThemedText>
+              </View>
+              <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
+                <Ionicons name="chatbubble-outline" size={20} color="#3B82F6" />
+                <ThemedText style={styles.pointsValue}>+{POINTS_CONFIG.replyGiven}</ThemedText>
+                <ThemedText style={styles.pointsLabel}>Reply</ThemedText>
+              </View>
+              <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
+                <Ionicons name="trophy-outline" size={20} color="#F59E0B" />
+                <ThemedText style={styles.pointsValue}>+{POINTS_CONFIG.badgeEarned}</ThemedText>
+                <ThemedText style={styles.pointsLabel}>Badge</ThemedText>
+              </View>
+            </View>
+          </View>
+
+          {/* Recent Points History */}
+          {pointsHistory.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <ThemedText type="h2">Recent Points</ThemedText>
+                <TouchableOpacity onPress={() => router.push('/rewards')}>
+                  <ThemedText style={{ color: colors.primary, fontWeight: '700' }}>View All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              {pointsHistory.slice(0, 5).map((transaction, idx) => (
+                <Animated.View key={transaction.id} entering={FadeInDown.delay(400 + idx * 50)}>
+                  <View style={[styles.pointsHistoryItem, { backgroundColor: colors.card }]}>
+                    <View style={[styles.pointsHistoryIcon, { backgroundColor: transaction.type === 'earned' ? colors.success + '20' : colors.danger + '20' }]}>
+                      <Ionicons
+                        name={transaction.type === 'earned' ? 'arrow-up' : 'arrow-down'}
+                        size={16}
+                        color={transaction.type === 'earned' ? colors.success : colors.danger}
+                      />
+                    </View>
+                    <View style={styles.pointsHistoryContent}>
+                      <ThemedText style={styles.pointsHistoryDesc}>{transaction.description}</ThemedText>
+                      <ThemedText style={styles.pointsHistoryDate}>
+                        {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={[styles.pointsHistoryAmount, { color: transaction.type === 'earned' ? colors.success : colors.danger }]}>
+                      {transaction.type === 'earned' ? '+' : '-'}{transaction.amount}
+                    </ThemedText>
+                  </View>
+                </Animated.View>
+              ))}
             </View>
           )}
 
@@ -425,5 +512,93 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  levelCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  levelSubtext: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  levelBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  pointsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -Spacing.xs,
+  },
+  pointsCard: {
+    width: '48%',
+    margin: '1%',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    ...PlatformStyles.shadow,
+  },
+  pointsValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  pointsLabel: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  pointsHistoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
+    ...PlatformStyles.shadow,
+  },
+  pointsHistoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
+  pointsHistoryContent: {
+    flex: 1,
+  },
+  pointsHistoryDesc: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pointsHistoryDate: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  pointsHistoryAmount: {
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

@@ -1,0 +1,70 @@
+name: EAS Update - OTA
+
+on:
+    push:
+        branches:
+            - main
+            - master
+            - develop
+        paths:
+            - "app/**"
+            - "lib/**"
+            - "assets/**"
+            - "package.json"
+    workflow_dispatch:
+        inputs:
+            channel:
+                description: "Update channel"
+                required: true
+                default: "production"
+                type: choice
+                options:
+                    - production
+                    - preview
+                    - development
+
+jobs:
+    publish-update:
+        name: Publish OTA Update
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🏗 Checkout repository
+              uses: actions/checkout@v4
+
+            - name: 🏗 Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20.x
+                  cache: npm
+
+            - name: 🏗 Setup Expo
+              uses: expo/expo-github-action@v8
+              with:
+                  eas-version: latest
+                  token: ${{ secrets.EXPO_TOKEN }}
+
+            - name: 📦 Install dependencies
+              run: npm ci
+
+            - name: 🔍 Run linter
+              run: npm run lint --fix
+
+            - name: 🚀 Publish update (Production)
+              if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event.inputs.channel == 'production'
+              run: eas update --branch production --message "${{ github.event.head_commit.message || 'Manual update' }}" --non-interactive
+
+            - name: 🚀 Publish update (Preview)
+              if: github.ref == 'refs/heads/staging' || github.event.inputs.channel == 'preview'
+              run: eas update --branch preview --message "${{ github.event.head_commit.message || 'Manual update' }}" --non-interactive
+
+            - name: 🚀 Publish update (Development)
+              if: github.ref == 'refs/heads/develop' || github.event.inputs.channel == 'development'
+              run: eas update --branch development --message "${{ github.event.head_commit.message || 'Manual update' }}" --non-interactive
+
+            - name: 💬 Notify on success
+              if: success()
+              run: echo "✅ OTA update published successfully!"
+
+            - name: ❌ Notify on failure
+              if: failure()
+              run: echo "❌ OTA update failed!"
