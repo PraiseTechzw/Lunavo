@@ -1772,7 +1772,7 @@ export async function getUserSupportSessions(userId: string): Promise<SupportSes
     .from('support_sessions')
     .select('*')
     .or(`educator_id.eq.${userId},student_pseudonym.eq.${user.pseudonym}`)
-    .order('updated_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data || [];
