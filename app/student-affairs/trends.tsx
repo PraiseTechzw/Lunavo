@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View
@@ -58,6 +59,7 @@ export default function TrendsAnalysisScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

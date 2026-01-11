@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View
@@ -68,6 +69,7 @@ export default function StudentAffairsDashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -114,7 +116,7 @@ export default function StudentAffairsDashboardScreen() {
           <View style={styles.section}>
             <ThemedText type="h2" style={styles.sectionTitle}>Key Concerns</ThemedText>
             {topCategories.map(([catId, count], idx) => {
-              const cat = CATEGORIES.find(c => c.id === catId);
+              const cat = CATEGORIES[catId as keyof typeof CATEGORIES];
               return (
                 <View key={catId} style={[styles.concernCard, { backgroundColor: colors.card }]}>
                   <View style={styles.concernInfo}>

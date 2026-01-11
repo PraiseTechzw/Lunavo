@@ -66,3 +66,12 @@ export interface ActivityLog {
     created_at: string;
 }
 
+export interface SupportMessage {
+    id: string;
+    session_id: string;
+    sender_id: string | null;
+    content: string;
+    type: 'text' | 'image' | 'system';
+    is_read: boolean;
+    created_at: string;
+}

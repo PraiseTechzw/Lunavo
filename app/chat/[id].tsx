@@ -2,26 +2,27 @@
  * Chat Detail Screen
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { format, isToday, isYesterday } from 'date-fns';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
   FlatList,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { format, isToday, isYesterday } from 'date-fns';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;
@@ -68,6 +69,7 @@ const initialMessages: Message[] = [
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -169,17 +171,17 @@ export default function ChatDetailScreen() {
 
   const handleTyping = (text: string) => {
     setInputText(text);
-    
+
     // In production, send typing indicator to server
     // sendTypingIndicator(true);
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       // sendTypingIndicator(false);
-    }, 1000);
+    }, 1000) as unknown as NodeJS.Timeout;
   };
 
   const getStatusIcon = (status?: string) => {
@@ -202,7 +204,7 @@ export default function ChatDetailScreen() {
     const isSystem = item.type === 'system';
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const showAvatar = !prevMessage || prevMessage.sender !== item.sender;
-    const showTime = !prevMessage || 
+    const showTime = !prevMessage ||
       Math.abs(item.time.getTime() - prevMessage.time.getTime()) > 5 * 60 * 1000; // 5 minutes
 
     if (isSystem) {
@@ -281,106 +283,103 @@ export default function ChatDetailScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-    >
-      <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={[styles.headerAvatar, { backgroundColor: colors.secondary + '20' }]}>
-            <Ionicons name="headset" size={20} color={colors.secondary} />
-          </View>
-          <View style={styles.headerInfo}>
-            <ThemedText type="body" style={styles.headerTitle}>
-              Peer Supporter
-            </ThemedText>
-            <ThemedText type="small" style={[styles.headerSubtitle, { color: colors.success }]}>
-              Online
-            </ThemedText>
-          </View>
-          <TouchableOpacity style={getCursorStyle()}>
-            <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Messages */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={({ item, index }) => renderMessage({ item, index })}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesContent}
-          ListFooterComponent={
-            isTyping ? (
-              <View style={[styles.messageContainer, styles.supporterMessageContainer]}>
-                <View style={[styles.avatar, { backgroundColor: colors.secondary + '20' }]}>
-                  <Ionicons name="headset" size={20} color={colors.secondary} />
+    <ThemedView style={styles.container}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: 'Chat Support',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <SafeAreaView edges={['bottom']} style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={headerHeight}
+        >
+          {/* Messages */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={({ item, index }) => renderMessage({ item, index })}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            ListFooterComponent={
+              isTyping ? (
+                <View style={[styles.messageContainer, styles.supporterMessageContainer]}>
+                  <View style={[styles.avatar, { backgroundColor: colors.secondary + '20' }]}>
+                    <Ionicons name="headset" size={20} color={colors.secondary} />
+                  </View>
+                  <View style={[styles.typingIndicator, { backgroundColor: colors.secondary + '30' }]}>
+                    <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                    <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                    <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
+                  </View>
                 </View>
-                <View style={[styles.typingIndicator, { backgroundColor: colors.secondary + '30' }]}>
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
-                  <View style={[styles.typingDot, { backgroundColor: colors.icon }]} />
-                </View>
-              </View>
-            ) : null
-          }
-        />
-
-        {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          <TouchableOpacity
-            style={[styles.attachButton, { backgroundColor: colors.surface }]}
-            onPress={() => {
-              // Handle attachment
-              console.log('Attachment pressed');
-            }}
-          >
-            <MaterialIcons name="attach-file" size={24} color={colors.icon} />
-          </TouchableOpacity>
-          <TextInput
-            style={[
-              styles.input,
-              createInputStyle(),
-              {
-                backgroundColor: colors.surface,
-                color: colors.text,
-              },
-            ]}
-            placeholder="Type a message..."
-            placeholderTextColor={colors.icon}
-            value={inputText}
-            onChangeText={handleTyping}
-            multiline
-            maxLength={500}
+              ) : null
+            }
           />
-          <TouchableOpacity
-            style={[styles.emojiButton, { backgroundColor: colors.surface }]}
-            onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-          >
-            <MaterialIcons name="emoji-emotions" size={24} color={colors.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: inputText.trim() ? 1 : 0.5,
-              },
-            ]}
-            onPress={handleSend}
-            disabled={!inputText.trim()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="send" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
-    </KeyboardAvoidingView>
+
+          {/* Input */}
+          <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.attachButton, { backgroundColor: colors.surface }]}
+              onPress={() => console.log('Attachment pressed')}
+            >
+              <Ionicons name="add" size={24} color={colors.icon} />
+            </TouchableOpacity>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+                placeholder="Type a message..."
+                placeholderTextColor={colors.icon}
+                value={inputText}
+                onChangeText={handleTyping}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={styles.emojiButtonInner}
+                onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <MaterialIcons name="emoji-emotions" size={22} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: inputText.trim() ? 1 : 0.5,
+                },
+              ]}
+              onPress={handleSend}
+              disabled={!inputText.trim()}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="send" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView >
+    </ThemedView >
   );
 }
 
@@ -388,11 +387,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
+  safeArea: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    borderWidth: 1,
+    marginLeft: Spacing.sm,
   },
   headerAvatar: {
     width: 36,
@@ -494,30 +499,36 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emojiButton: {
-    width: 44,
-    height: 44,
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   input: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    maxHeight: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    maxHeight: 120,
+    minHeight: 38,
     fontSize: 16,
   },
+  emojiButtonInner: {
+    padding: 6,
+  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

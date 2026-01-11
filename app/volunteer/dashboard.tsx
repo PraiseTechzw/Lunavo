@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -56,10 +57,14 @@ export default function VolunteerDashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <ThemedView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText type="h1">Ambassador Hub</ThemedText>
           <View style={{ width: 44 }} />

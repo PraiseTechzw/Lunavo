@@ -8,12 +8,15 @@ import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/t
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -74,6 +77,16 @@ export default function ChatListScreen() {
   const [chats, setChats] = useState<Chat[]>(mockChats);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'online'>('all');
+
+  const filteredChats = chats.filter(chat => {
+    const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activeFilter === 'unread') return matchesSearch && chat.unread > 0;
+    if (activeFilter === 'online') return matchesSearch && chat.isOnline;
+    return matchesSearch;
+  });
 
   const formatTime = (date: Date): string => {
     const now = new Date();
@@ -144,6 +157,7 @@ export default function ChatListScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <ThemedText type="h1">Messages</ThemedText>
@@ -165,8 +179,48 @@ export default function ChatListScreen() {
           </View>
         </View>
 
+        <View style={styles.filterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+            {[
+              { id: 'all', label: 'All', icon: 'chatbubbles' },
+              { id: 'unread', label: 'Unread', icon: 'notifications' },
+              { id: 'online', label: 'Online', icon: 'radio-button-on' },
+            ].map((filter) => (
+              <TouchableOpacity
+                key={filter.id}
+                onPress={() => {
+                  setActiveFilter(filter.id as any);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  activeFilter === filter.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                ]}
+              >
+                <Ionicons
+                  name={filter.icon as any}
+                  size={16}
+                  color={activeFilter === filter.id ? '#FFF' : colors.icon}
+                  style={{ marginRight: 6 }}
+                />
+                <ThemedText style={[
+                  styles.filterChipText,
+                  { color: colors.text },
+                  activeFilter === filter.id && { color: '#FFF' }
+                ]}>
+                  {filter.label}
+                </ThemedText>
+                {filter.id === 'unread' && chats.some(c => c.unread > 0) && (
+                  <View style={styles.miniBadge} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <FlatList
-          data={chats}
+          data={filteredChats}
           renderItem={renderChatItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listPadding}
@@ -299,4 +353,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 100,
   },
+  filterSection: {
+    marginBottom: Spacing.md,
+  },
+  filterContent: {
+    paddingHorizontal: Spacing.lg,
+    gap: 10,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  miniBadge: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF4B4B',
+    marginLeft: 4,
+  }
 });

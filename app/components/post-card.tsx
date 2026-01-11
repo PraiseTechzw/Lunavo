@@ -34,10 +34,14 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const avatarColor = getAvatarColor(post.id);
 
   // Get category info from constants
-  const category = CATEGORIES[post.category as PostCategory] || CATEGORIES.general;
+  const categoryData = CATEGORIES[post.category as PostCategory] || CATEGORIES.general || {
+    name: 'Peer Circle',
+    color: colors.primary,
+  };
+
   // Use category color for background with low opacity, and full color for text
-  const categoryBgColor = category.color + '15'; // 15 = ~8% opacity
-  const categoryTextColor = category.color;
+  const categoryBgColor = (categoryData.color || colors.primary) + '15';
+  const categoryTextColor = categoryData.color || colors.primary;
 
   return (
     <TouchableOpacity
@@ -74,7 +78,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
 
           <View style={[styles.categoryBadge, { backgroundColor: categoryBgColor }]}>
             <ThemedText style={[styles.categoryText, { color: categoryTextColor }]}>
-              {category.name}
+              {categoryData.name}
             </ThemedText>
           </View>
         </View>

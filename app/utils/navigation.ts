@@ -41,6 +41,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/accessibility-settings',
       '/chat',
       '/resource',
+      '/create-channel',
     ],
     web: [
       '/(tabs)',
@@ -62,6 +63,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/accessibility-settings',
       '/chat',
       '/resource',
+      '/create-channel',
     ],
     blocked: [
       '/admin',
@@ -90,6 +92,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     web: [
       '/(tabs)',
@@ -109,6 +112,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     blocked: [
       '/admin',
@@ -136,6 +140,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     web: [
       '/(tabs)',
@@ -156,6 +161,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     blocked: [
       '/admin',
@@ -183,6 +189,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     web: [
       '/(tabs)',
@@ -203,6 +210,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     blocked: [
       '/admin/dashboard',
@@ -332,6 +340,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     web: [
       '/admin',
@@ -352,6 +361,7 @@ export const ROUTE_ACCESS: Record<UserRole, {
       '/resource',
       '/profile-settings',
       '/accessibility-settings',
+      '/create-channel',
     ],
     blocked: [], // Admin has full access
   },

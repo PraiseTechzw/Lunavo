@@ -7,7 +7,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES, CATEGORY_LIST } from '@/app/constants/categories';
 import { checkEscalation } from '@/app/constants/escalation';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { PostCategory } from '@/app/types';
@@ -19,9 +19,11 @@ import { createPost as createPostDB, getCurrentUser, getTopicStats } from '@/lib
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useHeaderHeight } from '@react-navigation/elements';
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -29,13 +31,15 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Switch,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Markdown from 'react-native-markdown-display';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DRAFT_KEY = 'post_draft';
 
@@ -60,6 +64,8 @@ const getCategoryIcon = (category: PostCategory): string => {
 export default function CreatePostScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ category?: string }>();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const contentInputRef = useRef<TextInput>(null);
@@ -145,6 +151,14 @@ export default function CreatePostScreen() {
 
   const handleLink = () => {
     setShowLinkModal(true);
+  };
+
+  const handleList = () => {
+    wrapTextWithMarkdown('- ', '');
+  };
+
+  const handleQuote = () => {
+    wrapTextWithMarkdown('> ', '');
   };
 
   const insertLink = () => {
@@ -389,6 +403,8 @@ export default function CreatePostScreen() {
       return;
     }
 
+    // Dismiss keyboard before showing review
+    contentInputRef.current?.blur();
     // Show review/preview screen first
     setShowReview(true);
   };
@@ -473,10 +489,11 @@ export default function CreatePostScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
       >
         <ThemedView style={styles.container}>
           {/* Header with X, Title, and Post Button */}
@@ -496,6 +513,10 @@ export default function CreatePostScreen() {
                 {
                   backgroundColor: colors.primary,
                   opacity: (!title.trim() || !content.trim() || isSubmitting) ? 0.5 : 1,
+                  shadowColor: colors.primary,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 }
                 },
               ]}
               onPress={handlePostButton}
@@ -505,9 +526,12 @@ export default function CreatePostScreen() {
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <ThemedText type="body" style={styles.postButtonText}>
-                  Post
-                </ThemedText>
+                <View style={styles.postButtonContent}>
+                  <ThemedText type="body" style={styles.postButtonText}>
+                    Continue
+                  </ThemedText>
+                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                </View>
               )}
             </TouchableOpacity>
           </View>
@@ -516,6 +540,7 @@ export default function CreatePostScreen() {
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
             showsVerticalScrollIndicator={false}
           >
             {/* Topic Selection Section */}
@@ -540,27 +565,36 @@ export default function CreatePostScreen() {
                     return (
                       <TouchableOpacity
                         key={categoryId}
-                        onPress={() => setSelectedCategory(categoryId)}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setSelectedCategory(categoryId);
+                        }}
                         style={[
                           styles.topicButton,
                           {
-                            backgroundColor: isSelected ? colors.primary : colors.surface,
+                            backgroundColor: isSelected ? colors.primary + '15' : colors.surface,
                             borderColor: isSelected ? colors.primary : colors.border,
+                            borderWidth: isSelected ? 2 : 1.5,
                           },
                         ]}
                         activeOpacity={0.7}
                       >
+                        <Ionicons
+                          name={getCategoryIcon(categoryId) as any}
+                          size={16}
+                          color={isSelected ? colors.primary : colors.icon}
+                        />
                         <ThemedText
                           type="body"
                           style={[
                             styles.topicButtonText,
                             {
-                              color: isSelected ? '#FFFFFF' : colors.text,
-                              fontWeight: isSelected ? '700' : '600',
+                              color: isSelected ? colors.primary : colors.text,
+                              fontWeight: isSelected ? '800' : '600',
                             },
                           ]}
                         >
-                          {category.name}
+                          {category?.name?.split(' ')[0] || categoryId}
                         </ThemedText>
                       </TouchableOpacity>
                     );
@@ -630,6 +664,9 @@ export default function CreatePostScreen() {
                 onChangeText={setTitle}
                 maxLength={100}
               />
+              <ThemedText type="small" style={[styles.charCount, { color: title.length > 90 ? colors.danger : colors.icon }]}>
+                {title.length}/100
+              </ThemedText>
             </View>
 
             {/* Content Input */}
@@ -642,6 +679,7 @@ export default function CreatePostScreen() {
                   {
                     backgroundColor: 'transparent',
                     color: colors.text,
+                    paddingBottom: 40,
                   },
                 ]}
                 placeholder="Share what's on your mind. This is a safe space..."
@@ -658,6 +696,11 @@ export default function CreatePostScreen() {
                 numberOfLines={10}
                 textAlignVertical="top"
               />
+              <View style={styles.contentFooter}>
+                <ThemedText type="small" style={[styles.charCount, { color: colors.icon }]}>
+                  {content.length} characters
+                </ThemedText>
+              </View>
             </View>
 
             {/* Post Anonymously Toggle */}
@@ -683,36 +726,72 @@ export default function CreatePostScreen() {
             </View>
 
             {/* Formatting Toolbar */}
-            <View style={[styles.toolbar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+            <View style={[
+              styles.toolbar,
+              {
+                backgroundColor: colors.background,
+                borderTopColor: colors.border,
+                paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, Spacing.md) : Spacing.md,
+              }
+            ]}>
               <View style={styles.toolbarLeft}>
                 <TouchableOpacity
                   style={styles.toolbarButton}
-                  onPress={handleBold}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleBold();
+                  }}
                   activeOpacity={0.7}
                 >
-                  <ThemedText type="body" style={[styles.toolbarBold, { color: colors.text }]}>
-                    B
-                  </ThemedText>
+                  <Ionicons name="text" size={20} color={colors.text} />
+                  <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
-                  onPress={handleItalic}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleItalic();
+                  }}
                   activeOpacity={0.7}
                 >
-                  <ThemedText type="body" style={[styles.toolbarItalic, { color: colors.text }]}>
-                    I
-                  </ThemedText>
+                  <Ionicons name="pencil-outline" size={20} color={colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
-                  onPress={handleLink}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    handleLink();
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="link-outline" size={20} color={colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
-                  onPress={handleImage}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleList();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="list-outline" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleQuote();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chatbox-outline" size={18} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    handleImage();
+                  }}
                   disabled={uploadingImage}
                   activeOpacity={0.7}
                 >
@@ -721,6 +800,16 @@ export default function CreatePostScreen() {
                   ) : (
                     <Ionicons name="image-outline" size={20} color={colors.text} />
                   )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.toolbarButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    insertTextAtCursor('\n\n--- \n\n');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="remove-outline" size={20} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <View style={styles.toolbarSeparator} />
@@ -794,9 +883,23 @@ export default function CreatePostScreen() {
                       <ThemedText type="h3" style={[styles.reviewPostTitle, { color: colors.text }]}>
                         {title}
                       </ThemedText>
-                      <ThemedText type="body" style={[styles.reviewPostContent, { color: colors.text }]}>
+                      <Markdown
+                        style={{
+                          body: {
+                            color: colors.text,
+                            fontSize: 17,
+                            lineHeight: 26,
+                          },
+                          link: {
+                            color: colors.primary,
+                          },
+                          image: {
+                            borderRadius: 12,
+                          },
+                        }}
+                      >
                         {content}
-                      </ThemedText>
+                      </Markdown>
 
                       {selectedTags.length > 0 && (
                         <View style={styles.reviewTags}>
@@ -971,79 +1074,94 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    height: 72,
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.md,
   },
   headerTitle: {
-    fontWeight: '700',
-    fontSize: 20,
-    flex: 1,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
   postButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    minWidth: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.xl,
   },
   postButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: '900',
+    fontSize: 15,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
-    paddingBottom: 100, // Space for toolbar
+    padding: Spacing.xl,
+    paddingBottom: 120,
   },
   section: {
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 18,
     marginBottom: Spacing.md,
+    letterSpacing: -0.3,
   },
   topicLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: Spacing.md,
     textTransform: 'uppercase',
+    opacity: 0.6,
   },
   topicScrollContent: {
-    paddingRight: Spacing.lg,
     gap: Spacing.sm,
+    paddingRight: Spacing.xl,
   },
   topicButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    marginRight: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   topicButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  charCount: {
+    textAlign: 'right',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: -8,
+    opacity: 0.6,
+  },
+  contentFooter: {
+    marginTop: -Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  postButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   loadingCategories: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   suggestionBadge: {
     flexDirection: 'row',
@@ -1055,48 +1173,52 @@ const styles = StyleSheet.create({
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: 10,
   },
   tagChip: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   titleInput: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 26,
+    fontWeight: '900',
     paddingVertical: Spacing.sm,
-    minHeight: 50,
+    minHeight: 60,
+    letterSpacing: -0.5,
   },
   contentInput: {
-    fontSize: 16,
+    fontSize: 17,
     paddingVertical: Spacing.sm,
-    minHeight: 200,
-    lineHeight: 24,
+    minHeight: 250,
+    lineHeight: 26,
+    fontWeight: '400',
   },
   anonymousSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: 20,
+    marginBottom: Spacing.xl,
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   anonymousLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
   },
   eyeIcon: {
-    marginRight: Spacing.md,
   },
   anonymousTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: Spacing.xs / 2,
+    fontWeight: '800',
   },
   anonymousSubtitle: {
     fontSize: 12,
+    opacity: 0.6,
   },
   toolbar: {
     position: 'absolute',
@@ -1105,75 +1227,76 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
-    paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
   },
   toolbarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 8,
   },
   toolbarButton: {
-    padding: Spacing.sm,
-    marginRight: Spacing.md,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
   },
-  toolbarBold: {
-    fontWeight: '700',
-    fontSize: 18,
-  },
-  toolbarItalic: {
-    fontStyle: 'italic',
-    fontSize: 18,
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0,
   },
   toolbarSeparator: {
     width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: Spacing.sm,
+    height: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    marginHorizontal: Spacing.xs,
   },
   triggerWarningButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    gap: Spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 6,
   },
   triggerWarningText: {
-    fontWeight: '700',
-    fontSize: 12,
+    fontWeight: '900',
+    fontSize: 11,
   },
   reviewOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
     zIndex: 1000,
   },
   reviewContainer: {
-    height: '90%',
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingTop: Spacing.lg,
+    height: '92%',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: Spacing.xl,
+    paddingBottom: 40,
   },
   reviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   reviewTitle: {
-    fontWeight: '700',
-    fontSize: 20,
+    fontWeight: '900',
+    fontSize: 24,
+    letterSpacing: -0.5,
   },
   reviewCloseButton: {
     padding: Spacing.xs,
@@ -1182,20 +1305,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reviewContent: {
-    padding: Spacing.lg,
+    padding: Spacing.xl,
   },
   reviewHeaderInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+    gap: 12,
   },
   reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
   },
   reviewUserInfo: {
     flex: 1,
@@ -1203,82 +1326,84 @@ const styles = StyleSheet.create({
   triggerWarningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: 16,
+    marginBottom: Spacing.xl,
   },
   reviewPostTitle: {
     marginBottom: Spacing.md,
-    fontWeight: '700',
-    fontSize: 20,
+    fontWeight: '900',
+    fontSize: 22,
+    letterSpacing: -0.3,
   },
   reviewPostContent: {
-    lineHeight: 24,
-    marginBottom: Spacing.md,
-    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: Spacing.xl,
+    fontSize: 17,
   },
   reviewTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
+    gap: 8,
+    marginTop: Spacing.md,
   },
   reviewTag: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   reviewActions: {
     flexDirection: 'row',
     gap: Spacing.md,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   reviewEditButton: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    height: 56,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewPostButton: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    flex: 2,
+    height: 56,
+    borderRadius: BorderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    ...PlatformStyles.premiumShadow,
   },
   disclaimer: {
     textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: Spacing.md,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: Spacing.lg,
+    opacity: 0.5,
+    paddingHorizontal: Spacing.xl,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    padding: Spacing.xl,
   },
   modalContent: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingTop: Spacing.lg,
-    maxHeight: '80%',
+    borderRadius: 24,
+    padding: Spacing.xl,
+    ...PlatformStyles.premiumShadow,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: Spacing.xl,
   },
   modalTitle: {
-    fontWeight: '700',
-    fontSize: 20,
+    fontWeight: '900',
+    fontSize: 22,
   },
   modalCloseButton: {
     padding: Spacing.xs,
@@ -1295,31 +1420,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   modalInput: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderRadius: 16,
     padding: Spacing.md,
     fontSize: 16,
-    minHeight: 50,
+    marginBottom: Spacing.lg,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
   },
   modalCancelButton: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalInsertButton: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    height: 50,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },

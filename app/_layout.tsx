@@ -248,6 +248,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="create-channel"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
             name="check-in"
             options={{
               headerShown: false,

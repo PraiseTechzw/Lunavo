@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function TopicScreen() {
     const { category } = useLocalSearchParams<{ category: string }>();
@@ -33,7 +33,12 @@ export default function TopicScreen() {
         ? (category as PostCategory)
         : 'general';
 
-    const [categoryInfo, setCategoryInfo] = useState<any>(CATEGORIES[activeCategory]);
+    const [categoryInfo, setCategoryInfo] = useState<any>(CATEGORIES[activeCategory] || {
+        name: 'Peer Circle',
+        description: 'Join safe, anonymous spaces built for students.',
+        icon: 'people-outline',
+        color: colors.primary
+    });
 
     useEffect(() => {
         loadPosts();
@@ -86,19 +91,19 @@ export default function TopicScreen() {
     const renderHeader = () => (
         <View style={styles.header}>
             <View style={styles.headerTop}>
-                <View style={[styles.iconBox, { backgroundColor: categoryInfo.color + '15' }]}>
-                    <Ionicons name={categoryInfo.icon as any} size={36} color={categoryInfo.color} />
-                    <View style={[styles.iconGlow, { backgroundColor: categoryInfo.color }]} />
+                <View style={[styles.iconBox, { backgroundColor: (categoryInfo?.color || colors.primary) + '15' }]}>
+                    <Ionicons name={(categoryInfo?.icon || 'people-outline') as any} size={36} color={categoryInfo?.color || colors.primary} />
+                    <View style={[styles.iconGlow, { backgroundColor: categoryInfo?.color || colors.primary }]} />
                 </View>
                 <View style={styles.headerBadge}>
-                    <ThemedText style={{ color: categoryInfo.color, fontWeight: '900', fontSize: 10 }}>SUPPORT CIRCLE</ThemedText>
+                    <ThemedText style={{ color: categoryInfo?.color || colors.primary, fontWeight: '900', fontSize: 10 }}>SUPPORT CIRCLE</ThemedText>
                 </View>
             </View>
 
             <View style={styles.headerText}>
-                <ThemedText type="h1" style={styles.title}>{categoryInfo.name}</ThemedText>
+                <ThemedText type="h1" style={styles.title}>{categoryInfo?.name || 'Peer Circle'}</ThemedText>
                 <ThemedText style={[styles.description, { color: colors.icon }]}>
-                    {categoryInfo.description}
+                    {categoryInfo?.description || 'Community support space.'}
                 </ThemedText>
             </View>
 
@@ -120,12 +125,21 @@ export default function TopicScreen() {
 
     return (
         <ThemedView style={styles.container}>
+            <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <Stack.Screen
                 options={{
+                    headerShown: true,
                     headerTitle: '',
-                    headerBackTitle: 'Community',
                     headerShadowVisible: false,
                     headerStyle: { backgroundColor: colors.background },
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                        >
+                            <Ionicons name="chevron-back" size={24} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => router.push(`/create-post?category=${activeCategory}`)}
@@ -261,12 +275,20 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     createButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        marginLeft: Spacing.sm,
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,

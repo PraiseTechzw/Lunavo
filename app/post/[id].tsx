@@ -5,41 +5,48 @@
 import { CategoryBadge } from '@/app/components/category-badge';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Post, Reply } from '@/app/types';
 import { generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
 import { getPseudonym } from '@/app/utils/storage';
-import { createReply, getCurrentUser, getPost, getReplies, updatePost } from '@/lib/database';
+import { createReply, getCurrentUser, getPost, getReplies } from '@/lib/database';
 import { RealtimeChannel, subscribeToPostUpdates, subscribeToReplies, subscribeToReplyChanges, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { formatDistanceToNow } from 'date-fns';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [post, setPost] = useState<Post | null>(null);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [replyContent, setReplyContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
   const repliesChannelRef = useRef<RealtimeChannel | null>(null);
   const postChannelRef = useRef<RealtimeChannel | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (id) {
@@ -146,12 +153,14 @@ export default function PostDetailScreen() {
       setReplies([...replies, newReply]);
       setReplyContent('');
 
-      // Update post reply count
-      const updatedPost = { ...post, replies: [...replies, newReply] };
-      await updatePost(post.id, { replies: updatedPost.replies });
-      setPost(updatedPost);
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
 
-      Alert.alert('Reply Posted', 'Your reply has been shared.');
+      // Update local state
+      const updatedPost = { ...post, replies: [...replies, newReply] };
+      setPost(updatedPost);
     } catch (error) {
       console.error('Error posting reply:', error);
       Alert.alert('Error', 'Failed to post reply. Please try again.');
@@ -179,9 +188,33 @@ export default function PostDetailScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <ThemedView style={styles.container}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            headerTitle: 'Circle Post',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: colors.background },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Ionicons name="chevron-back" size={24} color={colors.text} />
+              </TouchableOpacity>
+            )
+          }}
+        />
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {isEscalated && (
             <View style={[styles.escalationBanner, { backgroundColor: colors.danger + '20' }]}>
               <Ionicons name="warning" size={20} color={colors.danger} />
@@ -203,17 +236,70 @@ export default function PostDetailScreen() {
           </ThemedText>
 
           <View style={styles.meta}>
-            <ThemedText type="small" style={{ color: colors.icon }}>
-              👤 {post.authorPseudonym}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: colors.icon }}>
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-            </ThemedText>
+            <View style={styles.metaItem}>
+              <Ionicons name="person-outline" size={12} color={colors.icon} />
+              <ThemedText type="small" style={{ color: colors.icon, fontWeight: '700' }}>
+                {post.authorPseudonym}
+              </ThemedText>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={12} color={colors.icon} />
+              <ThemedText type="small" style={{ color: colors.icon, fontWeight: '600' }}>
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              </ThemedText>
+            </View>
           </View>
 
-          <ThemedText type="body" style={styles.content}>
+          <Markdown
+            style={{
+              body: {
+                color: colors.text,
+                fontSize: 17,
+                lineHeight: 26,
+              },
+              link: {
+                color: colors.primary,
+                textDecorationLine: 'underline',
+              },
+              image: {
+                borderRadius: 12,
+                marginTop: 12,
+                marginBottom: 12,
+              },
+              strong: {
+                fontWeight: 'bold',
+                color: colors.text,
+              },
+              em: {
+                fontStyle: 'italic',
+              },
+              blockquote: {
+                backgroundColor: colors.surface,
+                borderLeftColor: colors.primary,
+                borderLeftWidth: 4,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                marginVertical: 8,
+                borderRadius: 4,
+              },
+              bullet_list: {
+                marginVertical: 8,
+              },
+              ordered_list: {
+                marginVertical: 8,
+              },
+              list_item: {
+                marginVertical: 4,
+              },
+              hr: {
+                backgroundColor: colors.border,
+                height: 1,
+                marginVertical: 16,
+              },
+            }}
+          >
             {post.content}
-          </ThemedText>
+          </Markdown>
 
           <View style={styles.divider} />
 
@@ -243,31 +329,57 @@ export default function PostDetailScreen() {
                     {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
                   </ThemedText>
                 </View>
-                <ThemedText type="body" style={styles.replyContent}>
+                <Markdown
+                  style={{
+                    body: {
+                      color: colors.text,
+                      fontSize: 15,
+                      lineHeight: 22,
+                    },
+                    link: {
+                      color: colors.primary,
+                    },
+                  }}
+                >
                   {reply.content}
-                </ThemedText>
+                </Markdown>
                 {reply.isHelpful > 0 && (
-                  <ThemedText type="small" style={{ color: colors.success, marginTop: Spacing.xs }}>
-                    👍 {reply.isHelpful} found this helpful
-                  </ThemedText>
+                  <View style={[styles.helpfulBadge, { backgroundColor: colors.success + '15' }]}>
+                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                    <ThemedText type="small" style={{ color: colors.success, fontWeight: '800' }}>
+                      Helpful ({reply.isHelpful})
+                    </ThemedText>
+                  </View>
                 )}
               </View>
             ))
           )}
         </ScrollView>
 
-        <View style={[styles.replyInputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <View style={[
+          styles.replyInputContainer,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, Spacing.md)
+          }
+        ]}>
+          <TouchableOpacity
+            style={[styles.attachButton, { backgroundColor: colors.surface }]}
+            onPress={() => Alert.alert('Photos', 'Support for image attachments coming soon.')}
+          >
+            <Ionicons name="image-outline" size={24} color={colors.icon} />
+          </TouchableOpacity>
           <TextInput
             style={[
               styles.replyInput,
-              createInputStyle(),
               {
                 backgroundColor: colors.surface,
                 color: colors.text,
                 borderColor: colors.border,
               },
             ]}
-            placeholder="Offer support, share advice, or ask a question..."
+            placeholder="Write a supportive reply..."
             placeholderTextColor={colors.icon}
             value={replyContent}
             onChangeText={setReplyContent}
@@ -277,18 +389,19 @@ export default function PostDetailScreen() {
           <TouchableOpacity
             style={[
               styles.replyButton,
-              getCursorStyle(),
               {
                 backgroundColor: colors.primary,
-                opacity: isSubmitting || !replyContent.trim() ? 0.5 : 1,
+                opacity: isSubmitting || !replyContent.trim() ? 0.6 : 1,
               },
             ]}
             onPress={handleSubmitReply}
             disabled={isSubmitting || !replyContent.trim()}
           >
-            <ThemedText style={{ color: '#FFFFFF', fontWeight: '600' }}>
-              {isSubmitting ? 'Posting...' : 'Reply'}
-            </ThemedText>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="send" size={20} color="#FFFFFF" style={{ marginLeft: 2 }} />
+            )}
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -300,96 +413,161 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    marginLeft: Spacing.sm,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: Spacing.xl,
+    paddingBottom: 40,
   },
   escalationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: Spacing.xl,
+    gap: 12,
   },
   escalationText: {
     flex: 1,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   title: {
-    marginBottom: Spacing.sm,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -1,
+    lineHeight: 34,
+    marginBottom: Spacing.md,
   },
   meta: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Spacing.xl,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   content: {
-    marginBottom: Spacing.lg,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 28,
+    marginBottom: Spacing.xxl,
+    fontWeight: '400',
+    opacity: 0.9,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginBottom: Spacing.xl,
   },
   repliesHeader: {
-    marginBottom: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Spacing.lg,
   },
   emptyReplies: {
-    padding: Spacing.xl,
+    padding: Spacing.xxl,
     alignItems: 'center',
   },
   emptyText: {
-    opacity: 0.7,
+    opacity: 0.5,
     textAlign: 'center',
+    fontSize: 15,
   },
   replyCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    borderRadius: 20,
     marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   replyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 10,
   },
   replyAuthor: {
-    fontWeight: '600',
+    fontWeight: '800',
+    fontSize: 15,
   },
   volunteerBadge: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   replyContent: {
     lineHeight: 22,
+    fontSize: 15,
+  },
+  helpfulBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   replyInputContainer: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    gap: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   replyInput: {
+    flex: 1,
     borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    minHeight: 80,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 16,
     maxHeight: 120,
-    textAlignVertical: 'top',
+    minHeight: 44,
   },
   replyButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...PlatformStyles.premiumShadow,
   },
 });
 

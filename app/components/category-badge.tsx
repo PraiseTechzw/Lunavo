@@ -2,12 +2,12 @@
  * Category badge component for displaying post categories
  */
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { PostCategory } from '@/app/types';
 import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
+import { PostCategory } from '@/app/types';
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CategoryBadgeProps {
   category: PostCategory;
@@ -29,15 +29,15 @@ export function CategoryBadge({ category, onPress, size = 'medium' }: CategoryBa
   const iconSize = size === 'small' ? 12 : size === 'medium' ? 14 : 16;
 
   const content = (
-    <View style={[styles.container, { backgroundColor: categoryData.color + '20' }]}>
-      <Ionicons name={categoryData.icon as any} size={iconSize} color={categoryData.color} />
+    <View style={[styles.container, { backgroundColor: (categoryData?.color || colors.primary) + '20' }]}>
+      <Ionicons name={(categoryData?.icon || 'help-circle-outline') as any} size={iconSize} color={categoryData?.color || colors.primary} />
       <Text
         style={[
           styles.text,
-          { color: categoryData.color, fontSize: sizeStyles[size].fontSize },
+          { color: categoryData?.color || colors.primary, fontSize: sizeStyles[size].fontSize },
         ]}
       >
-        {categoryData.name}
+        {categoryData?.name || category}
       </Text>
     </View>
   );

@@ -3,8 +3,9 @@
  */
 
 import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
 import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
+import { Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { PostCategory } from '@/app/types';
 import { getTopicStats, TopicStats } from '@/lib/database';
@@ -14,11 +15,11 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -138,173 +139,187 @@ export default function ForumScreen() {
     const category = item.categoryDetails || CATEGORIES[item.category as PostCategory];
     if (!category) return null;
 
-    const iconName = category.icon;
-    const displayName = category.name;
-
     return (
-      <Animated.View entering={FadeInDown.delay(index * 50).duration(600).springify()}>
+      <Animated.View entering={FadeInDown.delay(100 + index * 50).duration(800).springify()}>
         <TouchableOpacity
           onPress={() => {
-            Haptics.selectionAsync();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push(`/topic/${item.category}` as any);
           }}
-          activeOpacity={0.95}
-          style={styles.cardContainer}
+          activeOpacity={0.9}
+          style={styles.cardWrapper}
         >
-          <View style={[styles.topicCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.categoryHeader, { backgroundColor: category.color + '10' }]}>
-              <View style={[styles.iconBox, { backgroundColor: category.color + '15' }]}>
-                <Ionicons name={iconName as any} size={26} color={category.color} />
-              </View>
-              <View style={styles.headerInfo}>
-                <ThemedText type="h3" style={styles.topicTitle}>{displayName}</ThemedText>
-                {item.recentPostCount > 0 && (
-                  <View style={[styles.activeIndicator, { backgroundColor: colors.success }]} />
-                )}
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.icon} style={{ opacity: 0.4 }} />
-            </View>
+          <ThemedView style={[styles.modernCard, { borderColor: colors.border }]}>
+            <View style={[styles.cardAccent, { backgroundColor: category.color }]} />
 
-            <View style={styles.cardBody}>
-              <ThemedText numberOfLines={2} style={[styles.description, { color: colors.icon }]}>
+            <View style={styles.cardContent}>
+              <View style={styles.cardUpper}>
+                <View style={[styles.modernIconBox, { backgroundColor: category.color + '15' }]}>
+                  <Ionicons name={category.icon as any} size={28} color={category.color} />
+                </View>
+                <View style={styles.cardTitleArea}>
+                  <ThemedText type="h3" style={styles.modernTitle}>{category.name}</ThemedText>
+                  <View style={styles.statusRow}>
+                    {item.recentPostCount > 0 ? (
+                      <View style={styles.activeBadge}>
+                        <View style={[styles.pulseDot, { backgroundColor: colors.success }]} />
+                        <ThemedText style={[styles.activeText, { color: colors.success }]}>Active Now</ThemedText>
+                      </View>
+                    ) : (
+                      <ThemedText style={styles.quietText}>Quiet today</ThemedText>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <ThemedText numberOfLines={2} style={[styles.modernDescription, { color: colors.icon }]}>
                 {category.description}
               </ThemedText>
 
-              <View style={styles.statsRow}>
-                <View style={styles.statPill}>
-                  <Ionicons name="people-outline" size={12} color={colors.icon} />
-                  <ThemedText style={[styles.statText, { color: colors.icon }]}>
-                    {item.memberCount} <ThemedText type="small" style={{ fontSize: 10 }}>members</ThemedText>
-                  </ThemedText>
-                </View>
-
-                <View style={styles.statPill}>
-                  <Ionicons name="chatbubbles-outline" size={12} color={colors.icon} />
-                  <ThemedText style={[styles.statText, { color: colors.icon }]}>
-                    {item.recentPostCount} <ThemedText type="small" style={{ fontSize: 10 }}>active</ThemedText>
-                  </ThemedText>
-                </View>
-
-                {item.recentPostCount > 0 && (
-                  <View style={[styles.trendingBadge, { backgroundColor: colors.success + '15' }]}>
-                    <Ionicons name="trending-up" size={12} color={colors.success} />
-                    <ThemedText style={[styles.trendingText, { color: colors.success }]}>Trending</ThemedText>
+              <View style={styles.modernFooter}>
+                <View style={styles.modernStats}>
+                  <View style={styles.miniStat}>
+                    <Ionicons name="people" size={12} color={colors.icon} />
+                    <ThemedText style={styles.miniStatText}>{item.memberCount}</ThemedText>
                   </View>
-                )}
+                  <View style={styles.statSeparator} />
+                  <View style={styles.miniStat}>
+                    <Ionicons name="chatbubble-ellipses" size={12} color={colors.icon} />
+                    <ThemedText style={styles.miniStatText}>{item.recentPostCount} new</ThemedText>
+                  </View>
+                </View>
+
+                <View style={styles.goButton}>
+                  <Ionicons name="arrow-forward" size={16} color={colors.text} />
+                </View>
               </View>
             </View>
-          </View>
+          </ThemedView>
         </TouchableOpacity>
       </Animated.View>
     );
   };
 
+  const renderFeaturedCircle = ({ item }: { item: TopicStats }) => {
+    const category = item.categoryDetails || CATEGORIES[item.category as PostCategory];
+    if (!category) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.featuredCard}
+        onPress={() => router.push(`/topic/${item.category}` as any)}
+      >
+        <View style={[styles.featuredIconGradient, { backgroundColor: category.color }]}>
+          <Ionicons name={category.icon as any} size={32} color="#FFF" />
+        </View>
+        <ThemedText numberOfLines={1} style={styles.featuredName}>{category.name}</ThemedText>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <ThemedText type="h1" style={styles.headerTitle}>Circles</ThemedText>
-            <ThemedText style={{ color: colors.icon, marginTop: 4, fontSize: 16 }}>Find your peer support circle</ThemedText>
-          </View>
+    <ThemedView style={styles.container}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <FlatList
+          data={displayedTopics}
+          renderItem={renderTopicCard}
+          keyExtractor={item => item.category}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <View style={styles.heroSection}>
+                <View style={styles.heroTextContent}>
+                  <ThemedText type="h1" style={styles.heroTitle}>Peer Circles</ThemedText>
+                  <ThemedText style={[styles.heroSubtitle, { color: colors.icon }]}>
+                    Join safe, anonymous spaces built for students by students.
+                  </ThemedText>
+                </View>
+                <TouchableOpacity
+                  style={[styles.floatingCreate, { backgroundColor: colors.primary }]}
+                  onPress={() => router.push('/create-channel')}
+                >
+                  <Ionicons name="add" size={30} color="#FFF" />
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity
-            style={[styles.newPostButton, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              Haptics.selectionAsync();
-              // Navigate to a screen to create a new channel/topic
-              router.push('/create-channel' as any);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle-sharp" size={24} color="#FFFFFF" />
-            <ThemedText style={styles.newPostText}>Channel</ThemedText>
-          </TouchableOpacity>
-        </View>
+              <View style={styles.searchContainer}>
+                <View style={[styles.modernSearchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Ionicons name="search-outline" size={20} color={colors.icon} />
+                  <TextInput
+                    style={[styles.modernSearchInput, { color: colors.text }]}
+                    placeholder="Find your community..."
+                    placeholderTextColor={colors.icon}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                </View>
+              </View>
 
-        <View style={styles.searchSection}>
-          <View style={[styles.searchBar, { backgroundColor: colors.surface + '80', borderColor: colors.border }]}>
-            <Ionicons name="search" size={20} color={colors.icon} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search conversations..."
-              placeholderTextColor={colors.icon}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              <View style={styles.featuredSection}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>DISCOVER SPACES</ThemedText>
+                <FlatList
+                  data={topicStats.slice(0, 5)}
+                  renderItem={renderFeaturedCircle}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={item => 'featured-' + item.category}
+                  contentContainerStyle={styles.featuredList}
+                />
+              </View>
+
+              <View style={styles.filterSection}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterOptions}>
+                  <TouchableOpacity
+                    style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }, selectedFilter === 'all' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                    onPress={() => setSelectedFilter('all')}
+                  >
+                    <ThemedText style={[styles.filterChipText, { color: colors.text }, selectedFilter === 'all' && { color: '#FFF' }]}>Explore All</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.filterChip, { backgroundColor: colors.surface, borderColor: colors.border }, selectedFilter === 'trending' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                    onPress={() => setSelectedFilter('trending')}
+                  >
+                    <Ionicons
+                      name="trending-up"
+                      size={14}
+                      color={selectedFilter === 'trending' ? '#FFF' : colors.text}
+                      style={{ marginRight: 6 }}
+                    />
+                    <ThemedText style={[styles.filterChipText, { color: colors.text }, selectedFilter === 'trending' && { color: '#FFF' }]}>Popular</ThemedText>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </View>
+          }
+          ListFooterComponent={
+            <TouchableOpacity
+              style={[styles.createPromptCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/create-channel')}
+            >
+              <View style={[styles.createPromptIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="add" size={32} color={colors.primary} />
+              </View>
+              <View style={styles.createPromptText}>
+                <ThemedText style={styles.createPromptTitle}>Ready to lead?</ThemedText>
+                <ThemedText style={[styles.createPromptDesc, { color: colors.icon }]}>
+                  Start a new support circle. Everyone is allowed to create channels.
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
             />
-          </View>
-        </View>
-
-        <View style={styles.filterSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.xl, gap: Spacing.sm }}>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                selectedFilter === 'all'
-                  ? { backgroundColor: colors.text }
-                  : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }
-              ]}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSelectedFilter('all');
-              }}
-            >
-              <ThemedText style={[
-                styles.filterLabel,
-                selectedFilter === 'all' ? { color: colors.background } : { color: colors.text }
-              ]}>All Topics</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                selectedFilter === 'trending'
-                  ? { backgroundColor: colors.text }
-                  : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }
-              ]}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSelectedFilter('trending');
-              }}
-            >
-              <Ionicons
-                name="trending-up"
-                size={14}
-                color={selectedFilter === 'trending' ? colors.background : colors.text}
-                style={{ marginRight: 6 }}
-              />
-              <ThemedText style={[
-                styles.filterLabel,
-                selectedFilter === 'trending' ? { color: colors.background } : { color: colors.text }
-              ]}>Popular</ThemedText>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText style={{ marginTop: 16, color: colors.icon }}>Loading topics...</ThemedText>
-          </View>
-        ) : (
-          <FlatList
-            data={displayedTopics}
-            renderItem={renderTopicCard}
-            keyExtractor={item => item.category}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                progressViewOffset={20}
-              />
-            }
-          />
-        )}
-      </View>
-    </SafeAreaView>
+          }
+        />
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
@@ -315,152 +330,255 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
+  listHeader: {
     paddingBottom: Spacing.md,
+  },
+  heroSection: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xxl,
+    marginBottom: Spacing.xl,
+    gap: 12,
   },
-  headerTitle: {
-    fontSize: 32,
+  heroTextContent: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 34,
     fontWeight: '900',
-    letterSpacing: -1,
+    letterSpacing: -1.5,
   },
-  newPostButton: {
-    flexDirection: 'row',
+  heroSubtitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  floatingCreate: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
     ...PlatformStyles.premiumShadow,
   },
-  newPostText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  searchSection: {
+  searchContainer: {
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  searchBar: {
+  modernSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    height: 56,
-    borderRadius: BorderRadius.xxl,
+    height: 54,
+    borderRadius: 16,
+    paddingHorizontal: 16,
     borderWidth: 1.5,
   },
-  searchInput: {
+  modernSearchInput: {
     flex: 1,
-    marginLeft: Spacing.md,
+    marginLeft: 12,
     fontSize: 16,
     fontWeight: '500',
-    fontFamily: PlatformStyles.fontFamily,
+  },
+  featuredSection: {
+    marginBottom: Spacing.xl,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    opacity: 0.5,
+  },
+  featuredList: {
+    paddingHorizontal: Spacing.xl,
+    gap: 16,
+  },
+  featuredCard: {
+    alignItems: 'center',
+    width: 80,
+  },
+  featuredIconGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    ...PlatformStyles.shadow,
+  },
+  featuredName: {
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   filterSection: {
-    marginBottom: Spacing.lg,
-    height: 44,
+    marginBottom: Spacing.xl,
+  },
+  filterOptions: {
+    paddingHorizontal: Spacing.xl,
+    gap: 10,
   },
   filterChip: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: BorderRadius.xxl,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.05)',
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
-  filterLabel: {
-    fontWeight: '700',
+  filterChipText: {
     fontSize: 14,
+    fontWeight: '800',
   },
   listContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xs,
     paddingBottom: 120,
   },
-  cardContainer: {
-    marginBottom: Spacing.lg,
+  cardWrapper: {
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
   },
-  topicCard: {
-    borderRadius: BorderRadius.xxl,
+  modernCard: {
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
+    position: 'relative',
     ...PlatformStyles.premiumShadow,
     elevation: 4,
   },
-  categoryHeader: {
+  cardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  cardUpper: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
+    gap: 14,
+    marginBottom: 12,
   },
-  iconBox: {
+  modernIconBox: {
     width: 52,
     height: 52,
-    borderRadius: 18,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.lg,
-    ...PlatformStyles.shadow,
   },
-  headerInfo: {
+  cardTitleArea: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
-  topicTitle: {
-    fontSize: 19,
-    fontWeight: '800',
+  modernTitle: {
+    fontSize: 18,
+    fontWeight: '900',
     letterSpacing: -0.3,
   },
-  activeIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  cardBody: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: Spacing.lg,
-    fontWeight: '400',
-  },
-  statsRow: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    marginTop: 2,
   },
-  statPill: {
+  activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  statText: {
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  activeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  quietText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+    opacity: 0.4,
   },
-  trendingBadge: {
+  modernDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  modernFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  modernStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
+    gap: 12,
   },
-  trendingText: {
-    fontSize: 10,
+  miniStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  miniStatText: {
+    fontSize: 13,
+    fontWeight: '700',
+    opacity: 0.6,
+  },
+  statSeparator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  goButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  createPromptCard: {
+    margin: Spacing.xl,
+    padding: 24,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  createPromptIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createPromptText: {
+    flex: 1,
+  },
+  createPromptTitle: {
+    fontSize: 18,
     fontWeight: '900',
-    textTransform: 'uppercase',
+  },
+  createPromptDesc: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
   },
   centerContainer: {
     flex: 1,

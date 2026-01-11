@@ -16,6 +16,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StatusBar,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -77,6 +78,7 @@ export default function CreateChannelScreen() {
 
     return (
         <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+            <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -96,13 +98,13 @@ export default function CreateChannelScreen() {
                 </View>
 
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
-                    <View style={styles.previewContainer}>
+                    <View style={[styles.previewContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <View style={[styles.previewIconBox, { backgroundColor: selectedColor + '15', borderColor: selectedColor + '30' }]}>
-                            <Ionicons name={selectedIcon as any} size={40} color={selectedColor} />
+                            <Ionicons name={selectedIcon as any} size={42} color={selectedColor} />
                         </View>
-                        <ThemedText type="h3" style={{ marginTop: 12 }}>{name || 'Circle Name'}</ThemedText>
-                        <ThemedText style={{ color: colors.icon, textAlign: 'center', marginTop: 4 }}>
-                            {description || 'No description provided yet.'}
+                        <ThemedText style={styles.previewTitle}>{name || 'Circle Name'}</ThemedText>
+                        <ThemedText style={[styles.previewDesc, { color: colors.icon }]}>
+                            {description || 'Clearly define the purpose of this support circle to help others find it.'}
                         </ThemedText>
                     </View>
 
@@ -172,24 +174,29 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: Spacing.xl,
         paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
+        height: 72,
     },
     backButton: {
-        width: 40,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: -0.5,
     },
     createButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: BorderRadius.full,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: BorderRadius.xl,
     },
     createText: {
         color: '#FFFFFF',
-        fontWeight: '700',
+        fontWeight: '900',
+        fontSize: 15,
     },
     content: {
         flex: 1,
@@ -198,57 +205,73 @@ const styles = StyleSheet.create({
     previewContainer: {
         alignItems: 'center',
         marginBottom: Spacing.xl,
-        padding: Spacing.lg,
-        borderRadius: BorderRadius.xxl,
-        backgroundColor: 'rgba(0,0,0,0.02)',
+        padding: Spacing.xl,
+        borderRadius: 32,
+        borderWidth: 1,
     },
     previewIconBox: {
-        width: 80,
-        height: 80,
+        width: 84,
+        height: 84,
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1.5,
+        borderWidth: 2,
+    },
+    previewTitle: {
+        marginTop: 16,
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    previewDesc: {
+        textAlign: 'center',
+        marginTop: 8,
+        fontSize: 15,
+        lineHeight: 22,
+        opacity: 0.6,
+        paddingHorizontal: Spacing.md,
     },
     section: {
         marginBottom: Spacing.xl,
     },
     label: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1.5,
         marginBottom: Spacing.md,
+        textTransform: 'uppercase',
+        opacity: 0.5,
     },
     input: {
-        height: 56,
-        borderRadius: BorderRadius.xl,
-        borderWidth: 1,
-        paddingHorizontal: Spacing.md,
+        height: 60,
+        borderRadius: 18,
+        borderWidth: 1.5,
+        paddingHorizontal: 20,
         fontSize: 16,
-        marginBottom: Spacing.md,
+        marginBottom: 12,
+        fontWeight: '500',
     },
     textArea: {
-        height: 100,
-        paddingTop: Spacing.md,
+        height: 120,
+        paddingTop: 16,
         textAlignVertical: 'top',
     },
     optionRow: {
-        gap: Spacing.md,
+        gap: 12,
+        paddingRight: Spacing.xl,
     },
     iconOption: {
-        width: 48,
-        height: 48,
-        borderRadius: BorderRadius.lg,
+        width: 54,
+        height: 54,
+        borderRadius: 16,
         borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
     },
     colorOption: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 2,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 3,
     },
 });

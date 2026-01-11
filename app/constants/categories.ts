@@ -92,6 +92,17 @@ export const CATEGORIES: Record<PostCategory, Category> = {
       'CUT Counseling Services',
     ],
   },
+  'general': {
+    id: 'general',
+    name: 'General Support',
+    description: 'General peer support and campus life discussions',
+    icon: 'chatbubbles-outline',
+    color: Colors.light.primary,
+    resources: [
+      'CUT Student Affairs',
+      'Peer Educator Club',
+    ],
+  },
 };
 
 export const CATEGORY_LIST = Object.values(CATEGORIES);

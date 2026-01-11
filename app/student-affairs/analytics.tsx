@@ -3,34 +3,35 @@
  * All data is anonymized (no user IDs, only pseudonyms)
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/components/themed-view';
+import { CATEGORIES } from '@/app/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { EscalationLevel, PostCategory } from '@/app/types';
+import { createShadow } from '@/app/utils/platform-styles';
+import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { getEscalations, getPosts, getReplies } from '@/lib/database';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
   RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPosts, getEscalations, getReplies } from '@/lib/database';
-import { PostCategory, EscalationLevel } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function DetailedAnalyticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(['student-affairs', 'admin'], '/(tabs)');
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [postsByCategory, setPostsByCategory] = useState<Record<PostCategory, number>>({} as any);
   const [escalationTrends, setEscalationTrends] = useState<Record<EscalationLevel, number>>({} as any);
@@ -137,6 +138,7 @@ export default function DetailedAnalyticsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       <ThemedView style={styles.container}>
         <ScrollView
           style={styles.scrollView}
@@ -147,8 +149,11 @@ export default function DetailedAnalyticsScreen() {
         >
           {/* Header */}
           <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <ThemedText type="h2" style={styles.headerTitle}>
               Detailed Analytics
@@ -164,7 +169,7 @@ export default function DetailedAnalyticsScreen() {
             {Object.entries(postsByCategory)
               .sort((a, b) => b[1] - a[1])
               .map(([category, count]) => {
-                const categoryInfo = CATEGORIES.find((c) => c.id === category);
+                const categoryInfo = CATEGORIES[category as keyof typeof CATEGORIES];
                 const total = Object.values(postsByCategory).reduce((a, b) => a + b, 0);
                 const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
                 return (
@@ -346,6 +351,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: '700',
     fontSize: 20,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 44,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   section: {
     padding: Spacing.lg,
