@@ -8,7 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:db": "node scripts/validate-db.js",
+    "test:gamification": "node scripts/test-gamification.js",
+    "preflight": "node scripts/preflight-check.js",
+    "validate": "npm run preflight && npm run test:db"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
