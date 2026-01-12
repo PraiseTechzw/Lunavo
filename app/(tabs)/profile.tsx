@@ -40,8 +40,8 @@ export default function ProfileScreen() {
     checkInStreak: { current: 0, longest: 0 },
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
   const [level, setLevel] = useState(1);
   const [nextLevelPoints, setNextLevelPoints] = useState(100);
@@ -124,11 +124,18 @@ export default function ProfileScreen() {
               <View style={styles.avatarCircle}>
                 <ThemedText style={styles.avatarText}>{userName[0]?.toUpperCase()}</ThemedText>
               </View>
-              <ThemedText type="h1" style={styles.heroName}>{userName}</ThemedText>
-              <View style={styles.roleBadge}>
-                <ThemedText style={styles.roleText}>
-                  {user?.role?.replace('-', ' ') || 'Student'}
-                </ThemedText>
+              <ThemedText type="h1" style={styles.heroName}>{user?.fullName || userName}</ThemedText>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: Spacing.xl }}>
+                <View style={[styles.roleBadge, { marginBottom: 0 }]}>
+                  <ThemedText style={styles.roleText}>
+                    {user?.role?.replace('-', ' ') || 'Student'}
+                  </ThemedText>
+                </View>
+                {user?.studentNumber && (
+                  <View style={[styles.roleBadge, { backgroundColor: 'rgba(0,0,0,0.2)', marginBottom: 0 }]}>
+                    <ThemedText style={styles.roleText}>{user.studentNumber}</ThemedText>
+                  </View>
+                )}
               </View>
 
               <View style={styles.heroStatsRow}>
@@ -147,13 +154,73 @@ export default function ProfileScreen() {
                   <ThemedText style={styles.heroStatLabel}>Badges</ThemedText>
                 </View>
               </View>
+
+              <View style={styles.completionContainer}>
+                <View style={styles.completionHeader}>
+                  <ThemedText style={styles.completionLabel}>Profile Completion</ThemedText>
+                  <ThemedText style={styles.completionValue}>{calculateCompletion()}%</ThemedText>
+                </View>
+                <View style={[styles.completionBar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <View style={[styles.completionFill, { width: `${calculateCompletion()}%`, backgroundColor: '#FFF' }]} />
+                </View>
+              </View>
             </LinearGradient>
+          </Animated.View>
+
+          {/* Bio Section */}
+          <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
+            <View style={[styles.bioCard, { backgroundColor: colors.card }]}>
+              <View style={styles.bioHeader}>
+                <ThemedText type="h3">About Me</ThemedText>
+                <TouchableOpacity onPress={() => router.push('/profile-settings')}>
+                  <Ionicons name="create-outline" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.bioText}>
+                {user?.bio || "No bio added yet. Tell the community a bit about yourself to build connections."}
+              </ThemedText>
+              {user?.specialization && (
+                <View style={styles.specializationBadge}>
+                  <MaterialIcons name="verified" size={16} color={colors.primary} />
+                  <ThemedText style={styles.specializationText}>{user.specialization}</ThemedText>
+                </View>
+              )}
+            </View>
           </Animated.View>
 
           {/* Quick Stats Grid */}
           <View style={styles.section}>
-            <ThemedText type="h2" style={styles.sectionTitle}>Overview</ThemedText>
-            <View style={styles.statsGrid}>
+            <ThemedText type="h2" style={styles.sectionTitle}>Identity & Academic</ThemedText>
+            <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+              {renderInfoRow('Degree', user?.program || 'Not set', 'school-outline')}
+              <View style={styles.infoDivider} />
+              {renderInfoRow('Academic', user?.academicYear ? `Year ${user.academicYear}, Sem ${user.academicSemester}` : 'Not set', 'calendar-outline')}
+              <View style={styles.infoDivider} />
+              {renderInfoRow('Location', user?.location || 'Not specified', 'location-outline')}
+              <View style={styles.infoDivider} />
+              {renderInfoRow('Contact', user?.phone || user?.email || 'N/A', 'call-outline')}
+              {user?.preferredContactMethod && (
+                <>
+                  <View style={styles.infoDivider} />
+                  {renderInfoRow('Preference', user.preferredContactMethod, 'chatbox-ellipses-outline')}
+                </>
+              )}
+            </View>
+
+            {user?.interests && user.interests.length > 0 && (
+              <View style={{ marginTop: 24 }}>
+                <ThemedText type="h3" style={{ marginBottom: 12 }}>Interests</ThemedText>
+                <View style={styles.interestsGrid}>
+                  {user.interests.map((interest: string, i: number) => (
+                    <View key={i} style={[styles.interestTag, { backgroundColor: colors.primary + '15' }]}>
+                      <ThemedText style={[styles.interestText, { color: colors.primary }]}>{interest}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={[styles.statsGrid, { marginTop: 24 }]}>
               <Animated.View entering={FadeInDown.delay(200)} style={styles.statCardWrapper}>
                 <View style={[styles.statCard, { backgroundColor: colors.card }]}>
                   <Ionicons name="documents-outline" size={24} color={colors.primary} />
@@ -312,19 +379,37 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* About Section */}
-          <View style={styles.footer}>
-            <ThemedText style={styles.footerTitle}>PEACE PLATFORM</ThemedText>
-            <ThemedText style={styles.footerText}>
-              A secure, anonymous initiative of the Peer Education Club at Chinhoyi University.
-            </ThemedText>
-          </View>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
   );
+
+  function renderInfoRow(label: string, value: string, icon: any) {
+    return (
+      <View style={styles.infoRow}>
+        <View style={[styles.infoIcon, { backgroundColor: colors.primary + '10' }]}>
+          <Ionicons name={icon} size={20} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <ThemedText style={styles.infoLabel}>{label}</ThemedText>
+          <ThemedText style={styles.infoValue}>{value}</ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  function calculateCompletion() {
+    if (!user) return 0;
+    const fields = [
+      user.fullName, user.phone, user.bio, user.program,
+      user.academicYear, user.academicSemester, user.location,
+      user.emergencyContactName, user.emergencyContactPhone,
+      user.studentNumber, user.preferredContactMethod
+    ];
+    const filled = fields.filter(f => f && f !== '').length;
+    return Math.round((filled / fields.length) * 100);
+  }
 }
 
 const styles = StyleSheet.create({
@@ -405,6 +490,37 @@ const styles = StyleSheet.create({
     width: 1,
     height: 30,
     backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  completionContainer: {
+    width: '100%',
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completionLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  completionValue: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  completionBar: {
+    height: 6,
+    borderRadius: 3,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  completionFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   section: {
     padding: Spacing.lg,
@@ -600,5 +716,84 @@ const styles = StyleSheet.create({
   pointsHistoryAmount: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  bioCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    ...PlatformStyles.shadow,
+  },
+  bioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  bioText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#64748B',
+  },
+  specializationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  specializationText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  infoCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xxl,
+    ...PlatformStyles.shadow,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginHorizontal: 12,
+  },
+  interestsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  interestTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  interestText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

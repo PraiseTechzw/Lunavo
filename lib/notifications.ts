@@ -2,12 +2,12 @@
  * Push notification utilities for Expo
  */
 
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { supabase } from './supabase';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { getCurrentUser } from './auth';
+import { supabase } from './supabase';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -15,6 +15,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -50,6 +52,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
   try {
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
+      return null;
+    }
+
+    // Guard for Expo Go SDK 53+ limitations on Android
+    if (Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient') {
+      console.warn('Push tokens are not supported in Expo Go on Android (SDK 53+). Please use a Development Build.');
       return null;
     }
 
@@ -132,6 +140,11 @@ export async function cancelAllNotifications(): Promise<void> {
  */
 export async function getNotificationToken(): Promise<string | null> {
   try {
+    // Guard for Expo Go SDK 53+ limitations on Android
+    if (Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient') {
+      return null;
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: Constants.expoConfig?.extra?.eas?.projectId,
     });
@@ -189,7 +202,11 @@ export async function removeDeliveredNotification(notificationId: string): Promi
  */
 export function addNotificationReceivedListener(
   listener: (notification: Notifications.Notification) => void
-): Notifications.Subscription {
+): Notifications.Subscription | null {
+  // Guard for Expo Go SDK 53+ limitations on Android
+  if (Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient') {
+    return null;
+  }
   return Notifications.addNotificationReceivedListener(listener);
 }
 
@@ -198,7 +215,11 @@ export function addNotificationReceivedListener(
  */
 export function addNotificationResponseListener(
   listener: (response: Notifications.NotificationResponse) => void
-): Notifications.Subscription {
+): Notifications.Subscription | null {
+  // Guard for Expo Go SDK 53+ limitations on Android
+  if (Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient') {
+    return null;
+  }
   return Notifications.addNotificationResponseReceivedListener(listener);
 }
 

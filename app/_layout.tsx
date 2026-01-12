@@ -49,7 +49,9 @@ export default function RootLayout() {
       });
 
       return () => {
-        subscription.remove();
+        if (subscription) {
+          subscription.remove();
+        }
       };
     } catch (error) {
       console.error('Error initializing notifications:', error);
@@ -277,6 +279,13 @@ export default function RootLayout() {
             name="profile-settings"
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="edit-profile"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
             }}
           />
           <Stack.Screen

@@ -136,7 +136,7 @@ export default function ProfileSettingsScreen() {
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionLabel}>Account</ThemedText>
-          <SettingRow icon="person-outline" title="Personal Info" action={() => { }} />
+          <SettingRow icon="person-outline" title="Personal Info" action={() => router.push('/edit-profile')} />
           <SettingRow icon="notifications-outline" title="Notifications" action={() => { }} />
           <SettingRow icon="lock-closed-outline" title="Security" action={() => { }} />
         </View>

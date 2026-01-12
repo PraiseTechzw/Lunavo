@@ -354,14 +354,32 @@ export async function checkStudentIdAvailability(studentId: string): Promise<boo
 }
 
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {
+  const updateData: any = {
+    last_active: new Date().toISOString(),
+  };
+
+  if (updates.pseudonym !== undefined) updateData.pseudonym = updates.pseudonym;
+  if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
+  if (updates.username !== undefined) updateData.username = updates.username;
+  if (updates.isAnonymous !== undefined) updateData.is_anonymous = updates.isAnonymous;
+  if (updates.program !== undefined) updateData.program = updates.program;
+  if (updates.academicYear !== undefined) updateData.academic_year = updates.academicYear;
+  if (updates.academicSemester !== undefined) updateData.academic_semester = updates.academicSemester;
+  if (updates.studentNumber !== undefined) updateData.student_number = updates.studentNumber;
+  if (updates.phone !== undefined) updateData.phone = updates.phone;
+  if (updates.emergencyContactName !== undefined) updateData.emergency_contact_name = updates.emergencyContactName;
+  if (updates.emergencyContactPhone !== undefined) updateData.emergency_contact_phone = updates.emergencyContactPhone;
+  if (updates.location !== undefined) updateData.location = updates.location;
+  if (updates.preferredContactMethod !== undefined) updateData.preferred_contact_method = updates.preferredContactMethod;
+  if (updates.bio !== undefined) updateData.bio = updates.bio;
+  if (updates.specialization !== undefined) updateData.specialization = updates.specialization;
+  if (updates.interests !== undefined) updateData.interests = updates.interests;
+  if (updates.avatarUrl !== undefined) updateData.avatar_url = updates.avatarUrl;
+  if (updates.profile_data !== undefined) updateData.profile_data = updates.profile_data;
+
   const { data, error } = await supabase
     .from('users')
-    .update({
-      pseudonym: updates.pseudonym,
-      is_anonymous: updates.isAnonymous,
-      profile_data: updates.profile_data || {},
-      last_active: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', userId)
     .select()
     .single();
@@ -1923,6 +1941,16 @@ function mapUserFromDB(data: any): User {
     academicYear: data.academic_year,
     academicSemester: data.academic_semester,
     academicUpdatedAt: data.academic_updated_at ? new Date(data.academic_updated_at) : undefined,
+    studentNumber: data.student_number || undefined,
+    phone: data.phone || undefined,
+    emergencyContactName: data.emergency_contact_name || undefined,
+    emergencyContactPhone: data.emergency_contact_phone || undefined,
+    location: data.location || undefined,
+    preferredContactMethod: data.preferred_contact_method || undefined,
+    bio: data.bio || undefined,
+    specialization: data.specialization || undefined,
+    interests: data.interests || [],
+    avatarUrl: data.avatar_url || undefined,
     createdAt: new Date(data.created_at),
     lastActive: new Date(data.last_active),
     profile_data: data.profile_data || {},
