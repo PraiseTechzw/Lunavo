@@ -67,6 +67,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
 
     const token = tokenData.data;
+    console.log('🚀 Push Notification Token:', token);
 
     // Save token to Supabase
     const user = await getCurrentUser();

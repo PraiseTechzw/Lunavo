@@ -33,6 +33,7 @@ module.exports = {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.peaceclub.app",
+      googleServicesFile: "./google-services.json",
       versionCode: 1,
       permissions: [
         "CAMERA",

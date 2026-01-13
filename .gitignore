@@ -49,10 +49,12 @@ eas-build-*.tar.gz
 
 # Credentials & Secrets
 google-service-account.json
+google-services.json
 *.keystore
 *.jks
 credentials.json
 service-account*.json
+*-firebase-adminsdk-*.json
 
 # Build artifacts
 *.apk
