@@ -1,6 +1,7 @@
 /**
  * Premium Onboarding Screen
  * Uses Glassmorphism, Reanimated, and Haptic feedback
+ * Praisetechzw
  */
 
 import { PEACELogo } from '@/app/components/peace-logo';
@@ -23,11 +24,15 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   interpolate,
   interpolateColor,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useSharedValue
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -105,8 +110,51 @@ export default function OnboardingScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const scrollX = useSharedValue(0);
+  const blob1Position = useSharedValue({ x: -50, y: -50 });
+  const blob2Position = useSharedValue({ x: -100, y: height - 200 });
+  const buttonScale = useSharedValue(1);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFoundingMember, setIsFoundingMember] = useState(false);
+
+  useEffect(() => {
+    // Blob 1 Animation
+    blob1Position.value = withRepeat(
+      withSequence(
+        withTiming({ x: width - 200, y: 100 }, { duration: 10000, easing: Easing.inOut(Easing.ease) }),
+        withTiming({ x: -50, y: 200 }, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
+        withTiming({ x: -50, y: -50 }, { duration: 8000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    // Blob 2 Animation
+    blob2Position.value = withRepeat(
+      withSequence(
+        withTiming({ x: 100, y: height - 400 }, { duration: 15000, easing: Easing.inOut(Easing.ease) }),
+        withTiming({ x: width - 100, y: height - 100 }, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
+        withTiming({ x: -100, y: height - 200 }, { duration: 10000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  useEffect(() => {
+    if (activeIndex === onboardingData.length - 1) {
+      buttonScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 1000 }),
+          withTiming(1, { duration: 1000 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      buttonScale.value = withTiming(1);
+    }
+  }, [activeIndex]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -150,17 +198,41 @@ export default function OnboardingScreen() {
     return { backgroundColor };
   });
 
+  const blob1Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: blob1Position.value.x }, { translateY: blob1Position.value.y }],
+  }));
+
+  const blob2Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: blob2Position.value.x }, { translateY: blob2Position.value.y }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }]
+  }));
+
+  const skipOpacity = useAnimatedStyle(() => ({
+    opacity: withTiming(activeIndex === onboardingData.length - 1 ? 0 : 1)
+  }));
+
   return (
     <Animated.View style={[styles.container, backgroundStyle]}>
       <StatusBar style="light" />
 
       {/* Animated Blobs */}
       <View style={styles.blobContainer}>
-        <View style={[styles.blob, { top: -50, right: -50, backgroundColor: 'rgba(255,255,255,0.2)' }]} />
-        <View style={[styles.blob, { bottom: 100, left: -100, width: 300, height: 300, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(255,255,255,0.2)' }, blob1Style]} />
+        <Animated.View style={[styles.blob, { width: 300, height: 300, backgroundColor: 'rgba(255,255,255,0.1)' }, blob2Style]} />
       </View>
 
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+            <Animated.View style={skipOpacity}>
+                <TouchableOpacity onPress={handleComplete} disabled={activeIndex === onboardingData.length - 1}>
+                    <ThemedText style={styles.skipText}>Skip</ThemedText>
+                </TouchableOpacity>
+            </Animated.View>
+        </View>
+
         <Animated.ScrollView
           horizontal
           pagingEnabled
@@ -191,7 +263,7 @@ export default function OnboardingScreen() {
                 const dotWidth = interpolate(
                   scrollX.value,
                   [(i - 1) * width, i * width, (i + 1) * width],
-                  [8, 24, 8],
+                  [8, 32, 8],
                   'clamp'
                 );
                 const opacity = interpolate(
@@ -207,25 +279,26 @@ export default function OnboardingScreen() {
           </View>
 
           {/* Button */}
-          <TouchableOpacity
-            onPress={activeIndex === onboardingData.length - 1 ? handleComplete : undefined}
-            activeOpacity={0.8}
-            style={styles.buttonWrapper}
-          >
-            <LinearGradient
-              colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
-              style={styles.mainButton}
+          <Animated.View style={[styles.buttonWrapper, buttonAnimatedStyle]}>
+            <TouchableOpacity
+              onPress={activeIndex === onboardingData.length - 1 ? handleComplete : handleNext}
+              activeOpacity={0.8}
             >
-              <ThemedText style={styles.buttonText}>
-                {activeIndex === onboardingData.length - 1 ? "Start Journey" : "Swipe to Continue"}
-              </ThemedText>
-              <Ionicons
-                name={activeIndex === onboardingData.length - 1 ? "rocket" : "arrow-forward"}
-                size={20}
-                color="#FFF"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                style={styles.mainButton}
+              >
+                <ThemedText style={styles.buttonText}>
+                  {activeIndex === onboardingData.length - 1 ? "Start Journey" : "Swipe to Continue"}
+                </ThemedText>
+                <Ionicons
+                  name={activeIndex === onboardingData.length - 1 ? "rocket" : "arrow-forward"}
+                  size={20}
+                  color="#FFF"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </SafeAreaView>
     </Animated.View>
@@ -392,20 +465,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  itemSubtitle: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    zIndex: 10,
+  },
+  skipText: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 1,
+  },
+  itemSubtitle: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 3,
     marginBottom: Spacing.sm,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   itemTitle: {
     color: '#FFF',
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     textAlign: 'center',
     marginBottom: Spacing.md,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
   },
   divider: {
     width: 40,
@@ -413,14 +505,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 2,
     marginBottom: Spacing.xl,
-    opacity: 0.5,
+    opacity: 0.8,
   },
   itemDescription: {
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.95)',
     fontSize: 18,
     lineHeight: 28,
     textAlign: 'center',
     fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   footer: {
     padding: Spacing.xl,
