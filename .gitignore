@@ -65,3 +65,6 @@ service-account*.json
 # Logs
 *.log
 logs/
+autopilot.log
+.autopilot.pid
+.vscode/
