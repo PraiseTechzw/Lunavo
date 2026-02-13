@@ -24,6 +24,9 @@ serve(async (req) => {
     if (!apiKey) {
       return json({ error: "Missing RESEND_API_KEY" }, 500);
     }
+    const defaultFrom =
+      Deno.env.get("RESEND_FROM") || "notifications@peace.praisetech.tech";
+    const defaultReplyTo = Deno.env.get("RESEND_REPLY_TO") || undefined;
 
     let payloadBody: any;
     try {
@@ -41,14 +44,14 @@ serve(async (req) => {
     const bccList = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined;
 
     const payload = {
-      from: from || "onboarding@resend.dev",
+      from: from || defaultFrom,
       to: toList,
       cc: ccList,
       bcc: bccList,
       subject,
       html,
       text,
-      reply_to,
+      reply_to: reply_to || defaultReplyTo,
     };
 
     const res = await fetch("https://api.resend.com/emails", {

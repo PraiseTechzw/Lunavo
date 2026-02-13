@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "20f08e47671c218d8c6f39c2333ed8376c6463b6",
+      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 0807e657d938b5ee30a917303c44587571fadc1358df58bc9b4396a3c7b76f37",
+      "files": [
+        "autopilot/history.json",
+        "supabase/functions/send-email/index.ts"
+      ],
+      "timestamp": "2026-02-13T11:13:53.023Z"
+    },
+    {
       "hash": "dce8d2ec87be8295bf771328e566280fb291e19a",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 19bedc9a5260eef04609c41afe9cfe120762154c9b34452fb27cc0d60c8e2627",
       "files": [

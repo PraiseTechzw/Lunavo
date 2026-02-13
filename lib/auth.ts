@@ -74,6 +74,7 @@ export async function signUp(userData: SignUpData): Promise<{ user: any; error: 
       email: userData.email,
       password: userData.password,
       options: {
+        emailRedirectTo: 'peace://confirm-signup',
         data: {
           fullName: userData.fullName,
           username: userData.username, // Add username here
