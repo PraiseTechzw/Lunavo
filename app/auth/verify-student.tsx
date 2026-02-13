@@ -132,7 +132,7 @@ export default function VerifyStudentScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
               <PEACELogo size={90} />
@@ -254,7 +254,7 @@ export default function VerifyStudentScreen() {
 
             </Animated.View>
 
-            <View style={{ height: 40 }} />
+            
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -287,6 +287,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',

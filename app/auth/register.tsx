@@ -239,7 +239,7 @@ export default function RegisterScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
 
             <View style={styles.fixedHeader}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -427,7 +427,7 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={{ height: 40 }} />
+            
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -521,6 +521,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
+    justifyContent: 'center',
   },
   fixedHeader: {
     flexDirection: 'row',

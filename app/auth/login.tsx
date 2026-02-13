@@ -98,7 +98,7 @@ export default function LoginScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.logoSection}>
               <PEACELogo size={140} />
@@ -173,7 +173,7 @@ export default function LoginScreen() {
               </View>
             </Animated.View>
 
-            <View style={{ height: 40 }} />
+            
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    paddingTop: 100, // Fixed padding instead of center to prevent jumps
+    justifyContent: 'center',
   },
   logoSection: {
     alignItems: 'center',
