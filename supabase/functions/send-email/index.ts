@@ -17,8 +17,8 @@ serve(async (req) => {
       });
     }
 
-    const { to, subject, html, from } = await req.json();
-    if (!to || !subject || !html) {
+    const { to, subject, html, text, from, cc, bcc } = await req.json();
+    if (!to || !subject || (!html && !text)) {
       return new Response(JSON.stringify({ error: "Invalid payload" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -28,8 +28,11 @@ serve(async (req) => {
     const payload = {
       from: from || "onboarding@resend.dev",
       to,
+      cc,
+      bcc,
       subject,
       html,
+      text,
     };
 
     const res = await fetch("https://api.resend.com/emails", {
