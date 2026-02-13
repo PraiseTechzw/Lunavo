@@ -295,7 +295,12 @@ export default function RegisterScreen() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={false}
           >
-            <View style={styles.fixedHeader}>
+            <View
+              style={[
+                styles.fixedHeader,
+                isSmall ? { marginBottom: 24 } : null,
+              ]}
+            >
               <TouchableOpacity
                 onPress={() => router.back()}
                 style={styles.backBtn}
@@ -318,10 +323,39 @@ export default function RegisterScreen() {
                 ))}
               </View>
             </View>
+            <View style={{ marginBottom: 20 }}>
+              <ThemedText style={[styles.progressInfo, { color: colors.text }]}>
+                Step {step} of 4
+              </ThemedText>
+              <View
+                style={[
+                  styles.progressBarTrack,
+                  { backgroundColor: colors.border },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      backgroundColor: colors.primary,
+                      width: `${(step / 4) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
 
-            <View style={styles.logoSection}>
+            <View
+              style={[
+                styles.logoSection,
+                isSmall ? { marginBottom: 20 } : null,
+              ]}
+            >
               <PEACELogo size={isSmall ? 64 : 80} />
-              <ThemedText type="h2" style={styles.stepTitle}>
+              <ThemedText
+                type="h2"
+                style={[styles.stepTitle, isSmall ? { marginTop: 6 } : null]}
+              >
                 {step === 1
                   ? "Academic ID"
                   : step === 2
@@ -398,28 +432,6 @@ export default function RegisterScreen() {
                     }
                     colors={colors}
                   />
-                  <InputField
-                    label="Password"
-                    icon="lock-closed-outline"
-                    secure
-                    value={formData.password}
-                    onChange={(v: string) =>
-                      setFormData({ ...formData, password: v })
-                    }
-                    placeholder="••••••••"
-                    colors={colors}
-                  />
-                  <InputField
-                    label="Confirm"
-                    icon="lock-closed-outline"
-                    secure
-                    value={formData.confirmPassword}
-                    onChange={(v: string) =>
-                      setFormData({ ...formData, confirmPassword: v })
-                    }
-                    placeholder="••••••••"
-                    colors={colors}
-                  />
                 </View>
               )}
 
@@ -469,101 +481,6 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.inputGroup}>
-                    <ThemedText style={styles.label}>
-                      Academic Year & Semester
-                    </ThemedText>
-                    <View style={styles.academicRow}>
-                      <View style={{ flex: 1 }}>
-                        <ThemedText
-                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
-                        >
-                          Year
-                        </ThemedText>
-                        <View style={styles.yearRow}>
-                          {[1, 2, 3, 4, 5].map((y) => (
-                            <TouchableOpacity
-                              key={y}
-                              onPress={() =>
-                                setFormData({ ...formData, year: y })
-                              }
-                              style={[
-                                styles.yearBox,
-                                {
-                                  borderColor:
-                                    formData.year === y
-                                      ? colors.primary
-                                      : colors.border,
-                                  backgroundColor:
-                                    formData.year === y
-                                      ? colors.primary
-                                      : "transparent",
-                                },
-                              ]}
-                            >
-                              <ThemedText
-                                style={{
-                                  color:
-                                    formData.year === y ? "#FFF" : colors.text,
-                                  fontWeight: "700",
-                                  fontSize: 14,
-                                }}
-                              >
-                                {y}
-                              </ThemedText>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                      <View style={{ flex: 1, marginLeft: 10 }}>
-                        <ThemedText
-                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
-                        >
-                          Semester
-                        </ThemedText>
-                        <View style={styles.yearRow}>
-                          {[1, 2].map((s) => (
-                            <TouchableOpacity
-                              key={s}
-                              onPress={() =>
-                                setFormData({ ...formData, semester: s })
-                              }
-                              style={[
-                                styles.semesterBox,
-                                {
-                                  borderColor:
-                                    formData.semester === s
-                                      ? colors.primary
-                                      : colors.border,
-                                  backgroundColor:
-                                    formData.semester === s
-                                      ? colors.primary
-                                      : "transparent",
-                                },
-                              ]}
-                            >
-                              <ThemedText
-                                style={{
-                                  color:
-                                    formData.semester === s
-                                      ? "#FFF"
-                                      : colors.text,
-                                  fontWeight: "700",
-                                  fontSize: 14,
-                                }}
-                              >
-                                {s}
-                              </ThemedText>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    </View>
-                    <ThemedText style={[styles.hintText, { marginTop: 8 }]}>
-                      Current: {formData.year}.{formData.semester}
-                    </ThemedText>
-                  </View>
-
                   <InputField
                     label="Community Alias"
                     icon="at-outline"
@@ -602,6 +519,100 @@ export default function RegisterScreen() {
 
               {step === 3 && (
                 <View>
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={styles.label}>
+                      Academic Year & Semester
+                    </ThemedText>
+                    <View style={styles.academicRow}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText
+                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
+                        >
+                          Year
+                        </ThemedText>
+                        <View style={styles.yearRow}>
+                          {[1, 2, 3, 4, 5].map((y) => (
+                            <TouchableOpacity
+                              key={y}
+                              onPress={() =>
+                                setFormData({ ...formData, year: y })
+                              }
+                              style={[
+                                styles.yearBox,
+                                {
+                                  borderColor:
+                                    formData.year === y
+                                      ? colors.primary
+                                      : colors.border,
+                                  backgroundColor:
+                                    formData.year === y
+                                      ? colors.primary
+                                      : "transparent",
+                                  height: isSmall ? 40 : styles.yearBox.height,
+                                } as any]}
+                            >
+                              <ThemedText
+                                style={{
+                                  color:
+                                    formData.year === y ? "#FFF" : colors.text,
+                                  fontWeight: "700",
+                                  fontSize: 13,
+                                }}
+                              >
+                                {y}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <ThemedText
+                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
+                        >
+                          Semester
+                        </ThemedText>
+                        <View style={styles.yearRow}>
+                          {[1, 2].map((s) => (
+                            <TouchableOpacity
+                              key={s}
+                              onPress={() =>
+                                setFormData({ ...formData, semester: s })
+                              }
+                              style={[
+                                styles.semesterBox,
+                                {
+                                  borderColor:
+                                    formData.semester === s
+                                      ? colors.primary
+                                      : colors.border,
+                                  backgroundColor:
+                                    formData.semester === s
+                                      ? colors.primary
+                                      : "transparent",
+                                  height: isSmall ? 40 : styles.semesterBox.height,
+                                } as any]}
+                            >
+                              <ThemedText
+                                style={{
+                                  color:
+                                    formData.semester === s
+                                      ? "#FFF"
+                                      : colors.text,
+                                  fontWeight: "700",
+                                  fontSize: 13,
+                                }}
+                              >
+                                {s}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                    <ThemedText style={[styles.hintText, { marginTop: 6 }]}>
+                      Current: {formData.year}.{formData.semester}
+                    </ThemedText>
+                  </View>
                   <InputField
                     label="Your Phone"
                     icon="phone-portrait-outline"
@@ -637,6 +648,28 @@ export default function RegisterScreen() {
 
               {step === 4 && (
                 <View>
+                  <InputField
+                    label="Password"
+                    icon="lock-closed-outline"
+                    secure
+                    value={formData.password}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, password: v })
+                    }
+                    placeholder="••••••••"
+                    colors={colors}
+                  />
+                  <InputField
+                    label="Confirm"
+                    icon="lock-closed-outline"
+                    secure
+                    value={formData.confirmPassword}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, confirmPassword: v })
+                    }
+                    placeholder="••••••••"
+                    colors={colors}
+                  />
                   <ThemedText type="h3">Community Protocols</ThemedText>
                   <ThemedText style={styles.termsText}>
                     By joining PEACE, you agree to uphold our values of
@@ -881,6 +914,22 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
+  progressInfo: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 8,
+    opacity: 0.7,
+    textAlign: "center",
+  },
+  progressBarTrack: {
+    width: "100%",
+    height: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+  },
   logoSection: {
     alignItems: "center",
     marginBottom: 30,
@@ -912,7 +961,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
-    height: 60,
+    height: 52,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     gap: Spacing.md,
@@ -954,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   navBtn: {
     paddingHorizontal: 25,
-    height: 60,
+    height: 52,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     justifyContent: "center",
@@ -964,7 +1013,7 @@ const styles = StyleSheet.create({
     ...PlatformStyles.premiumShadow,
   },
   primaryBtn: {
-    height: 60,
+    height: 56,
     borderRadius: BorderRadius.xl,
     justifyContent: "center",
     alignItems: "center",
