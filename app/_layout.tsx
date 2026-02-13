@@ -1,4 +1,7 @@
 import { OfflineIndicator } from "@/app/components/offline-indicator";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { FAB } from "@/app/components/navigation";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
@@ -9,8 +12,8 @@ import { addNotificationResponseListener, registerForPushNotifications } from "@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Modal, Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
@@ -23,6 +26,8 @@ export default function RootLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState("");
 
   useEffect(() => {
     initializeAuth();
@@ -178,6 +183,36 @@ export default function RootLayout() {
     checkRoleAccess();
   }, [isAuthenticated, segments, isInitialized]);
 
+  const assistantSuggestions = useMemo(() => {
+    const current = segments.join("/");
+    const list: { label: string; action: () => void }[] = [];
+    list.push({
+      label: "Create Post",
+      action: () => router.push("/create-post"),
+    });
+    list.push({
+      label: "Report Issue",
+      action: () => router.push("/report"),
+    });
+    list.push({
+      label: "Find Resources",
+      action: () => router.push("/(tabs)/forum"),
+    });
+    if (current.startsWith("counselor")) {
+      list.push({
+        label: "Go to Dashboard",
+        action: () => router.push("/counselor/dashboard"),
+      });
+    }
+    if (current.startsWith("(tabs)/profile")) {
+      list.push({
+        label: "Edit Profile",
+        action: () => router.push("/edit-profile"),
+      });
+    }
+    return list;
+  }, [segments]);
+
   const initializeAuth = async () => {
     try {
       // Check onboarding status
@@ -223,6 +258,7 @@ export default function RootLayout() {
             },
           }}
         >
+          <Stack.Screen
           <Stack.Screen
             name="onboarding"
             options={{ headerShown: false }}
@@ -399,7 +435,138 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        {Platform.OS !== "web" && (
+          <FAB
+            icon="smart-toy"
+            label="AI Assist"
+            onPress={() => setAssistantOpen(true)}
+            position="bottom-right"
+            color={colors.primary}
+          />
+        )}
+        {Platform.OS === "web" && (
+          <TouchableOpacity
+            style={[styles.webAssistantButton, { backgroundColor: colors.primary }]}
+            onPress={() => setAssistantOpen(true)}
+            activeOpacity={0.8}
+          >
+            <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>AI</ThemedText>
+          </TouchableOpacity>
+        )}
+        <Modal
+          visible={assistantOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setAssistantOpen(false)}
+        >
+          <View style={styles.overlay}>
+            <ThemedView style={[styles.assistantCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <ThemedText type="h2" style={{ marginBottom: 12, color: colors.text }}>AI Assistant</ThemedText>
+              <View style={[styles.inputRow, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Ask for help, find resources, or suggest actions"
+                  placeholderTextColor={colors.icon}
+                  value={assistantPrompt}
+                  onChangeText={setAssistantPrompt}
+                />
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    setAssistantPrompt("");
+                    setAssistantOpen(false);
+                  }}
+                >
+                  <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>Send</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.suggestionRow}>
+                {assistantSuggestions.map((s, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.suggestionChip, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                    onPress={() => {
+                      setAssistantOpen(false);
+                      s.action();
+                    }}
+                  >
+                    <ThemedText style={{ color: colors.text }}>{s.label}</ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[styles.closeBtn, { borderColor: colors.border }]}
+                onPress={() => setAssistantOpen(false)}
+              >
+                <ThemedText style={{ color: colors.text }}>Close</ThemedText>
+              </TouchableOpacity>
+            </ThemedView>
+          </View>
+        </Modal>
       </View>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  assistantCard: {
+    width: "100%",
+    maxWidth: 560,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 8,
+    marginBottom: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 8,
+  },
+  primaryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  suggestionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  suggestionChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  closeBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  webAssistantButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+});

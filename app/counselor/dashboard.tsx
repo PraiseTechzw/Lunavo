@@ -19,7 +19,8 @@ import {
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  ScrollView
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';

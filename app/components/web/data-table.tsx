@@ -9,7 +9,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, View, TextInput } from 'react-native';
 
 export interface Column<T> {
   key: keyof T | string;
@@ -56,10 +56,7 @@ export function DataTable<T extends Record<string, any>>({
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Only render on web
-  if (Platform.OS !== 'web') {
-    return null;
-  }
+  // Hooks must be called unconditionally; render guard moved to return
 
   // Filter data based on search query
   const filteredData = useMemo(() => {
@@ -180,6 +177,9 @@ export function DataTable<T extends Record<string, any>>({
     );
   }
 
+  if (Platform.OS !== 'web') {
+    return null;
+  }
   return (
     <View style={[styles.container, { backgroundColor: colors.card }]}>
       {/* Search Bar */}

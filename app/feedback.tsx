@@ -2,45 +2,75 @@
  * Feedback Screen
  */
 
-import { DrawerHeader } from '@/app/components/navigation/drawer-header';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow } from '@/app/utils/platform-styles';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { DrawerHeader } from "@/app/components/navigation/drawer-header";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import {
+    BorderRadius,
+    Colors,
+    PlatformStyles,
+    Spacing,
+} from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { createShadow } from "@/app/utils/platform-styles";
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FeedbackScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<'bug' | 'feature' | 'general' | null>(null);
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [feedbackType, setFeedbackType] = useState<
+    "bug" | "feature" | "general" | null
+  >(null);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const feedbackTypes = [
-    { id: 'bug', label: 'Bug Report', icon: 'bug-report' as const, description: 'Report a problem or error' },
-    { id: 'feature', label: 'Feature Request', icon: 'lightbulb' as const, description: 'Suggest a new feature' },
-    { id: 'general', label: 'General Feedback', icon: 'feedback' as const, description: 'Share your thoughts' },
+    {
+      id: "bug",
+      label: "Bug Report",
+      icon: "bug-report" as const,
+      description: "Report a problem or error",
+    },
+    {
+      id: "feature",
+      label: "Feature Request",
+      icon: "lightbulb" as const,
+      description: "Suggest a new feature",
+    },
+    {
+      id: "general",
+      label: "General Feedback",
+      icon: "feedback" as const,
+      description: "Share your thoughts",
+    },
   ];
 
   const handleSubmit = async () => {
     if (!feedbackType) {
-      Alert.alert('Select Type', 'Please select a feedback type');
+      Alert.alert("Select Type", "Please select a feedback type");
       return;
     }
     if (!subject.trim()) {
-      Alert.alert('Subject Required', 'Please enter a subject');
+      Alert.alert("Subject Required", "Please enter a subject");
       return;
     }
     if (!message.trim()) {
-      Alert.alert('Message Required', 'Please enter your feedback');
+      Alert.alert("Message Required", "Please enter your feedback");
       return;
     }
 
@@ -48,39 +78,39 @@ export default function FeedbackScreen() {
     try {
       // TODO: Implement actual feedback submission to backend
       // For now, just show success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       Alert.alert(
-        'Thank You!',
-        'Your feedback has been submitted. We appreciate your input!',
+        "Thank You!",
+        "Your feedback has been submitted. We appreciate your input!",
         [
           {
-            text: 'OK',
+            text: "OK",
             onPress: () => {
-              setSubject('');
-              setMessage('');
+              setSubject("");
+              setMessage("");
               setFeedbackType(null);
               router.back();
             },
           },
-        ]
+        ],
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+      Alert.alert("Error", "Failed to submit feedback. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
           title="Send Feedback"
           onMenuPress={() => setDrawerVisible(false)}
           rightAction={{
-            icon: 'close',
+            icon: "close",
             onPress: () => router.back(),
           }}
         />
@@ -92,20 +122,35 @@ export default function FeedbackScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-              <MaterialIcons name="feedback" size={48} color={colors.primary} />
-            </View>
-            <ThemedText type="h1" style={[styles.title, { color: colors.text }]}>
+            <LinearGradient
+              colors={colors.gradients?.primary as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.iconContainer, PlatformStyles.shadow]}
+            >
+              <MaterialIcons name="feedback" size={48} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText
+              type="h1"
+              style={[styles.title, { color: colors.text }]}
+            >
               We&apos;d Love Your Feedback
             </ThemedText>
-            <ThemedText type="body" style={[styles.subtitle, { color: colors.icon }]}>
-              Help us improve Lunavo by sharing your thoughts, reporting bugs, or suggesting features
+            <ThemedText
+              type="body"
+              style={[styles.subtitle, { color: colors.icon }]}
+            >
+              Help us improve Lunavo by sharing your thoughts, reporting bugs,
+              or suggesting features
             </ThemedText>
           </View>
 
           {/* Feedback Type Selection */}
           <View style={styles.section}>
-            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText
+              type="h3"
+              style={[styles.sectionTitle, { color: colors.text }]}
+            >
               What type of feedback?
             </ThemedText>
             <View style={styles.typeGrid}>
@@ -115,11 +160,17 @@ export default function FeedbackScreen() {
                   style={[
                     styles.typeCard,
                     {
-                      backgroundColor: feedbackType === type.id ? colors.primary + '15' : colors.card,
-                      borderColor: feedbackType === type.id ? colors.primary : colors.border,
+                      backgroundColor:
+                        feedbackType === type.id
+                          ? colors.primary + "15"
+                          : colors.card,
+                      borderColor:
+                        feedbackType === type.id
+                          ? colors.primary
+                          : colors.border,
                       borderWidth: 2,
                     },
-                    createShadow(1, '#000', 0.05),
+                    createShadow(1, "#000", 0.05),
                   ]}
                   onPress={() => setFeedbackType(type.id as any)}
                   activeOpacity={0.7}
@@ -127,21 +178,29 @@ export default function FeedbackScreen() {
                   <MaterialIcons
                     name={type.icon}
                     size={32}
-                    color={feedbackType === type.id ? colors.primary : colors.icon}
+                    color={
+                      feedbackType === type.id ? colors.primary : colors.icon
+                    }
                   />
                   <ThemedText
                     type="body"
                     style={[
                       styles.typeLabel,
                       {
-                        color: feedbackType === type.id ? colors.primary : colors.text,
-                        fontWeight: feedbackType === type.id ? '600' : '500',
+                        color:
+                          feedbackType === type.id
+                            ? colors.primary
+                            : colors.text,
+                        fontWeight: feedbackType === type.id ? "600" : "500",
                       },
                     ]}
                   >
                     {type.label}
                   </ThemedText>
-                  <ThemedText type="small" style={[styles.typeDescription, { color: colors.icon }]}>
+                  <ThemedText
+                    type="small"
+                    style={[styles.typeDescription, { color: colors.icon }]}
+                  >
                     {type.description}
                   </ThemedText>
                 </TouchableOpacity>
@@ -151,7 +210,10 @@ export default function FeedbackScreen() {
 
           {/* Subject Input */}
           <View style={styles.section}>
-            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText
+              type="h3"
+              style={[styles.sectionTitle, { color: colors.text }]}
+            >
               Subject
             </ThemedText>
             <TextInput
@@ -162,6 +224,7 @@ export default function FeedbackScreen() {
                   color: colors.text,
                   borderColor: colors.border,
                 },
+                PlatformStyles.shadow,
               ]}
               placeholder="Brief description of your feedback"
               placeholderTextColor={colors.icon}
@@ -173,7 +236,10 @@ export default function FeedbackScreen() {
 
           {/* Message Input */}
           <View style={styles.section}>
-            <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText
+              type="h3"
+              style={[styles.sectionTitle, { color: colors.text }]}
+            >
               Your Feedback
             </ThemedText>
             <TextInput
@@ -184,6 +250,7 @@ export default function FeedbackScreen() {
                   color: colors.text,
                   borderColor: colors.border,
                 },
+                PlatformStyles.shadow,
               ]}
               placeholder="Tell us more about your feedback, bug report, or feature request..."
               placeholderTextColor={colors.icon}
@@ -194,7 +261,10 @@ export default function FeedbackScreen() {
               textAlignVertical="top"
               maxLength={2000}
             />
-            <ThemedText type="small" style={[styles.charCount, { color: colors.icon }]}>
+            <ThemedText
+              type="small"
+              style={[styles.charCount, { color: colors.icon }]}
+            >
               {message.length} / 2000 characters
             </ThemedText>
           </View>
@@ -207,7 +277,7 @@ export default function FeedbackScreen() {
                 backgroundColor: colors.primary,
                 opacity: submitting ? 0.6 : 1,
               },
-              createShadow(2, colors.primary, 0.3),
+              PlatformStyles.premiumShadow,
             ]}
             onPress={handleSubmit}
             disabled={submitting}
@@ -215,7 +285,7 @@ export default function FeedbackScreen() {
           >
             <MaterialIcons name="send" size={20} color="#FFFFFF" />
             <ThemedText type="body" style={styles.submitButtonText}>
-              {submitting ? 'Submitting...' : 'Submit Feedback'}
+              {submitting ? "Submitting..." : "Submit Feedback"}
             </ThemedText>
           </TouchableOpacity>
 
@@ -241,7 +311,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xl,
     paddingTop: Spacing.lg,
   },
@@ -249,19 +319,19 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
     paddingHorizontal: Spacing.md,
   },
@@ -270,7 +340,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: Spacing.md,
   },
   typeGrid: {
@@ -279,16 +349,16 @@ const styles = StyleSheet.create({
   typeCard: {
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
-    alignItems: 'center',
+    alignItems: "center",
     gap: Spacing.sm,
   },
   typeLabel: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   typeDescription: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
     padding: Spacing.md,
@@ -304,22 +374,22 @@ const styles = StyleSheet.create({
     minHeight: 150,
   },
   charCount: {
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: Spacing.xs,
     fontSize: 12,
   },
   submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
     marginTop: Spacing.lg,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
   },
 });
