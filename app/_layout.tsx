@@ -1,28 +1,45 @@
+import { FAB } from "@/app/components/navigation";
 import { OfflineIndicator } from "@/app/components/offline-indicator";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { FAB } from "@/app/components/navigation";
 import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
-import { canAccessRoute, getDefaultRoute, isMobile, isStudentAffairsMobileBlocked } from "@/app/utils/navigation";
+import {
+    canAccessRoute,
+    getDefaultRoute,
+    isMobile,
+    isStudentAffairsMobileBlocked,
+} from "@/app/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
-import { addNotificationResponseListener, registerForPushNotifications } from "@/lib/notifications";
+import {
+    addNotificationResponseListener,
+    registerForPushNotifications,
+} from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import {
+    Modal,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const router = useRouter();
   const segments = useSegments();
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState<
+    boolean | null
+  >(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -48,7 +65,7 @@ export default function RootLayout() {
           router.push(`/post/${data.postId}` as any);
         } else if (data?.meetingId) {
           router.push(`/meetings/${data.meetingId}` as any);
-        } else if (data?.screen && typeof data.screen === 'string') {
+        } else if (data?.screen && typeof data.screen === "string") {
           router.push(data.screen as any);
         }
       });
@@ -59,7 +76,7 @@ export default function RootLayout() {
         }
       };
     } catch (error) {
-      console.error('Error initializing notifications:', error);
+      console.error("Error initializing notifications:", error);
     }
   };
 
@@ -73,20 +90,20 @@ export default function RootLayout() {
     // 'onboarding' covers the initial intro
     // 'web-required' is a utility screen
     const isPublicRoute =
-      navGroup === 'auth' ||
-      navGroup === 'onboarding' ||
-      navGroup === 'web-required' ||
-      navGroup === 'privacy' ||
-      navGroup === 'help';
+      navGroup === "auth" ||
+      navGroup === "onboarding" ||
+      navGroup === "web-required" ||
+      navGroup === "privacy" ||
+      navGroup === "help";
 
     // 1. Mandatory Onboarding Check
-    if (isOnboardingComplete === false && navGroup !== 'onboarding') {
-      AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
-        if (val === 'true') {
+    if (isOnboardingComplete === false && navGroup !== "onboarding") {
+      AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
+        if (val === "true") {
           setIsOnboardingComplete(true);
         } else {
-          console.log('[Auth Guard] Onboarding incomplete - redirecting');
-          router.replace('/onboarding');
+          console.log("[Auth Guard] Onboarding incomplete - redirecting");
+          router.replace("/onboarding");
         }
       });
       return;
@@ -95,32 +112,38 @@ export default function RootLayout() {
     // 2. Strict Authentication Guard
     // If user is NOT authenticated and trying to access a protected route (non-public)
     if (!isAuthenticated && !isPublicRoute) {
-      console.log(`[Auth Guard] Unauthenticated user attempted to access protected route: /${segments.join('/')}`);
-      console.log('[Auth Guard] Redirecting to Login');
+      console.log(
+        `[Auth Guard] Unauthenticated user attempted to access protected route: /${segments.join("/")}`,
+      );
+      console.log("[Auth Guard] Redirecting to Login");
 
       // Use replace to prevent going back to the protected route
-      router.replace('/auth/login');
+      router.replace("/auth/login");
       return;
     }
 
     // 3. Authenticated User Redirection
     // If user IS authenticated but is on a public auth page (like login), send them to dashboard
-    if (isAuthenticated && navGroup === 'auth') {
-      console.log('[Auth Guard] Authenticated user on auth page - redirecting to dashboard');
-      getCurrentUser().then(user => {
-        if (user) {
-          const role = user.role as UserRole;
-          const platform = isMobile ? 'mobile' : 'web';
-          const defaultRoute = getDefaultRoute(role, platform);
-          router.replace(defaultRoute as any);
-        } else {
-          // Fallback if user data fetch fails but auth session exists
-          router.replace('/(tabs)');
-        }
-      }).catch((err) => {
-        console.error('[Auth Guard] Error directing user:', err);
-        router.replace('/(tabs)');
-      });
+    if (isAuthenticated && navGroup === "auth") {
+      console.log(
+        "[Auth Guard] Authenticated user on auth page - redirecting to dashboard",
+      );
+      getCurrentUser()
+        .then((user) => {
+          if (user) {
+            const role = user.role as UserRole;
+            const platform = isMobile ? "mobile" : "web";
+            const defaultRoute = getDefaultRoute(role, platform);
+            router.replace(defaultRoute as any);
+          } else {
+            // Fallback if user data fetch fails but auth session exists
+            router.replace("/(tabs)");
+          }
+        })
+        .catch((err) => {
+          console.error("[Auth Guard] Error directing user:", err);
+          router.replace("/(tabs)");
+        });
     }
   }, [isAuthenticated, segments, isInitialized, isOnboardingComplete]);
 
@@ -135,48 +158,66 @@ export default function RootLayout() {
 
         const role = currentUser.role as UserRole;
         setUserRole(role);
-        const currentRoute = segments.join('/');
-        const platform = isMobile ? 'mobile' : 'web';
+        const currentRoute = segments.join("/");
+        const platform = isMobile ? "mobile" : "web";
 
         // CRITICAL: Student Affairs mobile blocking
         if (isStudentAffairsMobileBlocked(role, platform)) {
-          if (currentRoute !== 'web-required') {
-            console.log('[Role Guard] Student Affairs detected on mobile - redirecting to web-required');
-            router.replace('/web-required');
+          if (currentRoute !== "web-required") {
+            console.log(
+              "[Role Guard] Student Affairs detected on mobile - redirecting to web-required",
+            );
+            router.replace("/web-required");
           }
           return;
         }
 
         // Skip route checking for auth and onboarding
-        if (segments[0] === 'auth' || segments[0] === 'onboarding' || segments[0] === 'web-required') {
+        if (
+          segments[0] === "auth" ||
+          segments[0] === "onboarding" ||
+          segments[0] === "web-required"
+        ) {
           return;
         }
 
         // Check if current route is accessible
-        const routePath = '/' + currentRoute;
+        const routePath = "/" + currentRoute;
         if (!canAccessRoute(role, routePath, platform)) {
           // Redirect to default route for role
           const defaultRoute = getDefaultRoute(role, platform);
-          console.log(`[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`);
+          console.log(
+            `[Role Guard] Access denied for ${role} to ${routePath} on ${platform}. Redirecting to ${defaultRoute}`,
+          );
           router.replace(defaultRoute as any);
           return;
         }
 
         // Special case: Counselors should not access general forum
-        if ((role === 'counselor' || role === 'life-coach') && currentRoute === '(tabs)/forum') {
-          console.log('[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard');
-          router.replace('/counselor/dashboard');
+        if (
+          (role === "counselor" || role === "life-coach") &&
+          currentRoute === "(tabs)/forum"
+        ) {
+          console.log(
+            "[Role Guard] Counselor/Life Coach accessing forum - redirecting to dashboard",
+          );
+          router.replace("/counselor/dashboard");
           return;
         }
 
         // Special case: Student Affairs should not access forum/chat
-        if (role === 'student-affairs' && (currentRoute === '(tabs)/forum' || currentRoute === '(tabs)/chat')) {
-          console.log('[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard');
-          router.replace('/student-affairs/dashboard');
+        if (
+          role === "student-affairs" &&
+          (currentRoute === "(tabs)/forum" || currentRoute === "(tabs)/chat")
+        ) {
+          console.log(
+            "[Role Guard] Student Affairs accessing forum/chat - redirecting to dashboard",
+          );
+          router.replace("/student-affairs/dashboard");
           return;
         }
       } catch (error) {
-        console.error('Error checking role access:', error);
+        console.error("Error checking role access:", error);
       }
     };
 
@@ -190,24 +231,74 @@ export default function RootLayout() {
       label: "Create Post",
       action: () => router.push("/create-post"),
     });
-    list.push({
-      label: "Report Issue",
-      action: () => router.push("/report"),
-    });
+    list.push({ label: "Report Issue", action: () => router.push("/report") });
     list.push({
       label: "Find Resources",
       action: () => router.push("/(tabs)/forum"),
     });
+    list.push({ label: "Check In", action: () => router.push("/check-in") });
+    list.push({
+      label: "Book Counselor",
+      action: () => router.push("/book-counsellor"),
+    });
+
+    if (current.startsWith("(tabs)/profile")) {
+      list.push({
+        label: "Edit Profile",
+        action: () => router.push("/edit-profile"),
+      });
+      list.push({
+        label: "Profile Settings",
+        action: () => router.push("/profile-settings"),
+      });
+    }
     if (current.startsWith("counselor")) {
       list.push({
         label: "Go to Dashboard",
         action: () => router.push("/counselor/dashboard"),
       });
-    }
-    if (current.startsWith("(tabs)/profile")) {
       list.push({
-        label: "Edit Profile",
-        action: () => router.push("/edit-profile"),
+        label: "View Escalations",
+        action: () => router.push("/counselor/dashboard"),
+      });
+    }
+    if (current.startsWith("admin")) {
+      list.push({
+        label: "Admin Dashboard",
+        action: () => router.push("/admin/dashboard"),
+      });
+      list.push({
+        label: "Analytics",
+        action: () => router.push("/admin/analytics"),
+      });
+      list.push({
+        label: "Moderation",
+        action: () => router.push("/admin/moderation"),
+      });
+      list.push({
+        label: "Reports",
+        action: () => router.push("/admin/reports"),
+      });
+    }
+    if (current.startsWith("student-affairs")) {
+      list.push({
+        label: "Dashboard",
+        action: () => router.push("/student-affairs/dashboard"),
+      });
+      list.push({
+        label: "Analytics",
+        action: () => router.push("/student-affairs/dashboard"),
+      });
+      list.push({
+        label: "Reports",
+        action: () => router.push("/student-affairs/dashboard"),
+      });
+    }
+    if (current.startsWith("peer-educator")) {
+      list.push({ label: "Meetings", action: () => router.push("/meetings") });
+      list.push({
+        label: "Respond to Posts",
+        action: () => router.push("/(tabs)/forum"),
       });
     }
     return list;
@@ -217,14 +308,16 @@ export default function RootLayout() {
     try {
       // Check onboarding status
       const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
-      setIsOnboardingComplete(onboardingValue === 'true');
+      setIsOnboardingComplete(onboardingValue === "true");
 
       // Check authentication status
       const session = await getSession();
       setIsAuthenticated(!!session);
 
       // Listen to auth state changes
-      const { data: { subscription } } = onAuthStateChange((event, session) => {
+      const {
+        data: { subscription },
+      } = onAuthStateChange((event, session) => {
         setIsAuthenticated(!!session);
       });
 
@@ -234,7 +327,7 @@ export default function RootLayout() {
         subscription.unsubscribe();
       };
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error("Error initializing auth:", error);
       setIsAuthenticated(false);
       setIsOnboardingComplete(false);
       setIsInitialized(true);
@@ -247,7 +340,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <View style={{ flex: 1 }}>
         <OfflineIndicator />
         <Stack
@@ -258,45 +351,35 @@ export default function RootLayout() {
             },
           }}
         >
-          <Stack.Screen
-          <Stack.Screen
-            name="onboarding"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="auth"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="post/[id]"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
             name="create-post"
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
           <Stack.Screen
             name="create-channel"
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
           <Stack.Screen
             name="check-in"
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
           <Stack.Screen
@@ -321,7 +404,7 @@ export default function RootLayout() {
             name="edit-profile"
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
           <Stack.Screen
@@ -358,14 +441,14 @@ export default function RootLayout() {
             name="report"
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
           <Stack.Screen
             name="notifications"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
@@ -384,7 +467,7 @@ export default function RootLayout() {
             name="web-required"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
@@ -403,35 +486,35 @@ export default function RootLayout() {
             name="accessibility-settings"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
             name="help"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
             name="privacy"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
             name="feedback"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
           <Stack.Screen
             name="about"
             options={{
               headerShown: false,
-              presentation: 'card',
+              presentation: "card",
             }}
           />
         </Stack>
@@ -446,11 +529,16 @@ export default function RootLayout() {
         )}
         {Platform.OS === "web" && (
           <TouchableOpacity
-            style={[styles.webAssistantButton, { backgroundColor: colors.primary }]}
+            style={[
+              styles.webAssistantButton,
+              { backgroundColor: colors.primary },
+            ]}
             onPress={() => setAssistantOpen(true)}
             activeOpacity={0.8}
           >
-            <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>AI</ThemedText>
+            <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
+              AI
+            </ThemedText>
           </TouchableOpacity>
         )}
         <Modal
@@ -460,8 +548,18 @@ export default function RootLayout() {
           onRequestClose={() => setAssistantOpen(false)}
         >
           <View style={styles.overlay}>
-            <ThemedView style={[styles.assistantCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <ThemedText type="h2" style={{ marginBottom: 12, color: colors.text }}>AI Assistant</ThemedText>
+            <ThemedView
+              style={[
+                styles.assistantCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <ThemedText
+                type="h2"
+                style={{ marginBottom: 12, color: colors.text }}
+              >
+                AI Assistant
+              </ThemedText>
               <View style={[styles.inputRow, { borderColor: colors.border }]}>
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
@@ -471,26 +569,39 @@ export default function RootLayout() {
                   onChangeText={setAssistantPrompt}
                 />
                 <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.primaryBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={() => {
                     setAssistantPrompt("");
                     setAssistantOpen(false);
                   }}
                 >
-                  <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>Send</ThemedText>
+                  <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
+                    Send
+                  </ThemedText>
                 </TouchableOpacity>
               </View>
               <View style={styles.suggestionRow}>
                 {assistantSuggestions.map((s, i) => (
                   <TouchableOpacity
                     key={i}
-                    style={[styles.suggestionChip, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                    style={[
+                      styles.suggestionChip,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
                     onPress={() => {
                       setAssistantOpen(false);
                       s.action();
                     }}
                   >
-                    <ThemedText style={{ color: colors.text }}>{s.label}</ThemedText>
+                    <ThemedText style={{ color: colors.text }}>
+                      {s.label}
+                    </ThemedText>
                   </TouchableOpacity>
                 ))}
               </View>
