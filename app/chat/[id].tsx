@@ -12,9 +12,14 @@ import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
     getCurrentUser,
     getSupportMessages,
-    sendSupportMessage
+    sendSupportMessage,
 } from "@/lib/database";
-import { subscribeToMessages, unsubscribe } from "@/lib/realtime";
+import {
+    sendTyping,
+    subscribeToMessages,
+    subscribeToTyping,
+    unsubscribe,
+} from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -42,6 +47,8 @@ export default function ChatDetailScreen() {
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList<SupportMessage>>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [supporterTyping, setSupporterTyping] = useState(false);
+  const typingTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -63,8 +70,17 @@ export default function ChatDetailScreen() {
       setMessages((prev) => [...prev, msg]);
       scrollToEnd();
     });
+    const typingChannel = subscribeToTyping(id as string, () => {
+      setSupporterTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(
+        () => setSupporterTyping(false),
+        1500,
+      );
+    });
     return () => {
       unsubscribe(channel);
+      unsubscribe(typingChannel);
     };
   }, [id]);
 
@@ -94,6 +110,13 @@ export default function ChatDetailScreen() {
       console.error("Error sending message:", error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleInputChange = (text: string) => {
+    setInput(text);
+    if (userId) {
+      sendTyping(id as string, userId);
     }
   };
 
@@ -179,7 +202,7 @@ export default function ChatDetailScreen() {
                 placeholder="Type a message..."
                 placeholderTextColor={colors.icon}
                 value={input}
-                onChangeText={setInput}
+                onChangeText={handleInputChange}
               />
               <TouchableOpacity
                 style={[styles.sendBtn, { backgroundColor: colors.primary }]}
@@ -194,6 +217,18 @@ export default function ChatDetailScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            {supporterTyping && (
+              <View
+                style={{
+                  paddingHorizontal: Spacing.lg,
+                  paddingVertical: Spacing.xs,
+                }}
+              >
+                <ThemedText type="small" style={{ color: colors.icon }}>
+                  Supporter is typing…
+                </ThemedText>
+              </View>
+            )}
           </KeyboardAvoidingView>
         )}
       </ThemedView>

@@ -17,7 +17,12 @@ import {
     getUser,
     getUserSupportSessions,
 } from "@/lib/database";
-import { subscribeToSupportSessions, unsubscribe } from "@/lib/realtime";
+import {
+  subscribeToSupportSessions,
+  subscribeToMessages,
+  unsubscribe,
+  RealtimeChannel,
+} from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import * as Haptics from "expo-haptics";
@@ -61,6 +66,9 @@ export default function ChatListScreen() {
   const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "online">(
     "all",
   );
+  const [messageChannels, setMessageChannels] = useState<
+    Record<string, RealtimeChannel>
+  >({});
 
   useEffect(() => {
     fetchChats();
@@ -71,6 +79,7 @@ export default function ChatListScreen() {
 
     return () => {
       unsubscribe(channel);
+      Object.values(messageChannels).forEach(unsubscribe);
     };
   }, []);
 
@@ -100,7 +109,10 @@ export default function ChatListScreen() {
               ? new Date(lastMsg.created_at)
               : new Date(session.created_at),
             unread: 0, // TODO: Implement unread count
-            isOnline: session.status === "active",
+            isOnline: lastMsg
+              ? Date.now() - new Date(lastMsg.created_at).getTime() <
+                2 * 60 * 1000
+              : false,
             lastMessageType: "text",
             accentColor: session.priority === "urgent" ? "#EF4444" : "#6366F1",
           };
@@ -108,6 +120,34 @@ export default function ChatListScreen() {
       );
 
       setChats(mappedChats);
+    } catch (error) {
+      const channels: Record<string, RealtimeChannel> = {};
+      mappedChats.forEach((chat) => {
+        if (!messageChannels[chat.id]) {
+          const ch = subscribeToMessages(chat.id, (msg) => {
+            setChats((prev) =>
+              prev.map((c) => {
+                if (c.id !== chat.id) return c;
+                const isIncoming =
+                  msg.sender_id && msg.sender_id !== user?.id;
+                const newTime = new Date(msg.created_at);
+                return {
+                  ...c,
+                  lastMessage: msg.content,
+                  time: newTime,
+                  unread: isIncoming ? c.unread + 1 : c.unread,
+                  isOnline:
+                    Date.now() - newTime.getTime() < 2 * 60 * 1000,
+                };
+              }),
+            );
+          });
+          channels[chat.id] = ch;
+        }
+      });
+      if (Object.keys(channels).length > 0) {
+        setMessageChannels((prev) => ({ ...prev, ...channels }));
+      }
     } catch (error) {
       console.error("Error fetching chats:", error);
     } finally {
@@ -143,7 +183,10 @@ export default function ChatListScreen() {
     <Animated.View entering={FadeInDown.delay(index * 100).duration(600)}>
       <TouchableOpacity
         style={[styles.chatCard, { backgroundColor: colors.card }]}
-        onPress={() => router.push(`/chat/${item.id}`)}
+        onPress={() => {
+          setChats(prev => prev.map(c => c.id === item.id ? { ...c, unread: 0 } : c));
+          router.push(`/chat/${item.id}`);
+        }}
         activeOpacity={0.8}
       >
         <View style={styles.avatarWrapper}>

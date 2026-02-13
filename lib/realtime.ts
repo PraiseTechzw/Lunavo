@@ -2,39 +2,41 @@
  * Real-time subscription utilities for Supabase
  */
 
-import { Post, Reply } from '@/app/types';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { Post, Reply } from "@/app/types";
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "./supabase";
 export type { RealtimeChannel };
 
 /**
  * Subscribe to new posts
  */
 export function subscribeToPosts(
-  callback: (post: Post) => void
+  callback: (post: Post) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel('posts')
+    .channel("posts")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'posts',
+        event: "INSERT",
+        schema: "public",
+        table: "posts",
       },
       async (payload) => {
         // Fetch the full post with author info
         const { data } = await supabase
-          .from('posts')
-          .select(`
+          .from("posts")
+          .select(
+            `
             *,
             users!posts_author_id_fkey(pseudonym)
-          `)
-          .eq('id', payload.new.id)
+          `,
+          )
+          .eq("id", payload.new.id)
           .single();
 
         if (data) {
-          const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+          const authorPseudonym = data.users?.pseudonym || "Anonymous";
           const post: Post = {
             id: data.id,
             authorId: data.author_id,
@@ -56,7 +58,7 @@ export function subscribeToPosts(
           };
           callback(post);
         }
-      }
+      },
     )
     .subscribe();
 
@@ -68,30 +70,32 @@ export function subscribeToPosts(
  */
 export function subscribeToPostUpdates(
   postId: string,
-  callback: (post: Post) => void
+  callback: (post: Post) => void,
 ): RealtimeChannel {
   const channel = supabase
     .channel(`post:${postId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'posts',
+        event: "UPDATE",
+        schema: "public",
+        table: "posts",
         filter: `id=eq.${postId}`,
       },
       async (payload) => {
         const { data } = await supabase
-          .from('posts')
-          .select(`
+          .from("posts")
+          .select(
+            `
             *,
             users!posts_author_id_fkey(pseudonym)
-          `)
-          .eq('id', payload.new.id)
+          `,
+          )
+          .eq("id", payload.new.id)
           .single();
 
         if (data) {
-          const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+          const authorPseudonym = data.users?.pseudonym || "Anonymous";
           const post: Post = {
             id: data.id,
             authorId: data.author_id,
@@ -113,7 +117,7 @@ export function subscribeToPostUpdates(
           };
           callback(post);
         }
-      }
+      },
     )
     .subscribe();
 
@@ -125,30 +129,32 @@ export function subscribeToPostUpdates(
  */
 export function subscribeToReplies(
   postId: string,
-  callback: (reply: Reply) => void
+  callback: (reply: Reply) => void,
 ): RealtimeChannel {
   const channel = supabase
     .channel(`replies:${postId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'replies',
+        event: "INSERT",
+        schema: "public",
+        table: "replies",
         filter: `post_id=eq.${postId}`,
       },
       async (payload) => {
         const { data } = await supabase
-          .from('replies')
-          .select(`
+          .from("replies")
+          .select(
+            `
             *,
             users!replies_author_id_fkey(pseudonym)
-          `)
-          .eq('id', payload.new.id)
+          `,
+          )
+          .eq("id", payload.new.id)
           .single();
 
         if (data) {
-          const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+          const authorPseudonym = data.users?.pseudonym || "Anonymous";
           const reply: Reply = {
             id: data.id,
             postId: data.post_id,
@@ -164,7 +170,7 @@ export function subscribeToReplies(
           };
           callback(reply);
         }
-      }
+      },
     )
     .subscribe();
 
@@ -175,20 +181,20 @@ export function subscribeToReplies(
  * Subscribe to escalations
  */
 export function subscribeToEscalations(
-  callback: (escalation: any) => void
+  callback: (escalation: any) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel('escalations')
+    .channel("escalations")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'escalations',
+        event: "INSERT",
+        schema: "public",
+        table: "escalations",
       },
       (payload) => {
         callback(payload.new);
-      }
+      },
     )
     .subscribe();
 
@@ -200,21 +206,21 @@ export function subscribeToEscalations(
  */
 export function subscribeToNotifications(
   userId: string,
-  callback: (notification: any) => void
+  callback: (notification: any) => void,
 ): RealtimeChannel {
   const channel = supabase
     .channel(`notifications:${userId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
         filter: `user_id=eq.${userId}`,
       },
       (payload) => {
         callback(payload.new);
-      }
+      },
     )
     .subscribe();
 
@@ -225,20 +231,20 @@ export function subscribeToNotifications(
  * Subscribe to global system notifications
  */
 export function subscribeToSystemNotifications(
-  callback: (notification: any) => void
+  callback: (notification: any) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel('system-notifications-global')
+    .channel("system-notifications-global")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'system_notifications',
+        event: "INSERT",
+        schema: "public",
+        table: "system_notifications",
       },
       (payload) => {
         callback(payload.new);
-      }
+      },
     )
     .subscribe();
 
@@ -256,34 +262,39 @@ export function unsubscribe(channel: RealtimeChannel): void {
  * Subscribe to post updates (INSERT, UPDATE, DELETE)
  */
 export function subscribeToPostChanges(
-  callback: (payload: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; post: Post | null }) => void
+  callback: (payload: {
+    eventType: "INSERT" | "UPDATE" | "DELETE";
+    post: Post | null;
+  }) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel('posts-changes')
+    .channel("posts-changes")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*',
-        schema: 'public',
-        table: 'posts',
+        event: "*",
+        schema: "public",
+        table: "posts",
       },
       async (payload) => {
-        if (payload.eventType === 'DELETE') {
-          callback({ eventType: 'DELETE', post: null });
+        if (payload.eventType === "DELETE") {
+          callback({ eventType: "DELETE", post: null });
           return;
         }
 
         const { data } = await supabase
-          .from('posts')
-          .select(`
+          .from("posts")
+          .select(
+            `
             *,
             users!posts_author_id_fkey(pseudonym)
-          `)
-          .eq('id', payload.new.id)
+          `,
+          )
+          .eq("id", payload.new.id)
           .single();
 
         if (data) {
-          const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+          const authorPseudonym = data.users?.pseudonym || "Anonymous";
           const post: Post = {
             id: data.id,
             authorId: data.author_id,
@@ -303,9 +314,12 @@ export function subscribeToPostChanges(
             reportedCount: data.reported_count || 0,
             isFlagged: data.is_flagged || false,
           };
-          callback({ eventType: payload.eventType as 'INSERT' | 'UPDATE', post });
+          callback({
+            eventType: payload.eventType as "INSERT" | "UPDATE",
+            post,
+          });
         }
-      }
+      },
     )
     .subscribe();
 
@@ -317,35 +331,40 @@ export function subscribeToPostChanges(
  */
 export function subscribeToReplyChanges(
   postId: string,
-  callback: (payload: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; reply: Reply | null }) => void
+  callback: (payload: {
+    eventType: "INSERT" | "UPDATE" | "DELETE";
+    reply: Reply | null;
+  }) => void,
 ): RealtimeChannel {
   const channel = supabase
     .channel(`replies-changes:${postId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*',
-        schema: 'public',
-        table: 'replies',
+        event: "*",
+        schema: "public",
+        table: "replies",
         filter: `post_id=eq.${postId}`,
       },
       async (payload) => {
-        if (payload.eventType === 'DELETE') {
-          callback({ eventType: 'DELETE', reply: null });
+        if (payload.eventType === "DELETE") {
+          callback({ eventType: "DELETE", reply: null });
           return;
         }
 
         const { data } = await supabase
-          .from('replies')
-          .select(`
+          .from("replies")
+          .select(
+            `
             *,
             users!replies_author_id_fkey(pseudonym)
-          `)
-          .eq('id', payload.new.id)
+          `,
+          )
+          .eq("id", payload.new.id)
           .single();
 
         if (data) {
-          const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+          const authorPseudonym = data.users?.pseudonym || "Anonymous";
           const reply: Reply = {
             id: data.id,
             postId: data.post_id,
@@ -359,9 +378,12 @@ export function subscribeToReplyChanges(
             updatedAt: new Date(data.updated_at),
             reportedCount: data.reported_count || 0,
           };
-          callback({ eventType: payload.eventType as 'INSERT' | 'UPDATE', reply });
+          callback({
+            eventType: payload.eventType as "INSERT" | "UPDATE",
+            reply,
+          });
         }
-      }
+      },
     )
     .subscribe();
 
@@ -373,21 +395,21 @@ export function subscribeToReplyChanges(
  */
 export function subscribeToMessages(
   sessionId: string,
-  callback: (message: any) => void
+  callback: (message: any) => void,
 ): RealtimeChannel {
   const channel = supabase
     .channel(`messages:${sessionId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'support_messages',
+        event: "INSERT",
+        schema: "public",
+        table: "support_messages",
         filter: `session_id=eq.${sessionId}`,
       },
       (payload) => {
         callback(payload.new);
-      }
+      },
     )
     .subscribe();
 
@@ -398,20 +420,20 @@ export function subscribeToMessages(
  * Subscribe to support sessions for a user
  */
 export function subscribeToSupportSessions(
-  callback: (session: any) => void
+  callback: (session: any) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel('support_sessions_changes')
+    .channel("support_sessions_changes")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*',
-        schema: 'public',
-        table: 'support_sessions',
+        event: "*",
+        schema: "public",
+        table: "support_sessions",
       },
       (payload) => {
         callback(payload.new);
-      }
+      },
     )
     .subscribe();
 
@@ -429,11 +451,11 @@ export function createTypingChannel(sessionId: string): RealtimeChannel {
 
 export function subscribeToTyping(
   sessionId: string,
-  onTyping: (payload: { sessionId: string; senderId: string }) => void
+  onTyping: (payload: { sessionId: string; senderId: string }) => void,
 ): RealtimeChannel {
   const channel = createTypingChannel(sessionId).on(
-    'broadcast',
-    { event: 'typing' },
+    "broadcast",
+    { event: "typing" },
     (payload: any) => {
       if (payload?.senderId) {
         onTyping({ sessionId, senderId: payload.senderId });
@@ -447,11 +469,64 @@ export function subscribeToTyping(
 export function sendTyping(sessionId: string, senderId: string) {
   const channel = createTypingChannel(sessionId);
   channel.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
+    if (status === "SUBSCRIBED") {
       channel.send({
-        type: 'broadcast',
-        event: 'typing',
+        type: "broadcast",
+        event: "typing",
         payload: { senderId },
+      });
+    }
+  });
+  return channel;
+}
+
+/**
+ * Emoji reactions broadcast (ephemeral)
+ */
+export function createReactionsChannel(sessionId: string): RealtimeChannel {
+  return supabase.channel(`reactions:${sessionId}`, {
+    config: { broadcast: { self: true } },
+  });
+}
+
+export function subscribeToReactions(
+  sessionId: string,
+  onReaction: (payload: {
+    messageId: string;
+    emoji: string;
+    senderId: string;
+  }) => void,
+): RealtimeChannel {
+  const channel = createReactionsChannel(sessionId).on(
+    "broadcast",
+    { event: "reaction" },
+    (payload: any) => {
+      if (payload?.messageId && payload?.emoji) {
+        onReaction({
+          messageId: payload.messageId,
+          emoji: payload.emoji,
+          senderId: payload.senderId,
+        });
+      }
+    },
+  );
+  channel.subscribe();
+  return channel;
+}
+
+export function sendReaction(
+  sessionId: string,
+  messageId: string,
+  emoji: string,
+  senderId: string,
+) {
+  const channel = createReactionsChannel(sessionId);
+  channel.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      channel.send({
+        type: "broadcast",
+        event: "reaction",
+        payload: { messageId, emoji, senderId },
       });
     }
   });

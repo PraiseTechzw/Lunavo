@@ -3,12 +3,32 @@
  * All database operations go through these functions
  */
 
-import { CATEGORIES } from '@/app/constants/categories';
-import { ActivityLog, Announcement, Category, CheckIn, Escalation, EscalationLevel, Meeting, MeetingAttendance, MeetingType, Notification, NotificationType, Post, PostCategory, PostStatus, Reply, Report, SupportMessage, SupportSession, User } from '@/app/types';
-import * as ExpoFileSystem from 'expo-file-system';
-import { checkAllBadges } from './gamification';
-import { awardPostCreatedPoints, awardReplyPoints } from './points-system';
-import { supabase } from './supabase';
+import { CATEGORIES } from "@/app/constants/categories";
+import {
+    ActivityLog,
+    Announcement,
+    Category,
+    CheckIn,
+    Escalation,
+    EscalationLevel,
+    Meeting,
+    MeetingAttendance,
+    MeetingType,
+    Notification,
+    NotificationType,
+    Post,
+    PostCategory,
+    PostStatus,
+    Reply,
+    Report,
+    SupportMessage,
+    SupportSession,
+    User,
+} from "@/app/types";
+import * as ExpoFileSystem from "expo-file-system";
+import { checkAllBadges } from "./gamification";
+import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
+import { supabase } from "./supabase";
 
 // ============================================
 // USER OPERATIONS
@@ -24,34 +44,34 @@ export interface TopicStats {
 }
 
 export async function createCategory(category: Category): Promise<void> {
-  const { error } = await supabase
-    .from('categories')
-    .insert([{
+  const { error } = await supabase.from("categories").insert([
+    {
       slug: category.id,
       name: category.name,
       description: category.description,
       icon: category.icon,
       color: category.color,
-    }]);
+    },
+  ]);
 
   if (error) {
-    console.error('Error creating category:', error);
+    console.error("Error creating category:", error);
     throw error;
   }
 }
 
 export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('name');
+    .from("categories")
+    .select("*")
+    .order("name");
 
   if (error) {
-    console.error('Error fetching categories:', error);
+    console.error("Error fetching categories:", error);
     return Object.values(CATEGORIES);
   }
 
-  return data.map(cat => ({
+  return data.map((cat) => ({
     id: cat.slug as PostCategory,
     name: cat.name,
     description: cat.description,
@@ -67,20 +87,28 @@ export async function getTopicStats(): Promise<TopicStats[]> {
 
     // Calculate stats for each category
     const { data: posts } = await supabase
-      .from('posts')
-      .select('category, created_at, author_id')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days
+      .from("posts")
+      .select("category, created_at, author_id")
+      .gte(
+        "created_at",
+        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ); // Last 7 days
 
     const { data: allPosts } = await supabase
-      .from('posts')
-      .select('category, author_id');
+      .from("posts")
+      .select("category, author_id");
 
     for (const category of dbCategories) {
       // Recent posts
-      const recentCount = posts?.filter(p => p.category === category.id).length || 0;
+      const recentCount =
+        posts?.filter((p) => p.category === category.id).length || 0;
 
       // Member count (unique authors)
-      const uniqueAuthors = new Set(allPosts?.filter(p => p.category === category.id).map(p => p.author_id));
+      const uniqueAuthors = new Set(
+        allPosts
+          ?.filter((p) => p.category === category.id)
+          .map((p) => p.author_id),
+      );
       const memberCount = uniqueAuthors.size || 0;
 
       stats.push({
@@ -93,7 +121,7 @@ export async function getTopicStats(): Promise<TopicStats[]> {
 
     return stats;
   } catch (error) {
-    console.error('Error fetching topic stats:', error);
+    console.error("Error fetching topic stats:", error);
     return [];
   }
 }
@@ -110,27 +138,40 @@ export interface CreateUserData {
   emergency_contact_name: string; // Required for crisis contact
   emergency_contact_phone: string; // Required for crisis contact
   location?: string; // Optional but recommended
-  preferred_contact_method?: 'phone' | 'sms' | 'email' | 'in-person'; // Optional
-  role?: 'student' | 'peer-educator' | 'peer-educator-executive' | 'moderator' | 'counselor' | 'life-coach' | 'student-affairs' | 'admin';
+  preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
+  role?:
+    | "student"
+    | "peer-educator"
+    | "peer-educator-executive"
+    | "moderator"
+    | "counselor"
+    | "life-coach"
+    | "student-affairs"
+    | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
 
-export async function createUser(userData: CreateUserData, authUserId?: string): Promise<User> {
+export async function createUser(
+  userData: CreateUserData,
+  authUserId?: string,
+): Promise<User> {
   // Get the current authenticated user's ID from Supabase Auth
   // If authUserId is provided (from signUp), use it directly
   let userId = authUserId;
 
   if (!userId) {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (!authUser) {
-      throw new Error('User must be authenticated to create user record');
+      throw new Error("User must be authenticated to create user record");
     }
     userId = authUser.id;
   }
 
   const { data, error } = await supabase
-    .from('users')
+    .from("users")
     .insert({
       id: userId, // Use the auth user's ID
       email: userData.email,
@@ -146,7 +187,7 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
       emergency_contact_phone: userData.emergency_contact_phone, // Required
       location: userData.location || null, // Optional
       preferred_contact_method: userData.preferred_contact_method || null, // Optional
-      role: userData.role || 'student',
+      role: userData.role || "student",
       pseudonym: userData.pseudonym,
       is_anonymous: true,
       verified: false,
@@ -162,13 +203,13 @@ export async function createUser(userData: CreateUserData, authUserId?: string):
 
 export async function getUser(userId: string): Promise<User | null> {
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
+    .from("users")
+    .select("*")
+    .eq("id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null; // Not found
+    if (error.code === "PGRST116") return null; // Not found
     throw error;
   }
 
@@ -177,28 +218,30 @@ export async function getUser(userId: string): Promise<User | null> {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
+    .from("users")
+    .select("*")
+    .eq("email", email)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
   return mapUserFromDB(data);
 }
 
-export async function getUserByUsername(username: string): Promise<User | null> {
+export async function getUserByUsername(
+  username: string,
+): Promise<User | null> {
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('username', username.toLowerCase().trim())
+    .from("users")
+    .select("*")
+    .eq("username", username.toLowerCase().trim())
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
@@ -209,7 +252,9 @@ export async function getUserByUsername(username: string): Promise<User | null> 
  * Check if username is available (real-time)
  * Uses a database function to bypass RLS and avoid infinite recursion
  */
-export async function checkUsernameAvailability(username: string): Promise<boolean> {
+export async function checkUsernameAvailability(
+  username: string,
+): Promise<boolean> {
   if (!username || username.trim().length < 3) {
     return false;
   }
@@ -223,21 +268,23 @@ export async function checkUsernameAvailability(username: string): Promise<boole
 
   try {
     // Use the database function to check availability (bypasses RLS)
-    const { data, error } = await supabase.rpc('check_username_available', {
-      check_username: normalizedUsername
+    const { data, error } = await supabase.rpc("check_username_available", {
+      check_username: normalizedUsername,
     });
 
     if (error) {
       // PGRST202 means function not found.
-      if (error.code === 'PGRST202') {
-        console.warn('[Supabase] check_username_available RPC not found, falling back to direct query.');
+      if (error.code === "PGRST202") {
+        console.warn(
+          "[Supabase] check_username_available RPC not found, falling back to direct query.",
+        );
         const { data: queryData, error: queryError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('username', normalizedUsername)
+          .from("users")
+          .select("id")
+          .eq("username", normalizedUsername)
           .maybeSingle();
 
-        if (queryError && queryError.code !== 'PGRST116') {
+        if (queryError && queryError.code !== "PGRST116") {
           throw queryError;
         }
 
@@ -249,10 +296,12 @@ export async function checkUsernameAvailability(username: string): Promise<boole
 
     return data === true;
   } catch (error: any) {
-    if (error.message?.includes('Network request failed')) {
-      console.error('[Supabase] Connection error during username check. Please verify your internet.');
+    if (error.message?.includes("Network request failed")) {
+      console.error(
+        "[Supabase] Connection error during username check. Please verify your internet.",
+      );
     } else {
-      console.error('[Supabase] Error checking username availability:', error);
+      console.error("[Supabase] Error checking username availability:", error);
     }
     // On error, assume taken to be safe
     return false;
@@ -260,7 +309,7 @@ export async function checkUsernameAvailability(username: string): Promise<boole
 }
 
 /**
- * @author: Praise Masunga 
+ * @author: Praise Masunga
  * Check if email is available (real-time)
  * Uses a database function to check both users table and auth.users
  */
@@ -279,21 +328,23 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
 
   try {
     // Use the database function to check availability (bypasses RLS)
-    const { data, error } = await supabase.rpc('check_email_available', {
-      check_email: normalizedEmail
+    const { data, error } = await supabase.rpc("check_email_available", {
+      check_email: normalizedEmail,
     });
 
     if (error) {
       // PGRST202 means function not found. We only warn and fallback in this case.
-      if (error.code === 'PGRST202') {
-        console.warn('[Supabase] check_email_available RPC not found, falling back to direct query.');
+      if (error.code === "PGRST202") {
+        console.warn(
+          "[Supabase] check_email_available RPC not found, falling back to direct query.",
+        );
         const { data: queryData, error: queryError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', normalizedEmail)
+          .from("users")
+          .select("id")
+          .eq("email", normalizedEmail)
           .maybeSingle();
 
-        if (queryError && queryError.code !== 'PGRST116') {
+        if (queryError && queryError.code !== "PGRST116") {
           throw queryError;
         }
         return !queryData;
@@ -306,10 +357,12 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
     return data === true;
   } catch (error: any) {
     // If it's a network error, log it specifically
-    if (error.message?.includes('Network request failed')) {
-      console.error('[Supabase] Connection error during email check. Please verify your internet or Supabase URL.');
+    if (error.message?.includes("Network request failed")) {
+      console.error(
+        "[Supabase] Connection error during email check. Please verify your internet or Supabase URL.",
+      );
     } else {
-      console.error('[Supabase] Error checking email availability:', error);
+      console.error("[Supabase] Error checking email availability:", error);
     }
     // On error, assume taken to be safe to prevent duplicate registrations
     return false;
@@ -319,7 +372,9 @@ export async function checkEmailAvailability(email: string): Promise<boolean> {
 /**
  * Check if student ID is available (not already in use by another user)
  */
-export async function checkStudentIdAvailability(studentId: string): Promise<boolean> {
+export async function checkStudentIdAvailability(
+  studentId: string,
+): Promise<boolean> {
   if (!studentId || !studentId.trim()) {
     return false;
   }
@@ -327,20 +382,22 @@ export async function checkStudentIdAvailability(studentId: string): Promise<boo
   const normalizedId = studentId.toUpperCase().trim();
 
   try {
-    const { data, error } = await supabase.rpc('check_student_id_available', {
-      check_id: normalizedId
+    const { data, error } = await supabase.rpc("check_student_id_available", {
+      check_id: normalizedId,
     });
 
     if (error) {
-      if (error.code === 'PGRST202') {
-        console.warn('[Supabase] check_student_id_available RPC not found, falling back.');
+      if (error.code === "PGRST202") {
+        console.warn(
+          "[Supabase] check_student_id_available RPC not found, falling back.",
+        );
         const { data: queryData, error: queryError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('student_number', normalizedId)
+          .from("users")
+          .select("id")
+          .eq("student_number", normalizedId)
           .maybeSingle();
 
-        if (queryError && queryError.code !== 'PGRST116') throw queryError;
+        if (queryError && queryError.code !== "PGRST116") throw queryError;
         return !queryData;
       }
       throw error;
@@ -348,12 +405,15 @@ export async function checkStudentIdAvailability(studentId: string): Promise<boo
 
     return data === true;
   } catch (error: any) {
-    console.error('[Supabase] Error checking student ID availability:', error);
+    console.error("[Supabase] Error checking student ID availability:", error);
     return false;
   }
 }
 
-export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {
+export async function updateUser(
+  userId: string,
+  updates: Partial<User>,
+): Promise<User> {
   const updateData: any = {
     last_active: new Date().toISOString(),
   };
@@ -361,26 +421,36 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
   if (updates.pseudonym !== undefined) updateData.pseudonym = updates.pseudonym;
   if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
   if (updates.username !== undefined) updateData.username = updates.username;
-  if (updates.isAnonymous !== undefined) updateData.is_anonymous = updates.isAnonymous;
+  if (updates.isAnonymous !== undefined)
+    updateData.is_anonymous = updates.isAnonymous;
   if (updates.program !== undefined) updateData.program = updates.program;
-  if (updates.academicYear !== undefined) updateData.academic_year = updates.academicYear;
-  if (updates.academicSemester !== undefined) updateData.academic_semester = updates.academicSemester;
-  if (updates.studentNumber !== undefined) updateData.student_number = updates.studentNumber;
+  if (updates.academicYear !== undefined)
+    updateData.academic_year = updates.academicYear;
+  if (updates.academicSemester !== undefined)
+    updateData.academic_semester = updates.academicSemester;
+  if (updates.studentNumber !== undefined)
+    updateData.student_number = updates.studentNumber;
   if (updates.phone !== undefined) updateData.phone = updates.phone;
-  if (updates.emergencyContactName !== undefined) updateData.emergency_contact_name = updates.emergencyContactName;
-  if (updates.emergencyContactPhone !== undefined) updateData.emergency_contact_phone = updates.emergencyContactPhone;
+  if (updates.emergencyContactName !== undefined)
+    updateData.emergency_contact_name = updates.emergencyContactName;
+  if (updates.emergencyContactPhone !== undefined)
+    updateData.emergency_contact_phone = updates.emergencyContactPhone;
   if (updates.location !== undefined) updateData.location = updates.location;
-  if (updates.preferredContactMethod !== undefined) updateData.preferred_contact_method = updates.preferredContactMethod;
+  if (updates.preferredContactMethod !== undefined)
+    updateData.preferred_contact_method = updates.preferredContactMethod;
   if (updates.bio !== undefined) updateData.bio = updates.bio;
-  if (updates.specialization !== undefined) updateData.specialization = updates.specialization;
+  if (updates.specialization !== undefined)
+    updateData.specialization = updates.specialization;
   if (updates.interests !== undefined) updateData.interests = updates.interests;
-  if (updates.avatarUrl !== undefined) updateData.avatar_url = updates.avatarUrl;
-  if (updates.profile_data !== undefined) updateData.profile_data = updates.profile_data;
+  if (updates.avatarUrl !== undefined)
+    updateData.avatar_url = updates.avatarUrl;
+  if (updates.profile_data !== undefined)
+    updateData.profile_data = updates.profile_data;
 
   const { data, error } = await supabase
-    .from('users')
+    .from("users")
     .update(updateData)
-    .eq('id', userId)
+    .eq("id", userId)
     .select()
     .single();
 
@@ -390,7 +460,9 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   return getUser(user.id);
@@ -398,9 +470,9 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function getUsers(limit?: number): Promise<User[]> {
   let query = supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("users")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (limit) {
     query = query.limit(limit);
@@ -415,8 +487,8 @@ export async function getUsers(limit?: number): Promise<User[]> {
 
 export async function getUserCount(): Promise<number> {
   const { count, error } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true });
+    .from("users")
+    .select("*", { count: "exact", head: true });
 
   if (error) throw error;
   return count || 0;
@@ -439,21 +511,21 @@ export interface CreatePostData {
 
 export async function createPost(postData: CreatePostData): Promise<Post> {
   // Auto-detect escalation if not provided
-  let escalationLevel = postData.escalationLevel || 'none';
+  let escalationLevel = postData.escalationLevel || "none";
   let escalationReason = postData.escalationReason;
 
-  if (!postData.escalationLevel || postData.escalationLevel === 'none') {
+  if (!postData.escalationLevel || postData.escalationLevel === "none") {
     try {
-      const { detectEscalationLevel } = await import('./escalation-detection');
+      const { detectEscalationLevel } = await import("./escalation-detection");
       const tempPost: Post = {
-        id: 'temp',
+        id: "temp",
         authorId: postData.authorId,
-        authorPseudonym: 'temp',
+        authorPseudonym: "temp",
         category: postData.category,
         title: postData.title,
         content: postData.content,
-        status: 'active',
-        escalationLevel: 'none',
+        status: "active",
+        escalationLevel: "none",
         isAnonymous: postData.isAnonymous || false,
         tags: postData.tags || [],
         upvotes: 0,
@@ -465,18 +537,18 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
       };
 
       const escalation = detectEscalationLevel(tempPost);
-      if (escalation.level !== 'none' && escalation.confidence >= 0.5) {
+      if (escalation.level !== "none" && escalation.confidence >= 0.5) {
         escalationLevel = escalation.level;
         escalationReason = escalation.reason;
       }
     } catch (error) {
-      console.error('Error detecting escalation:', error);
+      console.error("Error detecting escalation:", error);
       // Continue with post creation even if detection fails
     }
   }
 
   const { data, error } = await supabase
-    .from('posts')
+    .from("posts")
     .insert({
       author_id: postData.authorId,
       category: postData.category,
@@ -484,25 +556,27 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
       content: postData.content,
       is_anonymous: postData.isAnonymous,
       tags: postData.tags || [],
-      status: escalationLevel !== 'none' ? 'escalated' : 'active',
+      status: escalationLevel !== "none" ? "escalated" : "active",
       escalation_level: escalationLevel,
       escalation_reason: escalationReason || null,
-      is_flagged: escalationLevel !== 'none',
+      is_flagged: escalationLevel !== "none",
     })
     .select()
     .maybeSingle();
 
   if (error) {
-    console.error('[Database] Error creating post:', error);
+    console.error("[Database] Error creating post:", error);
     throw error;
   }
 
   // Get author pseudonym
   const author = await getUser(postData.authorId);
-  const authorName = author?.pseudonym || 'Anonymous';
+  const authorName = author?.pseudonym || "Anonymous";
 
   if (!data) {
-    console.warn('[Database] Post created but select returned no rows. Constructing fallback.');
+    console.warn(
+      "[Database] Post created but select returned no rows. Constructing fallback.",
+    );
     const fallbackPost: Post = {
       id: `tmp-${Date.now()}`,
       authorId: postData.authorId,
@@ -512,10 +586,10 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
       content: postData.content,
       isAnonymous: postData.isAnonymous,
       tags: postData.tags || [],
-      status: escalationLevel !== 'none' ? 'escalated' : 'active',
+      status: escalationLevel !== "none" ? "escalated" : "active",
       escalationLevel: escalationLevel,
       escalationReason: escalationReason || undefined,
-      isFlagged: escalationLevel !== 'none',
+      isFlagged: escalationLevel !== "none",
       upvotes: 0,
       replies: [],
       createdAt: new Date(),
@@ -531,15 +605,15 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
   const post = await mapPostFromDB(data, authorName);
 
   // Create escalation record if needed
-  if (escalationLevel !== 'none') {
+  if (escalationLevel !== "none") {
     try {
       await createEscalation({
         postId: post.id,
         level: escalationLevel,
-        reason: escalationReason || 'Auto-detected',
+        reason: escalationReason || "Auto-detected",
       });
     } catch (escalationError) {
-      console.error('Error creating escalation:', escalationError);
+      console.error("Error creating escalation:", escalationError);
       // Don't fail post creation if escalation fails
     }
   }
@@ -549,7 +623,7 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
     await awardPostCreatedPoints(postData.authorId);
     await checkAllBadges(postData.authorId);
   } catch (pointsError) {
-    console.error('Error awarding points:', pointsError);
+    console.error("Error awarding points:", pointsError);
   }
 
   return post;
@@ -563,23 +637,25 @@ export async function getPosts(filters?: {
   offset?: number;
 }): Promise<Post[]> {
   let query = supabase
-    .from('posts')
-    .select(`
+    .from("posts")
+    .select(
+      `
       *,
       users!posts_author_id_fkey(pseudonym)
-    `)
-    .order('created_at', { ascending: false });
+    `,
+    )
+    .order("created_at", { ascending: false });
 
   if (filters?.category) {
-    query = query.eq('category', filters.category);
+    query = query.eq("category", filters.category);
   }
 
   if (filters?.status) {
-    query = query.eq('status', filters.status);
+    query = query.eq("status", filters.status);
   }
 
   if (filters?.authorId) {
-    query = query.eq('author_id', filters.authorId);
+    query = query.eq("author_id", filters.authorId);
   }
 
   if (filters?.limit) {
@@ -587,7 +663,10 @@ export async function getPosts(filters?: {
   }
 
   if (filters?.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+    query = query.range(
+      filters.offset,
+      filters.offset + (filters.limit || 10) - 1,
+    );
   }
 
   const { data, error } = await query;
@@ -597,11 +676,11 @@ export async function getPosts(filters?: {
   // Get replies for each post
   const posts = await Promise.all(
     (data || []).map(async (post: any) => {
-      const authorPseudonym = post.users?.pseudonym || 'Anonymous';
+      const authorPseudonym = post.users?.pseudonym || "Anonymous";
       const mappedPost = await mapPostFromDB(post, authorPseudonym);
       const replies = await getReplies(mappedPost.id);
       return { ...mappedPost, replies };
-    })
+    }),
   );
 
   return posts;
@@ -609,29 +688,34 @@ export async function getPosts(filters?: {
 
 export async function getPost(postId: string): Promise<Post | null> {
   const { data, error } = await supabase
-    .from('posts')
-    .select(`
+    .from("posts")
+    .select(
+      `
       *,
       users!posts_author_id_fkey(pseudonym)
-    `)
-    .eq('id', postId)
+    `,
+    )
+    .eq("id", postId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
-  const authorPseudonym = data.users?.pseudonym || 'Anonymous';
+  const authorPseudonym = data.users?.pseudonym || "Anonymous";
   const post = await mapPostFromDB(data, authorPseudonym);
   const replies = await getReplies(post.id);
 
   return { ...post, replies };
 }
 
-export async function updatePost(postId: string, updates: Partial<Post>): Promise<Post> {
+export async function updatePost(
+  postId: string,
+  updates: Partial<Post>,
+): Promise<Post> {
   const { data, error } = await supabase
-    .from('posts')
+    .from("posts")
     .update({
       title: updates.title,
       content: updates.content,
@@ -642,12 +726,12 @@ export async function updatePost(postId: string, updates: Partial<Post>): Promis
       reported_count: updates.reportedCount,
       upvotes: updates.upvotes,
     })
-    .eq('id', postId)
+    .eq("id", postId)
     .select()
     .maybeSingle();
 
   if (error) {
-    console.error('[Database] Error updating post:', error);
+    console.error("[Database] Error updating post:", error);
     throw error;
   }
 
@@ -655,19 +739,16 @@ export async function updatePost(postId: string, updates: Partial<Post>): Promis
     // If we can't select the row back, it's likely because of RLS
     // (e.g., trying to update a post you don't own)
     const existing = await getPost(postId);
-    if (!existing) throw new Error('Post not found or unauthorized to update');
+    if (!existing) throw new Error("Post not found or unauthorized to update");
     return existing;
   }
 
   const author = await getUser(data.author_id);
-  return await mapPostFromDB(data, author?.pseudonym || 'Anonymous');
+  return await mapPostFromDB(data, author?.pseudonym || "Anonymous");
 }
 
 export async function deletePost(postId: string): Promise<void> {
-  const { error } = await supabase
-    .from('posts')
-    .delete()
-    .eq('id', postId);
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
 
   if (error) throw error;
 }
@@ -675,14 +756,11 @@ export async function deletePost(postId: string): Promise<void> {
 export async function upvotePost(postId: string): Promise<number> {
   // Get current upvotes
   const post = await getPost(postId);
-  if (!post) throw new Error('Post not found');
+  if (!post) throw new Error("Post not found");
 
   const newUpvotes = post.upvotes + 1;
 
-  await supabase
-    .from('posts')
-    .update({ upvotes: newUpvotes })
-    .eq('id', postId);
+  await supabase.from("posts").update({ upvotes: newUpvotes }).eq("id", postId);
 
   return newUpvotes;
 }
@@ -701,7 +779,7 @@ export interface CreateReplyData {
 
 export async function createReply(replyData: CreateReplyData): Promise<Reply> {
   const { data, error } = await supabase
-    .from('replies')
+    .from("replies")
     .insert({
       post_id: replyData.postId,
       author_id: replyData.authorId,
@@ -713,15 +791,17 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
     .maybeSingle();
 
   if (error) {
-    console.error('[Database] Error creating reply:', error);
+    console.error("[Database] Error creating reply:", error);
     throw error;
   }
 
   const author = await getUser(replyData.authorId);
-  const authorPseudonym = author?.pseudonym || 'Anonymous';
+  const authorPseudonym = author?.pseudonym || "Anonymous";
 
   if (!data) {
-    console.warn('[Database] Reply created but select returned no rows. Constructing fallback.');
+    console.warn(
+      "[Database] Reply created but select returned no rows. Constructing fallback.",
+    );
     // Construct a fallback reply object since the record was created but RLS prevents immediate selection
     return {
       id: `tmp-${Date.now()}`,
@@ -745,7 +825,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
     await awardReplyPoints(replyData.authorId);
     await checkAllBadges(replyData.authorId);
   } catch (pointsError) {
-    console.error('Error awarding points:', pointsError);
+    console.error("Error awarding points:", pointsError);
   }
 
   return reply;
@@ -753,54 +833,56 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
 
 export async function getReplies(postId: string): Promise<Reply[]> {
   const { data, error } = await supabase
-    .from('replies')
-    .select(`
+    .from("replies")
+    .select(
+      `
       *,
       users!replies_author_id_fkey(pseudonym)
-    `)
-    .eq('post_id', postId)
-    .order('created_at', { ascending: true });
+    `,
+    )
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
 
   return (data || []).map((reply: any) => {
-    const authorPseudonym = reply.users?.pseudonym || 'Anonymous';
+    const authorPseudonym = reply.users?.pseudonym || "Anonymous";
     return mapReplyFromDB(reply, authorPseudonym);
   });
 }
 
-export async function updateReply(replyId: string, updates: Partial<Reply>): Promise<Reply> {
+export async function updateReply(
+  replyId: string,
+  updates: Partial<Reply>,
+): Promise<Reply> {
   const { data, error } = await supabase
-    .from('replies')
+    .from("replies")
     .update({
       content: updates.content,
       is_helpful: updates.isHelpful,
       reported_count: updates.reportedCount,
     })
-    .eq('id', replyId)
+    .eq("id", replyId)
     .select()
     .single();
 
   if (error) throw error;
 
   const author = await getUser(data.author_id);
-  return mapReplyFromDB(data, author?.pseudonym || 'Anonymous');
+  return mapReplyFromDB(data, author?.pseudonym || "Anonymous");
 }
 
 export async function deleteReply(replyId: string): Promise<void> {
-  const { error } = await supabase
-    .from('replies')
-    .delete()
-    .eq('id', replyId);
+  const { error } = await supabase.from("replies").delete().eq("id", replyId);
 
   if (error) throw error;
 }
 
 export async function markReplyHelpful(replyId: string): Promise<number> {
   const reply = await supabase
-    .from('replies')
-    .select('is_helpful')
-    .eq('id', replyId)
+    .from("replies")
+    .select("is_helpful")
+    .eq("id", replyId)
     .single();
 
   if (reply.error) throw reply.error;
@@ -808,9 +890,9 @@ export async function markReplyHelpful(replyId: string): Promise<number> {
   const newHelpful = (reply.data.is_helpful || 0) + 1;
 
   await supabase
-    .from('replies')
+    .from("replies")
     .update({ is_helpful: newHelpful })
-    .eq('id', replyId);
+    .eq("id", replyId);
 
   return newHelpful;
 }
@@ -820,23 +902,25 @@ export async function markReplyHelpful(replyId: string): Promise<number> {
 // ============================================
 
 export interface CreateReportData {
-  targetType: 'post' | 'reply' | 'user';
+  targetType: "post" | "reply" | "user";
   targetId: string;
   reporterId: string;
   reason: string;
   description?: string;
 }
 
-export async function createReport(reportData: CreateReportData): Promise<Report> {
+export async function createReport(
+  reportData: CreateReportData,
+): Promise<Report> {
   const { data, error } = await supabase
-    .from('reports')
+    .from("reports")
     .insert({
       target_type: reportData.targetType,
       target_id: reportData.targetId,
       reporter_id: reportData.reporterId,
       reason: reportData.reason,
       description: reportData.description || null,
-      status: 'pending',
+      status: "pending",
     })
     .select()
     .single();
@@ -847,20 +931,20 @@ export async function createReport(reportData: CreateReportData): Promise<Report
 }
 
 export async function getReports(filters?: {
-  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  status?: "pending" | "reviewed" | "resolved" | "dismissed";
   reporterId?: string;
 }): Promise<Report[]> {
   let query = supabase
-    .from('reports')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("reports")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (filters?.status) {
-    query = query.eq('status', filters.status);
+    query = query.eq("status", filters.status);
   }
 
   if (filters?.reporterId) {
-    query = query.eq('reporter_id', filters.reporterId);
+    query = query.eq("reporter_id", filters.reporterId);
   }
 
   const { data, error } = await query;
@@ -870,15 +954,20 @@ export async function getReports(filters?: {
   return (data || []).map(mapReportFromDB);
 }
 
-export async function updateReport(reportId: string, updates: Partial<Report>): Promise<Report> {
+export async function updateReport(
+  reportId: string,
+  updates: Partial<Report>,
+): Promise<Report> {
   const { data, error } = await supabase
-    .from('reports')
+    .from("reports")
     .update({
       status: updates.status,
-      reviewed_at: updates.reviewedAt ? new Date(updates.reviewedAt).toISOString() : null,
+      reviewed_at: updates.reviewedAt
+        ? new Date(updates.reviewedAt).toISOString()
+        : null,
       reviewed_by: updates.reviewedBy || null,
     })
-    .eq('id', reportId)
+    .eq("id", reportId)
     .select()
     .single();
 
@@ -898,15 +987,17 @@ export interface CreateEscalationData {
   assignedTo?: string;
 }
 
-export async function createEscalation(escalationData: CreateEscalationData): Promise<Escalation> {
+export async function createEscalation(
+  escalationData: CreateEscalationData,
+): Promise<Escalation> {
   const { data, error } = await supabase
-    .from('escalations')
+    .from("escalations")
     .insert({
       post_id: escalationData.postId,
       level: escalationData.level,
       reason: escalationData.reason,
       assigned_to: escalationData.assignedTo || null,
-      status: 'pending',
+      status: "pending",
     })
     .select()
     .single();
@@ -917,25 +1008,25 @@ export async function createEscalation(escalationData: CreateEscalationData): Pr
 }
 
 export async function getEscalations(filters?: {
-  status?: 'pending' | 'in-progress' | 'resolved' | 'dismissed';
+  status?: "pending" | "in-progress" | "resolved" | "dismissed";
   assignedTo?: string;
   level?: EscalationLevel;
 }): Promise<Escalation[]> {
   let query = supabase
-    .from('escalations')
-    .select('*')
-    .order('detected_at', { ascending: false });
+    .from("escalations")
+    .select("*")
+    .order("detected_at", { ascending: false });
 
   if (filters?.status) {
-    query = query.eq('status', filters.status);
+    query = query.eq("status", filters.status);
   }
 
   if (filters?.assignedTo) {
-    query = query.eq('assigned_to', filters.assignedTo);
+    query = query.eq("assigned_to", filters.assignedTo);
   }
 
   if (filters?.level) {
-    query = query.eq('level', filters.level);
+    query = query.eq("level", filters.level);
   }
 
   const { data, error } = await query;
@@ -945,18 +1036,23 @@ export async function getEscalations(filters?: {
   return (data || []).map(mapEscalationFromDB);
 }
 
-export async function updateEscalation(escalationId: string, updates: Partial<Escalation>): Promise<Escalation> {
+export async function updateEscalation(
+  escalationId: string,
+  updates: Partial<Escalation>,
+): Promise<Escalation> {
   const updateData: any = {};
 
   if (updates.status) updateData.status = updates.status;
-  if (updates.assignedTo !== undefined) updateData.assigned_to = updates.assignedTo || null;
-  if (updates.resolvedAt) updateData.resolved_at = updates.resolvedAt.toISOString();
+  if (updates.assignedTo !== undefined)
+    updateData.assigned_to = updates.assignedTo || null;
+  if (updates.resolvedAt)
+    updateData.resolved_at = updates.resolvedAt.toISOString();
   if (updates.notes !== undefined) updateData.notes = updates.notes || null;
 
   const { data, error } = await supabase
-    .from('escalations')
+    .from("escalations")
     .update(updateData)
-    .eq('id', escalationId)
+    .eq("id", escalationId)
     .select()
     .single();
 
@@ -965,15 +1061,17 @@ export async function updateEscalation(escalationId: string, updates: Partial<Es
   return mapEscalationFromDB(data);
 }
 
-export async function getEscalationById(escalationId: string): Promise<Escalation | null> {
+export async function getEscalationById(
+  escalationId: string,
+): Promise<Escalation | null> {
   const { data, error } = await supabase
-    .from('escalations')
-    .select('*')
-    .eq('id', escalationId)
+    .from("escalations")
+    .select("*")
+    .eq("id", escalationId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
@@ -992,9 +1090,11 @@ export interface CreateCheckInData {
   date: string; // YYYY-MM-DD format
 }
 
-export async function createCheckIn(checkInData: CreateCheckInData): Promise<CheckIn> {
+export async function createCheckIn(
+  checkInData: CreateCheckInData,
+): Promise<CheckIn> {
   const { data, error } = await supabase
-    .from('check_ins')
+    .from("check_ins")
     .insert({
       user_id: checkInData.userId,
       mood: checkInData.mood,
@@ -1007,16 +1107,16 @@ export async function createCheckIn(checkInData: CreateCheckInData): Promise<Che
 
   if (error) {
     // If duplicate, update instead
-    if (error.code === '23505') {
+    if (error.code === "23505") {
       const { data: updated, error: updateError } = await supabase
-        .from('check_ins')
+        .from("check_ins")
         .update({
           mood: checkInData.mood,
           feeling_strength: checkInData.feelingStrength || null,
           note: checkInData.note || null,
         })
-        .eq('user_id', checkInData.userId)
-        .eq('date', checkInData.date)
+        .eq("user_id", checkInData.userId)
+        .eq("date", checkInData.date)
         .select()
         .single();
 
@@ -1029,12 +1129,15 @@ export async function createCheckIn(checkInData: CreateCheckInData): Promise<Che
   return mapCheckInFromDB(data);
 }
 
-export async function getCheckIns(userId: string, limit?: number): Promise<CheckIn[]> {
+export async function getCheckIns(
+  userId: string,
+  limit?: number,
+): Promise<CheckIn[]> {
   let query = supabase
-    .from('check_ins')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .from("check_ins")
+    .select("*")
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
 
   if (limit) {
     query = query.limit(limit);
@@ -1048,15 +1151,15 @@ export async function getCheckIns(userId: string, limit?: number): Promise<Check
 }
 
 export async function hasCheckedInToday(userId: string): Promise<boolean> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const { data, error } = await supabase
-    .from('check_ins')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('date', today)
+    .from("check_ins")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("date", today)
     .single();
 
-  if (error && error.code === 'PGRST116') return false;
+  if (error && error.code === "PGRST116") return false;
   if (error) throw error;
 
   return !!data;
@@ -1065,13 +1168,13 @@ export async function hasCheckedInToday(userId: string): Promise<boolean> {
 export async function getCheckInStreak(userId: string): Promise<number> {
   // This is a simplified version - you might want to implement a more sophisticated streak calculation
   const { data, error } = await supabase
-    .from('streaks')
-    .select('current_streak')
-    .eq('user_id', userId)
-    .eq('streak_type', 'check-in')
+    .from("streaks")
+    .select("current_streak")
+    .eq("user_id", userId)
+    .eq("streak_type", "check-in")
     .single();
 
-  if (error && error.code === 'PGRST116') return 0;
+  if (error && error.code === "PGRST116") return 0;
   if (error) throw error;
 
   return data?.current_streak || 0;
@@ -1084,13 +1187,13 @@ export async function getCheckInStreak(userId: string): Promise<number> {
 export async function getAnalytics(): Promise<any> {
   // Get total posts
   const { count: totalPosts } = await supabase
-    .from('posts')
-    .select('*', { count: 'exact', head: true });
+    .from("posts")
+    .select("*", { count: "exact", head: true });
 
   // Get posts by category
   const { data: postsByCategory } = await supabase
-    .from('posts')
-    .select('category');
+    .from("posts")
+    .select("category");
 
   const categoryCounts: Record<string, number> = {};
   postsByCategory?.forEach((post: any) => {
@@ -1099,17 +1202,17 @@ export async function getAnalytics(): Promise<any> {
 
   // Get escalation count
   const { count: escalationCount } = await supabase
-    .from('escalations')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending');
+    .from("escalations")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
 
   // Get active users (users active in last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const { count: activeUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .gte('last_active', thirtyDaysAgo.toISOString());
+    .from("users")
+    .select("*", { count: "exact", head: true })
+    .gte("last_active", thirtyDaysAgo.toISOString());
 
   return {
     totalPosts: totalPosts || 0,
@@ -1125,15 +1228,18 @@ export async function getAnalytics(): Promise<any> {
 // NOTIFICATION OPERATIONS
 // ============================================
 
-export async function getNotifications(userId: string, filters?: { read?: boolean }): Promise<Notification[]> {
+export async function getNotifications(
+  userId: string,
+  filters?: { read?: boolean },
+): Promise<Notification[]> {
   let query = supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
   if (filters?.read !== undefined) {
-    query = query.eq('read', filters.read);
+    query = query.eq("read", filters.read);
   }
 
   const { data, error } = await query;
@@ -1151,9 +1257,11 @@ export async function getNotifications(userId: string, filters?: { read?: boolea
   }));
 }
 
-export async function createNotification(notification: Partial<Notification>): Promise<Notification> {
+export async function createNotification(
+  notification: Partial<Notification>,
+): Promise<Notification> {
   const { data, error } = await supabase
-    .from('notifications')
+    .from("notifications")
     .insert({
       user_id: notification.userId,
       type: notification.type,
@@ -1179,11 +1287,13 @@ export async function createNotification(notification: Partial<Notification>): P
   };
 }
 
-export async function markNotificationAsRead(notificationId: string): Promise<Notification> {
+export async function markNotificationAsRead(
+  notificationId: string,
+): Promise<Notification> {
   const { data, error } = await supabase
-    .from('notifications')
+    .from("notifications")
     .update({ read: true })
-    .eq('id', notificationId)
+    .eq("id", notificationId)
     .select()
     .single();
 
@@ -1201,21 +1311,25 @@ export async function markNotificationAsRead(notificationId: string): Promise<No
   };
 }
 
-export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+export async function markAllNotificationsAsRead(
+  userId: string,
+): Promise<void> {
   const { error } = await supabase
-    .from('notifications')
+    .from("notifications")
     .update({ read: true })
-    .eq('user_id', userId)
-    .eq('read', false);
+    .eq("user_id", userId)
+    .eq("read", false);
 
   if (error) throw error;
 }
 
-export async function deleteNotification(notificationId: string): Promise<void> {
+export async function deleteNotification(
+  notificationId: string,
+): Promise<void> {
   const { error } = await supabase
-    .from('notifications')
+    .from("notifications")
     .delete()
-    .eq('id', notificationId);
+    .eq("id", notificationId);
 
   if (error) throw error;
 }
@@ -1234,16 +1348,18 @@ export interface CreateMeetingData {
   createdBy: string;
 }
 
-export async function createMeeting(meetingData: CreateMeetingData): Promise<Meeting> {
+export async function createMeeting(
+  meetingData: CreateMeetingData,
+): Promise<Meeting> {
   const { data, error } = await supabase
-    .from('meetings')
+    .from("meetings")
     .insert({
       title: meetingData.title,
       description: meetingData.description || null,
       scheduled_date: meetingData.scheduledDate.toISOString(),
       duration_minutes: meetingData.durationMinutes || 30,
       location: meetingData.location || null,
-      meeting_type: meetingData.meetingType || 'weekly',
+      meeting_type: meetingData.meetingType || "weekly",
       created_by: meetingData.createdBy,
     })
     .select()
@@ -1260,20 +1376,20 @@ export async function getMeetings(filters?: {
   past?: boolean;
 }): Promise<Meeting[]> {
   let query = supabase
-    .from('meetings')
-    .select('*')
-    .order('scheduled_date', { ascending: true });
+    .from("meetings")
+    .select("*")
+    .order("scheduled_date", { ascending: true });
 
   if (filters?.meetingType) {
-    query = query.eq('meeting_type', filters.meetingType);
+    query = query.eq("meeting_type", filters.meetingType);
   }
 
   if (filters?.upcoming) {
-    query = query.gte('scheduled_date', new Date().toISOString());
+    query = query.gte("scheduled_date", new Date().toISOString());
   }
 
   if (filters?.past) {
-    query = query.lt('scheduled_date', new Date().toISOString());
+    query = query.lt("scheduled_date", new Date().toISOString());
   }
 
   const { data, error } = await query;
@@ -1285,33 +1401,40 @@ export async function getMeetings(filters?: {
 
 export async function getMeeting(meetingId: string): Promise<Meeting | null> {
   const { data, error } = await supabase
-    .from('meetings')
-    .select('*')
-    .eq('id', meetingId)
+    .from("meetings")
+    .select("*")
+    .eq("id", meetingId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
   return mapMeetingFromDB(data);
 }
 
-export async function updateMeeting(meetingId: string, updates: Partial<Meeting>): Promise<Meeting> {
+export async function updateMeeting(
+  meetingId: string,
+  updates: Partial<Meeting>,
+): Promise<Meeting> {
   const updateData: any = {};
 
   if (updates.title) updateData.title = updates.title;
-  if (updates.description !== undefined) updateData.description = updates.description || null;
-  if (updates.scheduledDate) updateData.scheduled_date = updates.scheduledDate.toISOString();
-  if (updates.durationMinutes) updateData.duration_minutes = updates.durationMinutes;
-  if (updates.location !== undefined) updateData.location = updates.location || null;
+  if (updates.description !== undefined)
+    updateData.description = updates.description || null;
+  if (updates.scheduledDate)
+    updateData.scheduled_date = updates.scheduledDate.toISOString();
+  if (updates.durationMinutes)
+    updateData.duration_minutes = updates.durationMinutes;
+  if (updates.location !== undefined)
+    updateData.location = updates.location || null;
   if (updates.meetingType) updateData.meeting_type = updates.meetingType;
 
   const { data, error } = await supabase
-    .from('meetings')
+    .from("meetings")
     .update(updateData)
-    .eq('id', meetingId)
+    .eq("id", meetingId)
     .select()
     .single();
 
@@ -1322,9 +1445,9 @@ export async function updateMeeting(meetingId: string, updates: Partial<Meeting>
 
 export async function deleteMeeting(meetingId: string): Promise<void> {
   const { error } = await supabase
-    .from('meetings')
+    .from("meetings")
     .delete()
-    .eq('id', meetingId);
+    .eq("id", meetingId);
 
   if (error) throw error;
 }
@@ -1340,18 +1463,23 @@ export interface CreateAttendanceData {
   notes?: string;
 }
 
-export async function createOrUpdateAttendance(attendanceData: CreateAttendanceData): Promise<MeetingAttendance> {
+export async function createOrUpdateAttendance(
+  attendanceData: CreateAttendanceData,
+): Promise<MeetingAttendance> {
   const { data, error } = await supabase
-    .from('meeting_attendance')
-    .upsert({
-      meeting_id: attendanceData.meetingId,
-      user_id: attendanceData.userId,
-      attended: attendanceData.attended,
-      attended_at: attendanceData.attended ? new Date().toISOString() : null,
-      notes: attendanceData.notes || null,
-    }, {
-      onConflict: 'meeting_id,user_id',
-    })
+    .from("meeting_attendance")
+    .upsert(
+      {
+        meeting_id: attendanceData.meetingId,
+        user_id: attendanceData.userId,
+        attended: attendanceData.attended,
+        attended_at: attendanceData.attended ? new Date().toISOString() : null,
+        notes: attendanceData.notes || null,
+      },
+      {
+        onConflict: "meeting_id,user_id",
+      },
+    )
     .select()
     .single();
 
@@ -1365,38 +1493,50 @@ export async function createOrUpdateAttendance(attendanceData: CreateAttendanceD
       const meeting = await getMeeting(attendanceData.meetingId);
       if (meeting) {
         // Update engagement streak from meeting attendance
-        const { updateEngagementStreakFromMeeting } = await import('./gamification');
-        await updateEngagementStreakFromMeeting(attendanceData.userId, meeting.scheduledDate);
+        const { updateEngagementStreakFromMeeting } =
+          await import("./gamification");
+        await updateEngagementStreakFromMeeting(
+          attendanceData.userId,
+          meeting.scheduledDate,
+        );
 
         // Award points for meeting attendance
-        const { awardMeetingAttendancePoints } = await import('./points-system');
+        const { awardMeetingAttendancePoints } =
+          await import("./points-system");
         await awardMeetingAttendancePoints(attendanceData.userId);
       }
     } catch (error) {
-      console.error('Error updating streak/points from meeting attendance:', error);
+      console.error(
+        "Error updating streak/points from meeting attendance:",
+        error,
+      );
     }
   }
 
   return result;
 }
 
-export async function getMeetingAttendance(meetingId: string): Promise<MeetingAttendance[]> {
+export async function getMeetingAttendance(
+  meetingId: string,
+): Promise<MeetingAttendance[]> {
   const { data, error } = await supabase
-    .from('meeting_attendance')
-    .select('*')
-    .eq('meeting_id', meetingId);
+    .from("meeting_attendance")
+    .select("*")
+    .eq("meeting_id", meetingId);
 
   if (error) throw error;
 
   return (data || []).map(mapAttendanceFromDB);
 }
 
-export async function getUserAttendance(userId: string): Promise<MeetingAttendance[]> {
+export async function getUserAttendance(
+  userId: string,
+): Promise<MeetingAttendance[]> {
   const { data, error } = await supabase
-    .from('meeting_attendance')
-    .select('*')
-    .eq('user_id', userId)
-    .order('attended_at', { ascending: false });
+    .from("meeting_attendance")
+    .select("*")
+    .eq("user_id", userId)
+    .order("attended_at", { ascending: false });
 
   if (error) throw error;
 
@@ -1411,16 +1551,18 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  resourceType: "article" | "video" | "pdf" | "link" | "training";
   url?: string;
   filePath?: string;
   tags?: string[];
   createdBy: string;
 }
 
-export async function createResource(resourceData: CreateResourceData): Promise<any> {
+export async function createResource(
+  resourceData: CreateResourceData,
+): Promise<any> {
   const { data, error } = await supabase
-    .from('resources')
+    .from("resources")
     .insert({
       title: resourceData.title,
       description: resourceData.description || null,
@@ -1441,19 +1583,19 @@ export async function createResource(resourceData: CreateResourceData): Promise<
 
 export async function getResources(filters?: {
   category?: PostCategory;
-  resourceType?: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  resourceType?: "article" | "video" | "pdf" | "link" | "training";
 }): Promise<any[]> {
   let query = supabase
-    .from('resources')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("resources")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (filters?.category) {
-    query = query.eq('category', filters.category);
+    query = query.eq("category", filters.category);
   }
 
   if (filters?.resourceType) {
-    query = query.eq('resource_type', filters.resourceType);
+    query = query.eq("resource_type", filters.resourceType);
   }
 
   const { data, error } = await query;
@@ -1465,34 +1607,39 @@ export async function getResources(filters?: {
 
 export async function getResource(resourceId: string): Promise<any | null> {
   const { data, error } = await supabase
-    .from('resources')
-    .select('*')
-    .eq('id', resourceId)
+    .from("resources")
+    .select("*")
+    .eq("id", resourceId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
   return data;
 }
 
-export async function updateResource(resourceId: string, updates: Partial<CreateResourceData>): Promise<any> {
+export async function updateResource(
+  resourceId: string,
+  updates: Partial<CreateResourceData>,
+): Promise<any> {
   const updateData: any = {};
 
   if (updates.title) updateData.title = updates.title;
-  if (updates.description !== undefined) updateData.description = updates.description || null;
+  if (updates.description !== undefined)
+    updateData.description = updates.description || null;
   if (updates.category) updateData.category = updates.category;
   if (updates.resourceType) updateData.resource_type = updates.resourceType;
   if (updates.url !== undefined) updateData.url = updates.url || null;
-  if (updates.filePath !== undefined) updateData.file_path = updates.filePath || null;
+  if (updates.filePath !== undefined)
+    updateData.file_path = updates.filePath || null;
   if (updates.tags) updateData.tags = updates.tags;
 
   const { data, error } = await supabase
-    .from('resources')
+    .from("resources")
     .update(updateData)
-    .eq('id', resourceId)
+    .eq("id", resourceId)
     .select()
     .single();
 
@@ -1504,55 +1651,65 @@ export async function updateResource(resourceId: string, updates: Partial<Create
 /**
  * Uploads a file to the system-resources storage bucket
  */
-export async function uploadResourceFile(uri: string, userId: string): Promise<string> {
+export async function uploadResourceFile(
+  uri: string,
+  userId: string,
+): Promise<string> {
   try {
-    console.log('Starting robust upload for URI:', uri);
+    console.log("Starting robust upload for URI:", uri);
 
     // Using expo-file-system to read file as base64 is the most stable method on Android
     const base64 = await ExpoFileSystem.readAsStringAsync(uri, {
-      encoding: 'base64' as any,
+      encoding: "base64" as any,
     });
 
     // Convert base64 to ArrayBuffer using the fetch(data:) trick (most reliable in RN)
     // This creates an internal Blob from the base64 string and then we grab its data
-    const response = await fetch(`data:application/octet-stream;base64,${base64}`);
+    const response = await fetch(
+      `data:application/octet-stream;base64,${base64}`,
+    );
     const arrayBuffer = await response.arrayBuffer();
 
-    const fileExt = uri.split('.').pop()?.split('?')[0].toLowerCase() || 'bin';
+    const fileExt = uri.split(".").pop()?.split("?")[0].toLowerCase() || "bin";
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
-    console.log('Uploading base64-converted buffer to path:', filePath, 'Size:', arrayBuffer.byteLength);
+    console.log(
+      "Uploading base64-converted buffer to path:",
+      filePath,
+      "Size:",
+      arrayBuffer.byteLength,
+    );
 
     const { data, error } = await supabase.storage
-      .from('system-resources')
+      .from("system-resources")
       .upload(filePath, arrayBuffer, {
-        contentType: 'application/octet-stream', // Safer default
-        upsert: false
+        contentType: "application/octet-stream", // Safer default
+        upsert: false,
       });
 
     if (error) {
-      console.error('Supabase Storage Upload Error:', error);
+      console.error("Supabase Storage Upload Error:", error);
       throw error;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('system-resources')
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("system-resources").getPublicUrl(filePath);
 
-    console.log('Upload successful. Public URL:', publicUrl);
+    console.log("Upload successful. Public URL:", publicUrl);
     return publicUrl;
   } catch (error: any) {
-    console.error('Final Error in uploadResourceFile:', error);
+    console.error("Final Error in uploadResourceFile:", error);
     throw error;
   }
 }
 
 export async function deleteResource(resourceId: string): Promise<void> {
   const { error } = await supabase
-    .from('resources')
+    .from("resources")
     .delete()
-    .eq('id', resourceId);
+    .eq("id", resourceId);
 
   if (error) throw error;
 }
@@ -1566,13 +1723,13 @@ export interface CreateBadgeData {
   description: string;
   icon: string;
   color: string;
-  category: 'check-in' | 'helping' | 'engagement' | 'achievement';
+  category: "check-in" | "helping" | "engagement" | "achievement";
   criteria: any;
 }
 
 export async function createBadge(badgeData: CreateBadgeData): Promise<any> {
   const { data, error } = await supabase
-    .from('badges')
+    .from("badges")
     .insert({
       name: badgeData.name,
       description: badgeData.description,
@@ -1591,9 +1748,9 @@ export async function createBadge(badgeData: CreateBadgeData): Promise<any> {
 
 export async function getBadges(): Promise<any[]> {
   const { data, error } = await supabase
-    .from('badges')
-    .select('*')
-    .order('created_at', { ascending: true });
+    .from("badges")
+    .select("*")
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
 
@@ -1602,13 +1759,13 @@ export async function getBadges(): Promise<any[]> {
 
 export async function getBadge(badgeId: string): Promise<any | null> {
   const { data, error } = await supabase
-    .from('badges')
-    .select('*')
-    .eq('id', badgeId)
+    .from("badges")
+    .select("*")
+    .eq("id", badgeId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
@@ -1617,10 +1774,10 @@ export async function getBadge(badgeId: string): Promise<any | null> {
 
 export async function getUserBadges(userId: string): Promise<any[]> {
   const { data, error } = await supabase
-    .from('user_badges')
-    .select('*, badges(*)')
-    .eq('user_id', userId)
-    .order('earned_at', { ascending: false });
+    .from("user_badges")
+    .select("*, badges(*)")
+    .eq("user_id", userId)
+    .order("earned_at", { ascending: false });
 
   if (error) throw error;
 
@@ -1629,20 +1786,25 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     userId: ub.user_id,
     badgeId: ub.badge_id,
     earnedAt: new Date(ub.earned_at),
-    badge: ub.badges ? {
-      id: ub.badges.id,
-      name: ub.badges.name,
-      description: ub.badges.description,
-      icon: ub.badges.icon,
-      color: ub.badges.color,
-      category: ub.badges.category,
-    } : null,
+    badge: ub.badges
+      ? {
+          id: ub.badges.id,
+          name: ub.badges.name,
+          description: ub.badges.description,
+          icon: ub.badges.icon,
+          color: ub.badges.color,
+          category: ub.badges.category,
+        }
+      : null,
   }));
 }
 
-export async function createUserBadge(userBadgeData: { userId: string; badgeId: string }): Promise<any> {
+export async function createUserBadge(userBadgeData: {
+  userId: string;
+  badgeId: string;
+}): Promise<any> {
   const { data, error } = await supabase
-    .from('user_badges')
+    .from("user_badges")
     .insert({
       user_id: userBadgeData.userId,
       badge_id: userBadgeData.badgeId,
@@ -1661,7 +1823,7 @@ export async function createUserBadge(userBadgeData: { userId: string; badgeId: 
 
 export interface CreateStreakData {
   userId: string;
-  streakType: 'check-in' | 'helping' | 'engagement';
+  streakType: "check-in" | "helping" | "engagement";
   currentStreak: number;
   longestStreak: number;
   lastActivityDate: Date;
@@ -1669,13 +1831,15 @@ export interface CreateStreakData {
 
 export async function createStreak(streakData: CreateStreakData): Promise<any> {
   const { data, error } = await supabase
-    .from('streaks')
+    .from("streaks")
     .insert({
       user_id: streakData.userId,
       streak_type: streakData.streakType,
       current_streak: streakData.currentStreak,
       longest_streak: streakData.longestStreak,
-      last_activity_date: streakData.lastActivityDate.toISOString().split('T')[0],
+      last_activity_date: streakData.lastActivityDate
+        .toISOString()
+        .split("T")[0],
     })
     .select()
     .single();
@@ -1685,16 +1849,19 @@ export async function createStreak(streakData: CreateStreakData): Promise<any> {
   return data;
 }
 
-export async function getStreak(userId: string, streakType: 'check-in' | 'helping' | 'engagement'): Promise<any | null> {
+export async function getStreak(
+  userId: string,
+  streakType: "check-in" | "helping" | "engagement",
+): Promise<any | null> {
   const { data, error } = await supabase
-    .from('streaks')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('streak_type', streakType)
+    .from("streaks")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("streak_type", streakType)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
 
@@ -1711,9 +1878,9 @@ export async function getStreak(userId: string, streakType: 'check-in' | 'helpin
 
 export async function getUserStreaks(userId: string): Promise<any[]> {
   const { data, error } = await supabase
-    .from('streaks')
-    .select('*')
-    .eq('user_id', userId);
+    .from("streaks")
+    .select("*")
+    .eq("user_id", userId);
 
   if (error) throw error;
 
@@ -1728,21 +1895,29 @@ export async function getUserStreaks(userId: string): Promise<any[]> {
   }));
 }
 
-export async function updateStreak(streakId: string, updates: {
-  currentStreak?: number;
-  longestStreak?: number;
-  lastActivityDate?: Date;
-}): Promise<any> {
+export async function updateStreak(
+  streakId: string,
+  updates: {
+    currentStreak?: number;
+    longestStreak?: number;
+    lastActivityDate?: Date;
+  },
+): Promise<any> {
   const updateData: any = {};
 
-  if (updates.currentStreak !== undefined) updateData.current_streak = updates.currentStreak;
-  if (updates.longestStreak !== undefined) updateData.longest_streak = updates.longestStreak;
-  if (updates.lastActivityDate) updateData.last_activity_date = updates.lastActivityDate.toISOString().split('T')[0];
+  if (updates.currentStreak !== undefined)
+    updateData.current_streak = updates.currentStreak;
+  if (updates.longestStreak !== undefined)
+    updateData.longest_streak = updates.longestStreak;
+  if (updates.lastActivityDate)
+    updateData.last_activity_date = updates.lastActivityDate
+      .toISOString()
+      .split("T")[0];
 
   const { data, error } = await supabase
-    .from('streaks')
+    .from("streaks")
     .update(updateData)
-    .eq('id', streakId)
+    .eq("id", streakId)
     .select()
     .single();
 
@@ -1765,18 +1940,20 @@ export async function updateStreak(streakId: string, updates: {
 
 export async function getActivityLogs(userId: string): Promise<ActivityLog[]> {
   const { data, error } = await supabase
-    .from('pe_activity_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .from("pe_activity_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
 
   if (error) throw error;
   return data || [];
 }
 
-export async function createActivityLog(logData: Partial<ActivityLog>): Promise<ActivityLog> {
+export async function createActivityLog(
+  logData: Partial<ActivityLog>,
+): Promise<ActivityLog> {
   const { data, error } = await supabase
-    .from('pe_activity_logs')
+    .from("pe_activity_logs")
     .insert({
       user_id: logData.user_id,
       activity_type: logData.activity_type,
@@ -1792,33 +1969,39 @@ export async function createActivityLog(logData: Partial<ActivityLog>): Promise<
   return data;
 }
 
-export async function getSupportSessions(status?: string): Promise<SupportSession[]> {
-  let query = supabase.from('support_sessions').select('*');
-  if (status) query = query.eq('status', status);
+export async function getSupportSessions(
+  status?: string,
+): Promise<SupportSession[]> {
+  let query = supabase.from("support_sessions").select("*");
+  if (status) query = query.eq("status", status);
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
-export async function getUserSupportSessions(userId: string): Promise<SupportSession[]> {
+export async function getUserSupportSessions(
+  userId: string,
+): Promise<SupportSession[]> {
   // First get the user's pseudonym
   const user = await getUser(userId);
   if (!user) return [];
 
   const { data, error } = await supabase
-    .from('support_sessions')
-    .select('*')
+    .from("support_sessions")
+    .select("*")
     .or(`educator_id.eq.${userId},student_pseudonym.eq.${user.pseudonym}`)
-    .order('created_at', { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
   return data || [];
 }
 
-export async function createSupportSession(session: Omit<SupportSession, 'id' | 'created_at'>): Promise<SupportSession> {
+export async function createSupportSession(
+  session: Omit<SupportSession, "id" | "created_at">,
+): Promise<SupportSession> {
   const { data, error } = await supabase
-    .from('support_sessions')
+    .from("support_sessions")
     .insert(session)
     .select()
     .single();
@@ -1833,31 +2016,33 @@ export async function createSupportSession(session: Omit<SupportSession, 'id' | 
 export async function startNewSupportSession(params: {
   educator_id?: string;
   category: string;
-  priority?: 'normal' | 'urgent';
+  priority?: "normal" | "urgent";
 }): Promise<SupportSession> {
   const user = await getCurrentUser();
-  if (!user) throw new Error('Not authenticated');
+  if (!user) throw new Error("Not authenticated");
 
   return createSupportSession({
     student_pseudonym: user.pseudonym,
     educator_id: params.educator_id || null,
     category: params.category,
-    status: 'pending',
-    priority: params.priority || 'normal',
-    preview: 'Session started',
+    status: "pending",
+    priority: params.priority || "normal",
+    preview: "Session started",
 
     accepted_at: null,
     resolved_at: null,
-    notes: null
+    notes: null,
   });
 }
 
-
-export async function updateSupportSession(id: string, updates: Partial<SupportSession>): Promise<SupportSession> {
+export async function updateSupportSession(
+  id: string,
+  updates: Partial<SupportSession>,
+): Promise<SupportSession> {
   const { data, error } = await supabase
-    .from('support_sessions')
+    .from("support_sessions")
     .update(updates)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -1865,32 +2050,54 @@ export async function updateSupportSession(id: string, updates: Partial<SupportS
   return data;
 }
 
-export async function getSupportMessages(sessionId: string): Promise<SupportMessage[]> {
+export async function getSupportMessages(
+  sessionId: string,
+): Promise<SupportMessage[]> {
   const { data, error } = await supabase
-    .from('support_messages')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: true });
+    .from("support_messages")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
   return data || [];
 }
 
-export async function getLastSupportMessage(sessionId: string): Promise<SupportMessage | null> {
+export async function getSupportMessagesBefore(
+  sessionId: string,
+  beforeIso: string,
+  limit = 20,
+): Promise<SupportMessage[]> {
   const { data, error } = await supabase
-    .from('support_messages')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: false })
+    .from("support_messages")
+    .select("*")
+    .eq("session_id", sessionId)
+    .lt("created_at", beforeIso)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []).reverse();
+}
+
+export async function getLastSupportMessage(
+  sessionId: string,
+): Promise<SupportMessage | null> {
+  const { data, error } = await supabase
+    .from("support_messages")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: false })
     .limit(1);
 
   if (error) throw error;
   return (data && data[0]) || null;
 }
 
-export async function sendSupportMessage(message: Omit<SupportMessage, 'id' | 'created_at' | 'is_read'>): Promise<SupportMessage> {
+export async function sendSupportMessage(
+  message: Omit<SupportMessage, "id" | "created_at" | "is_read">,
+): Promise<SupportMessage> {
   const { data, error } = await supabase
-    .from('support_messages')
+    .from("support_messages")
     .insert(message)
     .select()
     .single();
@@ -1905,9 +2112,9 @@ export async function sendSupportMessage(message: Omit<SupportMessage, 'id' | 'c
 
 export async function getPEUsers(): Promise<User[]> {
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .in('role', ['peer-educator', 'peer-educator-executive']);
+    .from("users")
+    .select("*")
+    .in("role", ["peer-educator", "peer-educator-executive"]);
 
   if (error) throw error;
   return (data || []).map(mapUserFromDB);
@@ -1920,19 +2127,28 @@ export async function getNetworkStats(): Promise<{
   totalPEs: number;
 }> {
   const [sessions, logs, pes, active] = await Promise.all([
-    supabase.from('support_sessions').select('id', { count: 'exact' }),
-    supabase.from('pe_activity_logs').select('duration_minutes'),
-    supabase.from('users').select('id', { count: 'exact' }).in('role', ['peer-educator', 'peer-educator-executive']),
-    supabase.from('support_sessions').select('id', { count: 'exact' }).eq('status', 'active')
+    supabase.from("support_sessions").select("id", { count: "exact" }),
+    supabase.from("pe_activity_logs").select("duration_minutes"),
+    supabase
+      .from("users")
+      .select("id", { count: "exact" })
+      .in("role", ["peer-educator", "peer-educator-executive"]),
+    supabase
+      .from("support_sessions")
+      .select("id", { count: "exact" })
+      .eq("status", "active"),
   ]);
 
-  const totalMinutes = (logs.data || []).reduce((acc: number, log: any) => acc + (log.duration_minutes || 0), 0);
+  const totalMinutes = (logs.data || []).reduce(
+    (acc: number, log: any) => acc + (log.duration_minutes || 0),
+    0,
+  );
 
   return {
     totalSessions: sessions.count || 0,
     totalHours: Math.round(totalMinutes / 60),
     activeSessions: active.count || 0,
-    totalPEs: pes.count || 0
+    totalPEs: pes.count || 0,
   };
 }
 
@@ -1947,12 +2163,14 @@ function mapUserFromDB(data: any): User {
     pseudonym: data.pseudonym,
     username: data.username || undefined,
     isAnonymous: data.is_anonymous,
-    role: data.role as User['role'],
+    role: data.role as User["role"],
     fullName: data.full_name || undefined,
     program: data.program || undefined,
     academicYear: data.academic_year,
     academicSemester: data.academic_semester,
-    academicUpdatedAt: data.academic_updated_at ? new Date(data.academic_updated_at) : undefined,
+    academicUpdatedAt: data.academic_updated_at
+      ? new Date(data.academic_updated_at)
+      : undefined,
     studentNumber: data.student_number || undefined,
     phone: data.phone || undefined,
     emergencyContactName: data.emergency_contact_name || undefined,
@@ -1969,7 +2187,10 @@ function mapUserFromDB(data: any): User {
   };
 }
 
-async function mapPostFromDB(data: any, authorPseudonym: string): Promise<Post> {
+async function mapPostFromDB(
+  data: any,
+  authorPseudonym: string,
+): Promise<Post> {
   return {
     id: data.id,
     authorId: data.author_id,
@@ -2074,25 +2295,26 @@ function mapAttendanceFromDB(data: any): MeetingAttendance {
   };
 }
 
-
 // ============================================
 // ANNOUNCEMENTS OPERATIONS
 // ============================================
 
 export async function getAnnouncements(): Promise<Announcement[]> {
   const { data, error } = await supabase
-    .from('announcements')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("announcements")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
 
   return (data || []).map(mapAnnouncementFromDB);
 }
 
-export async function createAnnouncement(announcement: Omit<Announcement, 'id' | 'createdAt'>): Promise<Announcement> {
+export async function createAnnouncement(
+  announcement: Omit<Announcement, "id" | "createdAt">,
+): Promise<Announcement> {
   const { data, error } = await supabase
-    .from('announcements')
+    .from("announcements")
     .insert({
       title: announcement.title,
       content: announcement.content,
@@ -2114,23 +2336,32 @@ export async function createAnnouncement(announcement: Omit<Announcement, 'id' |
   return mapAnnouncementFromDB(data);
 }
 
-export async function updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement> {
+export async function updateAnnouncement(
+  id: string,
+  updates: Partial<Announcement>,
+): Promise<Announcement> {
   const updateData: any = {};
   if (updates.title) updateData.title = updates.title;
   if (updates.content) updateData.content = updates.content;
-  if (updates.scheduledFor !== undefined) updateData.scheduled_for = updates.scheduledFor?.toISOString() || null;
-  if (updates.isPublished !== undefined) updateData.is_published = updates.isPublished;
+  if (updates.scheduledFor !== undefined)
+    updateData.scheduled_for = updates.scheduledFor?.toISOString() || null;
+  if (updates.isPublished !== undefined)
+    updateData.is_published = updates.isPublished;
   if (updates.priority) updateData.priority = updates.priority;
   if (updates.type) updateData.type = updates.type;
-  if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl || null;
-  if (updates.actionLink !== undefined) updateData.action_link = updates.actionLink || null;
-  if (updates.actionLabel !== undefined) updateData.action_label = updates.actionLabel || null;
-  if (updates.expiresAt !== undefined) updateData.expires_at = updates.expiresAt?.toISOString() || null;
+  if (updates.imageUrl !== undefined)
+    updateData.image_url = updates.imageUrl || null;
+  if (updates.actionLink !== undefined)
+    updateData.action_link = updates.actionLink || null;
+  if (updates.actionLabel !== undefined)
+    updateData.action_label = updates.actionLabel || null;
+  if (updates.expiresAt !== undefined)
+    updateData.expires_at = updates.expiresAt?.toISOString() || null;
 
   const { data, error } = await supabase
-    .from('announcements')
+    .from("announcements")
     .update(updateData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -2140,16 +2371,10 @@ export async function updateAnnouncement(id: string, updates: Partial<Announceme
 }
 
 export async function deleteAnnouncement(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('announcements')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("announcements").delete().eq("id", id);
 
   if (error) throw error;
 }
-
-
-
 
 function mapAnnouncementFromDB(dbAnn: any): Announcement {
   return {
@@ -2158,15 +2383,15 @@ function mapAnnouncementFromDB(dbAnn: any): Announcement {
     content: dbAnn.content,
     createdBy: dbAnn.created_by,
     createdAt: new Date(dbAnn.created_at),
-    scheduledFor: dbAnn.scheduled_for ? new Date(dbAnn.scheduled_for) : undefined,
+    scheduledFor: dbAnn.scheduled_for
+      ? new Date(dbAnn.scheduled_for)
+      : undefined,
     isPublished: dbAnn.is_published,
-    priority: dbAnn.priority || 'normal',
-    type: dbAnn.type || 'general',
+    priority: dbAnn.priority || "normal",
+    type: dbAnn.type || "general",
     imageUrl: dbAnn.image_url || undefined,
     actionLink: dbAnn.action_link || undefined,
     actionLabel: dbAnn.action_label || undefined,
     expiresAt: dbAnn.expires_at ? new Date(dbAnn.expires_at) : undefined,
   };
 }
-
-
