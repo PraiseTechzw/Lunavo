@@ -29,6 +29,7 @@ import {
 import { Meeting, MeetingAttendance } from '@/app/types';
 import { format, isPast } from 'date-fns';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
+import { scheduleRemindersForNewRSVP } from '@/lib/meeting-reminders';
 
 function AttendeesList({ attendance, colors }: { attendance: MeetingAttendance[]; colors: any }) {
   const [pseudonyms, setPseudonyms] = useState<Record<string, string>>({});

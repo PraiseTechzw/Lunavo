@@ -9,14 +9,13 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Analytics, Post, Report } from '@/app/types';
 import { createShadow, getContainerStyle, getCursorStyle } from '@/app/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { getAnalytics, getEscalations, getPosts, getReports, getUsers } from '@/lib/database';
+import { getEscalations, getPosts, getReports, getUsers } from '@/lib/database';
 import { subscribeToEscalations, subscribeToPosts } from '@/lib/realtime';
 import { MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Dimensions,
   Platform,
   RefreshControl,
   ScrollView,
@@ -26,9 +25,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
-const isTablet = width >= 768;
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
@@ -42,7 +39,6 @@ export default function AdminDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [escalatedPosts, setEscalatedPosts] = useState<Post[]>([]);
   const [pendingReports, setPendingReports] = useState<Report[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [systemHealth, setSystemHealth] = useState({
     status: 'healthy' as 'healthy' | 'warning' | 'critical',
     uptime: 0,
@@ -111,10 +107,9 @@ export default function AdminDashboardScreen() {
 
   const loadData = async () => {
     try {
-      const [posts, reports, analyticsData, users, escalations] = await Promise.all([
+      const [posts, reports, users, escalations] = await Promise.all([
         getPosts(),
         getReports(),
-        getAnalytics(),
         getUsers(),
         getEscalations(),
       ]);
@@ -151,7 +146,6 @@ export default function AdminDashboardScreen() {
           .slice(0, 5)
       );
       
-      setAnalytics(analyticsData);
 
       // Load recent activity
       const activity: any[] = [];

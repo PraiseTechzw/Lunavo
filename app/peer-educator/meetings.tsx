@@ -10,7 +10,7 @@ import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Meeting } from "@/app/types";
 import { createShadow, getCursorStyle } from "@/app/utils/platform-styles";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
-import { createOrUpdateAttendance, getMeetings } from "@/lib/database";
+import { createOrUpdateAttendance, getMeetings, getUserAttendance } from "@/lib/database";
 import { scheduleRemindersForNewRSVP } from "@/lib/meeting-reminders";
 import { MaterialIcons } from "@expo/vector-icons";
 import { format, isPast } from "date-fns";
