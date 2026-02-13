@@ -15,14 +15,14 @@ import { endOfDay, format, startOfDay, subDays } from "date-fns";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -83,7 +83,7 @@ export default function AnalyticsScreen() {
     } catch (error) {
       console.error("Error loading analytics:", error);
     }
-  }, [dateRange, customStartDate, customEndDate]);
+  }, [dateRange, customStartDate, customEndDate, getDateRangeDates]);
 
   useEffect(() => {
     loadAnalytics();
@@ -116,51 +116,7 @@ export default function AnalyticsScreen() {
     return { start, end };
   };
 
-  const loadAnalytics = async () => {
-    try {
-      const { start, end } = getDateRangeDates();
-      const [posts, escalations, users] = await Promise.all([
-        getPosts(),
-        getEscalations(),
-        getUsers(),
-      ]);
-
-      // Filter by date range
-      const filteredPosts = posts.filter((p) => {
-        const postDate = new Date(p.createdAt);
-        return postDate >= start && postDate <= end;
-      });
-
-      const filteredEscalations = escalations.filter((e) => {
-        const escDate = new Date(e.createdAt);
-        return escDate >= start && escDate <= end;
-      });
-
-      // Calculate analytics
-      const postsByCategory: Record<string, number> = {};
-      filteredPosts.forEach((post) => {
-        postsByCategory[post.category] =
-          (postsByCategory[post.category] || 0) + 1;
-      });
-
-      const activeUsers = users.filter((u) => {
-        const lastActive = u.lastActive ? new Date(u.lastActive) : new Date(0);
-        return lastActive >= start;
-      }).length;
-
-      const analyticsData: AnalyticsType = {
-        totalPosts: filteredPosts.length,
-        escalationCount: filteredEscalations.length,
-        activeUsers,
-        postsByCategory,
-        responseTime: 0, // Calculate from replies if needed
-      };
-
-      setAnalytics(analyticsData);
-    } catch (error) {
-      console.error("Error loading analytics:", error);
-    }
-  };
+  // duplicate removed
 
   const onRefresh = async () => {
     setRefreshing(true);

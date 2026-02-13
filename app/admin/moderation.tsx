@@ -2,38 +2,39 @@
  * Content Moderation Screen - Review and moderate posts
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { Post } from "@/app/types";
+import { createShadow, getCursorStyle } from "@/app/utils/platform-styles";
+import { getPosts, updatePost } from "@/lib/database";
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
   Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getPosts, updatePost, deletePost } from '@/lib/database';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { Post } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
-import { FlatList } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const MODERATION_HISTORY_KEY = 'moderation_history';
+const MODERATION_HISTORY_KEY = "moderation_history";
 
 export default function ModerationScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const [refreshing, setRefreshing] = useState(false);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
-  const [filter, setFilter] = useState<'all' | 'flagged' | 'reported' | 'escalated' | 'queue'>('queue');
+  const [filter, setFilter] = useState<
+    "all" | "flagged" | "reported" | "escalated" | "queue"
+  >("queue");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [moderationHistory, setModerationHistory] = useState<any[]>([]);
@@ -45,24 +46,25 @@ export default function ModerationScreen() {
         setModerationHistory(JSON.parse(historyJson));
       }
     } catch (error) {
-      console.error('Error loading moderation history:', error);
+      console.error("Error loading moderation history:", error);
     }
   }, []);
 
-  
-
   const saveModerationAction = async (action: {
     postId: string;
-    action: 'approved' | 'removed' | 'escalated';
+    action: "approved" | "removed" | "escalated";
     timestamp: string;
     postTitle: string;
   }) => {
     try {
       const history = [...moderationHistory, action].slice(-100); // Keep last 100 actions
       setModerationHistory(history);
-      await AsyncStorage.setItem(MODERATION_HISTORY_KEY, JSON.stringify(history));
+      await AsyncStorage.setItem(
+        MODERATION_HISTORY_KEY,
+        JSON.stringify(history),
+      );
     } catch (error) {
-      console.error('Error saving moderation action:', error);
+      console.error("Error saving moderation action:", error);
     }
   };
 
@@ -70,40 +72,60 @@ export default function ModerationScreen() {
     try {
       const posts = await getPosts();
       let filtered = posts;
-      
+
       switch (filter) {
-        case 'queue':
+        case "queue":
           filtered = posts
-            .filter(p => p.isFlagged || p.reportedCount > 0 || p.escalationLevel !== 'none')
+            .filter(
+              (p) =>
+                p.isFlagged ||
+                p.reportedCount > 0 ||
+                p.escalationLevel !== "none",
+            )
             .sort((a, b) => {
-              const levelOrder: Record<string, number> = { critical: 5, high: 4, medium: 3, low: 2, none: 0 };
-              const levelDiff = (levelOrder[b.escalationLevel] || 0) - (levelOrder[a.escalationLevel] || 0);
+              const levelOrder: Record<string, number> = {
+                critical: 5,
+                high: 4,
+                medium: 3,
+                low: 2,
+                none: 0,
+              };
+              const levelDiff =
+                (levelOrder[b.escalationLevel] || 0) -
+                (levelOrder[a.escalationLevel] || 0);
               if (levelDiff !== 0) return levelDiff;
-              
-              const reportDiff = (b.reportedCount || 0) - (a.reportedCount || 0);
+
+              const reportDiff =
+                (b.reportedCount || 0) - (a.reportedCount || 0);
               if (reportDiff !== 0) return reportDiff;
-              
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+              return (
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+              );
             });
           break;
-        case 'flagged':
-          filtered = posts.filter(p => p.isFlagged || p.reportedCount > 0);
+        case "flagged":
+          filtered = posts.filter((p) => p.isFlagged || p.reportedCount > 0);
           break;
-        case 'reported':
-          filtered = posts.filter(p => p.reportedCount > 0);
+        case "reported":
+          filtered = posts.filter((p) => p.reportedCount > 0);
           break;
-        case 'escalated':
-          filtered = posts.filter(p => p.escalationLevel !== 'none');
+        case "escalated":
+          filtered = posts.filter((p) => p.escalationLevel !== "none");
           break;
       }
-      
-      if (filter !== 'queue') {
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      if (filter !== "queue") {
+        filtered.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
       }
-      
+
       setAllPosts(filtered);
     } catch (error) {
-      console.error('Error loading posts:', error);
+      console.error("Error loading posts:", error);
     }
   }, [filter]);
 
@@ -115,50 +137,58 @@ export default function ModerationScreen() {
 
   const handleApprove = async (postId: string) => {
     try {
-      const post = allPosts.find(p => p.id === postId);
+      const post = allPosts.find((p) => p.id === postId);
       await updatePost(postId, { isFlagged: false, reportedCount: 0 });
       await saveModerationAction({
         postId,
-        action: 'approved',
+        action: "approved",
         timestamp: new Date().toISOString(),
-        postTitle: post?.title || 'Unknown',
+        postTitle: post?.title || "Unknown",
       });
-      setSelectedPosts(new Set(selectedPosts).delete(postId) ? new Set(selectedPosts) : new Set(selectedPosts));
+      setSelectedPosts(
+        new Set(selectedPosts).delete(postId)
+          ? new Set(selectedPosts)
+          : new Set(selectedPosts),
+      );
       await loadPosts();
     } catch (error) {
-      console.error('Error approving post:', error);
-      Alert.alert('Error', 'Failed to approve post.');
+      console.error("Error approving post:", error);
+      Alert.alert("Error", "Failed to approve post.");
     }
   };
 
   const handleRemove = async (postId: string) => {
     Alert.alert(
-      'Remove Post',
-      'This post will be hidden from all users. Are you sure?',
+      "Remove Post",
+      "This post will be hidden from all users. Are you sure?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: "Remove",
+          style: "destructive",
           onPress: async () => {
             try {
-              const post = allPosts.find(p => p.id === postId);
-              await updatePost(postId, { status: 'archived' });
+              const post = allPosts.find((p) => p.id === postId);
+              await updatePost(postId, { status: "archived" });
               await saveModerationAction({
                 postId,
-                action: 'removed',
+                action: "removed",
                 timestamp: new Date().toISOString(),
-                postTitle: post?.title || 'Unknown',
+                postTitle: post?.title || "Unknown",
               });
-              setSelectedPosts(new Set(selectedPosts).delete(postId) ? new Set(selectedPosts) : new Set(selectedPosts));
+              setSelectedPosts(
+                new Set(selectedPosts).delete(postId)
+                  ? new Set(selectedPosts)
+                  : new Set(selectedPosts),
+              );
               await loadPosts();
             } catch (error) {
-              console.error('Error removing post:', error);
-              Alert.alert('Error', 'Failed to remove post.');
+              console.error("Error removing post:", error);
+              Alert.alert("Error", "Failed to remove post.");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -174,48 +204,44 @@ export default function ModerationScreen() {
 
   const handleBulkApprove = async () => {
     if (selectedPosts.size === 0) {
-      Alert.alert('No Selection', 'Please select posts to approve.');
+      Alert.alert("No Selection", "Please select posts to approve.");
       return;
     }
 
-    Alert.alert(
-      'Bulk Approve',
-      `Approve ${selectedPosts.size} post(s)?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Approve',
-          onPress: async () => {
-            try {
-              for (const postId of selectedPosts) {
-                await handleApprove(postId);
-              }
-              setSelectedPosts(new Set());
-              setBulkMode(false);
-              Alert.alert('Success', `${selectedPosts.size} post(s) approved.`);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to approve some posts.');
+    Alert.alert("Bulk Approve", `Approve ${selectedPosts.size} post(s)?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Approve",
+        onPress: async () => {
+          try {
+            for (const postId of selectedPosts) {
+              await handleApprove(postId);
             }
-          },
+            setSelectedPosts(new Set());
+            setBulkMode(false);
+            Alert.alert("Success", `${selectedPosts.size} post(s) approved.`);
+          } catch {
+            Alert.alert("Error", "Failed to approve some posts.");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleBulkRemove = async () => {
     if (selectedPosts.size === 0) {
-      Alert.alert('No Selection', 'Please select posts to remove.');
+      Alert.alert("No Selection", "Please select posts to remove.");
       return;
     }
 
     Alert.alert(
-      'Bulk Remove',
+      "Bulk Remove",
       `Remove ${selectedPosts.size} post(s)? This action cannot be undone.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: "Remove",
+          style: "destructive",
           onPress: async () => {
             try {
               for (const postId of selectedPosts) {
@@ -223,23 +249,23 @@ export default function ModerationScreen() {
               }
               setSelectedPosts(new Set());
               setBulkMode(false);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to remove some posts.');
+            } catch {
+              Alert.alert("Error", "Failed to remove some posts.");
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  const filters: ('all' | 'flagged' | 'reported' | 'escalated' | 'queue' | 'history')[] = [
-    'queue',
-    'all',
-    'flagged',
-    'reported',
-    'escalated',
-    'history',
-  ];
+  const filters: (
+    | "all"
+    | "flagged"
+    | "reported"
+    | "escalated"
+    | "queue"
+    | "history"
+  )[] = ["queue", "all", "flagged", "reported", "escalated", "history"];
 
   useEffect(() => {
     loadPosts();
@@ -247,11 +273,14 @@ export default function ModerationScreen() {
   }, [filter, loadPosts, loadModerationHistory]);
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={getCursorStyle()}
+          >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText type="h2" style={styles.headerTitle}>
@@ -261,7 +290,12 @@ export default function ModerationScreen() {
         </View>
 
         {/* Filters and Bulk Actions */}
-        <View style={[styles.filtersContainer, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.filtersContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -274,7 +308,8 @@ export default function ModerationScreen() {
                 style={[
                   styles.filterChip,
                   {
-                    backgroundColor: filter === filterOption ? colors.primary : colors.surface,
+                    backgroundColor:
+                      filter === filterOption ? colors.primary : colors.surface,
                   },
                 ]}
                 onPress={() => {
@@ -287,17 +322,22 @@ export default function ModerationScreen() {
                 <ThemedText
                   type="small"
                   style={{
-                    color: filter === filterOption ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
+                    color: filter === filterOption ? "#FFFFFF" : colors.text,
+                    fontWeight: "600",
                   }}
                 >
-                  {filterOption === 'all' ? 'All' : filterOption === 'queue' ? 'Queue' : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+                  {filterOption === "all"
+                    ? "All"
+                    : filterOption === "queue"
+                      ? "Queue"
+                      : filterOption.charAt(0).toUpperCase() +
+                        filterOption.slice(1)}
                 </ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
-          {filter !== 'history' && (
+
+          {filter !== "history" && (
             <View style={styles.bulkActionsContainer}>
               <TouchableOpacity
                 style={[
@@ -314,39 +354,59 @@ export default function ModerationScreen() {
                 }}
               >
                 <MaterialIcons
-                  name={bulkMode ? 'check-box' : 'check-box-outline-blank'}
+                  name={bulkMode ? "check-box" : "check-box-outline-blank"}
                   size={20}
-                  color={bulkMode ? '#FFFFFF' : colors.text}
+                  color={bulkMode ? "#FFFFFF" : colors.text}
                 />
                 <ThemedText
                   type="small"
                   style={{
-                    color: bulkMode ? '#FFFFFF' : colors.text,
+                    color: bulkMode ? "#FFFFFF" : colors.text,
                     marginLeft: Spacing.xs,
-                    fontWeight: '600',
+                    fontWeight: "600",
                   }}
                 >
                   Select
                 </ThemedText>
               </TouchableOpacity>
-              
+
               {bulkMode && selectedPosts.size > 0 && (
                 <View style={styles.bulkActionButtons}>
                   <TouchableOpacity
-                    style={[styles.bulkActionButton, { backgroundColor: colors.success }]}
+                    style={[
+                      styles.bulkActionButton,
+                      { backgroundColor: colors.success },
+                    ]}
                     onPress={handleBulkApprove}
                   >
                     <MaterialIcons name="check" size={18} color="#FFFFFF" />
-                    <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs, fontWeight: '600' }}>
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: "#FFFFFF",
+                        marginLeft: Spacing.xs,
+                        fontWeight: "600",
+                      }}
+                    >
                       Approve ({selectedPosts.size})
                     </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.bulkActionButton, { backgroundColor: colors.danger }]}
+                    style={[
+                      styles.bulkActionButton,
+                      { backgroundColor: colors.danger },
+                    ]}
                     onPress={handleBulkRemove}
                   >
                     <MaterialIcons name="delete" size={18} color="#FFFFFF" />
-                    <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs, fontWeight: '600' }}>
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: "#FFFFFF",
+                        marginLeft: Spacing.xs,
+                        fontWeight: "600",
+                      }}
+                    >
                       Remove ({selectedPosts.size})
                     </ThemedText>
                   </TouchableOpacity>
@@ -363,46 +423,77 @@ export default function ModerationScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {filter === 'history' ? (
+          {filter === "history" ? (
             moderationHistory.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[styles.emptyCard, { backgroundColor: colors.card }]}
+              >
                 <MaterialIcons name="history" size={64} color={colors.icon} />
                 <ThemedText type="h3" style={styles.emptyTitle}>
                   No Moderation History
                 </ThemedText>
-                <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+                <ThemedText
+                  type="body"
+                  style={[styles.emptyText, { color: colors.icon }]}
+                >
                   Your moderation actions will appear here
                 </ThemedText>
               </View>
             ) : (
-              moderationHistory.slice().reverse().map((action, index) => (
-                <View
-                  key={index}
-                  style={[styles.historyItem, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}
-                >
-                  <MaterialIcons
-                    name={action.action === 'approved' ? 'check-circle' : 'delete'}
-                    size={24}
-                    color={action.action === 'approved' ? colors.success : colors.danger}
-                  />
-                  <View style={styles.historyContent}>
-                    <ThemedText type="body" style={{ fontWeight: '600' }}>
-                      {action.action === 'approved' ? 'Approved' : 'Removed'}: {action.postTitle}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.icon, marginTop: Spacing.xs }}>
-                      {formatDistanceToNow(new Date(action.timestamp), { addSuffix: true })}
-                    </ThemedText>
+              moderationHistory
+                .slice()
+                .reverse()
+                .map((action, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.historyItem,
+                      { backgroundColor: colors.card },
+                      createShadow(1, "#000", 0.05),
+                    ]}
+                  >
+                    <MaterialIcons
+                      name={
+                        action.action === "approved" ? "check-circle" : "delete"
+                      }
+                      size={24}
+                      color={
+                        action.action === "approved"
+                          ? colors.success
+                          : colors.danger
+                      }
+                    />
+                    <View style={styles.historyContent}>
+                      <ThemedText type="body" style={{ fontWeight: "600" }}>
+                        {action.action === "approved" ? "Approved" : "Removed"}:{" "}
+                        {action.postTitle}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{ color: colors.icon, marginTop: Spacing.xs }}
+                      >
+                        {formatDistanceToNow(new Date(action.timestamp), {
+                          addSuffix: true,
+                        })}
+                      </ThemedText>
+                    </View>
                   </View>
-                </View>
-              ))
+                ))
             )
           ) : allPosts.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-              <MaterialIcons name="check-circle" size={64} color={colors.success} />
+              <MaterialIcons
+                name="check-circle"
+                size={64}
+                color={colors.success}
+              />
               <ThemedText type="h3" style={styles.emptyTitle}>
                 No Posts to Moderate
               </ThemedText>
-              <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
+              <ThemedText
+                type="body"
+                style={[styles.emptyText, { color: colors.icon }]}
+              >
                 All posts are compliant
               </ThemedText>
             </View>
@@ -410,117 +501,212 @@ export default function ModerationScreen() {
             allPosts.map((post) => {
               const isSelected = selectedPosts.has(post.id);
               return (
-              <TouchableOpacity
-                key={post.id}
-                style={[
-                  styles.postCard,
-                  { 
-                    backgroundColor: colors.card,
-                    borderWidth: isSelected ? 2 : 0,
-                    borderColor: isSelected ? colors.primary : 'transparent',
-                  },
-                  createShadow(3, '#000', 0.1),
-                ]}
-                onLongPress={() => {
-                  if (bulkMode) {
-                    togglePostSelection(post.id);
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                {bulkMode && (
-                  <TouchableOpacity
-                    style={styles.checkbox}
-                    onPress={() => togglePostSelection(post.id)}
-                  >
-                    <MaterialIcons
-                      name={isSelected ? 'check-box' : 'check-box-outline-blank'}
-                      size={24}
-                      color={isSelected ? colors.primary : colors.icon}
-                    />
-                  </TouchableOpacity>
-                )}
-                <View style={styles.postHeader}>
-                  <View style={styles.authorInfo}>
-                    <MaterialIcons name="person" size={20} color={colors.icon} />
-                    <ThemedText type="small" style={{ color: colors.icon, marginLeft: 4 }}>
-                      {post.authorPseudonym}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: colors.icon, marginLeft: Spacing.sm }}>
-                      • {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.badges}>
-                    {post.isFlagged && (
-                      <View style={[styles.badge, { backgroundColor: colors.warning + '20' }]}>
-                        <MaterialIcons name="flag" size={14} color={colors.warning} />
-                        <ThemedText type="small" style={{ color: colors.warning, fontWeight: '600', marginLeft: 2 }}>
-                          Flagged
-                        </ThemedText>
-                      </View>
-                    )}
-                    {post.reportedCount > 0 && (
-                      <View style={[styles.badge, { backgroundColor: colors.danger + '20' }]}>
-                        <MaterialIcons name="report-problem" size={14} color={colors.danger} />
-                        <ThemedText type="small" style={{ color: colors.danger, fontWeight: '600', marginLeft: 2 }}>
-                          {post.reportedCount} reports
-                        </ThemedText>
-                      </View>
-                    )}
-                    {post.escalationLevel !== 'none' && (
-                      <View style={[styles.badge, { backgroundColor: colors.danger + '20' }]}>
-                        <MaterialIcons name="priority-high" size={14} color={colors.danger} />
-                        <ThemedText type="small" style={{ color: colors.danger, fontWeight: '600', marginLeft: 2 }}>
-                          {post.escalationLevel}
-                        </ThemedText>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
                 <TouchableOpacity
-                  onPress={() => router.push(`/post/${post.id}`)}
+                  key={post.id}
+                  style={[
+                    styles.postCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderWidth: isSelected ? 2 : 0,
+                      borderColor: isSelected ? colors.primary : "transparent",
+                    },
+                    createShadow(3, "#000", 0.1),
+                  ]}
+                  onLongPress={() => {
+                    if (bulkMode) {
+                      togglePostSelection(post.id);
+                    }
+                  }}
                   activeOpacity={0.7}
                 >
-                  <ThemedText type="h3" style={styles.postTitle}>
-                    {post.title}
-                  </ThemedText>
-                  <ThemedText type="body" style={styles.postContent} numberOfLines={3}>
-                    {post.content}
-                  </ThemedText>
-                </TouchableOpacity>
+                  {bulkMode && (
+                    <TouchableOpacity
+                      style={styles.checkbox}
+                      onPress={() => togglePostSelection(post.id)}
+                    >
+                      <MaterialIcons
+                        name={
+                          isSelected ? "check-box" : "check-box-outline-blank"
+                        }
+                        size={24}
+                        color={isSelected ? colors.primary : colors.icon}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <View style={styles.postHeader}>
+                    <View style={styles.authorInfo}>
+                      <MaterialIcons
+                        name="person"
+                        size={20}
+                        color={colors.icon}
+                      />
+                      <ThemedText
+                        type="small"
+                        style={{ color: colors.icon, marginLeft: 4 }}
+                      >
+                        {post.authorPseudonym}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{ color: colors.icon, marginLeft: Spacing.sm }}
+                      >
+                        •{" "}
+                        {formatDistanceToNow(post.createdAt, {
+                          addSuffix: true,
+                        })}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.badges}>
+                      {post.isFlagged && (
+                        <View
+                          style={[
+                            styles.badge,
+                            { backgroundColor: colors.warning + "20" },
+                          ]}
+                        >
+                          <MaterialIcons
+                            name="flag"
+                            size={14}
+                            color={colors.warning}
+                          />
+                          <ThemedText
+                            type="small"
+                            style={{
+                              color: colors.warning,
+                              fontWeight: "600",
+                              marginLeft: 2,
+                            }}
+                          >
+                            Flagged
+                          </ThemedText>
+                        </View>
+                      )}
+                      {post.reportedCount > 0 && (
+                        <View
+                          style={[
+                            styles.badge,
+                            { backgroundColor: colors.danger + "20" },
+                          ]}
+                        >
+                          <MaterialIcons
+                            name="report-problem"
+                            size={14}
+                            color={colors.danger}
+                          />
+                          <ThemedText
+                            type="small"
+                            style={{
+                              color: colors.danger,
+                              fontWeight: "600",
+                              marginLeft: 2,
+                            }}
+                          >
+                            {post.reportedCount} reports
+                          </ThemedText>
+                        </View>
+                      )}
+                      {post.escalationLevel !== "none" && (
+                        <View
+                          style={[
+                            styles.badge,
+                            { backgroundColor: colors.danger + "20" },
+                          ]}
+                        >
+                          <MaterialIcons
+                            name="priority-high"
+                            size={14}
+                            color={colors.danger}
+                          />
+                          <ThemedText
+                            type="small"
+                            style={{
+                              color: colors.danger,
+                              fontWeight: "600",
+                              marginLeft: 2,
+                            }}
+                          >
+                            {post.escalationLevel}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+                  </View>
 
-                <View style={styles.postFooter}>
-                  <View style={styles.categoryBadge}>
-                    <ThemedText type="small" style={{ fontWeight: '600' }}>
-                      {post.category}
+                  <TouchableOpacity
+                    onPress={() => router.push(`/post/${post.id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <ThemedText type="h3" style={styles.postTitle}>
+                      {post.title}
                     </ThemedText>
-                  </View>
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: colors.success + '20' }]}
-                      onPress={() => handleApprove(post.id)}
-                      activeOpacity={0.7}
+                    <ThemedText
+                      type="body"
+                      style={styles.postContent}
+                      numberOfLines={3}
                     >
-                      <MaterialIcons name="check" size={18} color={colors.success} />
-                      <ThemedText type="small" style={{ color: colors.success, fontWeight: '600', marginLeft: 4 }}>
-                        Approve
+                      {post.content}
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  <View style={styles.postFooter}>
+                    <View style={styles.categoryBadge}>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>
+                        {post.category}
                       </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: colors.danger + '20' }]}
-                      onPress={() => handleRemove(post.id)}
-                      activeOpacity={0.7}
-                    >
-                      <MaterialIcons name="delete" size={18} color={colors.danger} />
-                      <ThemedText type="small" style={{ color: colors.danger, fontWeight: '600', marginLeft: 4 }}>
-                        Remove
-                      </ThemedText>
-                    </TouchableOpacity>
+                    </View>
+                    <View style={styles.actions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: colors.success + "20" },
+                        ]}
+                        onPress={() => handleApprove(post.id)}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons
+                          name="check"
+                          size={18}
+                          color={colors.success}
+                        />
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: colors.success,
+                            fontWeight: "600",
+                            marginLeft: 4,
+                          }}
+                        >
+                          Approve
+                        </ThemedText>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: colors.danger + "20" },
+                        ]}
+                        onPress={() => handleRemove(post.id)}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons
+                          name="delete"
+                          size={18}
+                          color={colors.danger}
+                        />
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: colors.danger,
+                            fontWeight: "600",
+                            marginLeft: 4,
+                          }}
+                        >
+                          Remove
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            );
+                </TouchableOpacity>
+              );
             })
           )}
 
@@ -539,20 +725,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   filtersScroll: {
     maxHeight: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   filtersContent: {
     paddingHorizontal: Spacing.md,
@@ -574,15 +760,15 @@ const styles = StyleSheet.create({
   emptyCard: {
     padding: Spacing.xl * 2,
     borderRadius: BorderRadius.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyTitle: {
     marginTop: Spacing.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   emptyText: {
     marginTop: Spacing.xs,
-    textAlign: 'center',
+    textAlign: "center",
   },
   postCard: {
     padding: Spacing.md,
@@ -590,30 +776,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.sm,
   },
   authorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   badges: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.xs,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
   postTitle: {
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Spacing.xs,
   },
   postContent: {
@@ -621,70 +807,70 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   postFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
   },
   categoryBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.sm,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
   },
   filtersContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   bulkActionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
   },
   bulkModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
   },
   bulkActionButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
   },
   bulkActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
   },
   checkbox: {
-    position: 'absolute',
+    position: "absolute",
     top: Spacing.sm,
     right: Spacing.sm,
     zIndex: 1,
   },
   historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
@@ -694,6 +880,3 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
 });
-
-
-

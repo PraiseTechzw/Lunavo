@@ -85,28 +85,7 @@ export default function EscalationsScreen() {
     };
   }, [filter, loadEscalations, setupRealtimeSubscriptions]);
 
-  const setupRealtimeSubscriptions = () => {
-    // Subscribe to new escalations
-    const escalationsChannel = subscribeToEscalations((escalation) => {
-      // Reload escalations when a new one is created
-      loadEscalations();
-    });
-
-    // Subscribe to post changes (escalation level updates)
-    const postChangesChannel = subscribeToPostChanges(({ eventType, post }) => {
-      if (post && post.escalationLevel !== 'none') {
-        // Reload escalations when a post is escalated
-        loadEscalations();
-      } else if (eventType === 'UPDATE' && post) {
-        // Update existing escalated post
-        setEscalatedPosts((prev) =>
-          prev.map((p) => (p.id === post.id ? post : p))
-        );
-      }
-    });
-
-    escalationsChannelRef.current = escalationsChannel;
-  };
+  // duplicate setupRealtimeSubscriptions removed
 
   
 
