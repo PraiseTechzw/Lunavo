@@ -9,6 +9,7 @@ import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Analytics as AnalyticsType, PostCategory } from "@/app/types";
 import { createShadow, getCursorStyle } from "@/app/utils/platform-styles";
+import { extractKeywords } from "@/lib/ai-utils";
 import { getEscalations, getPosts, getUsers } from "@/lib/database";
 import { MaterialIcons } from "@expo/vector-icons";
 import { endOfDay, format, startOfDay, subDays } from "date-fns";
@@ -71,12 +72,35 @@ export default function AnalyticsScreen() {
         return lastActive >= start;
       }).length;
 
+      // Derive common issues from topics, important phrases, and keywords
+      const issueCounts: Record<string, number> = {};
+      const addMany = (arr: string[], weight = 1) => {
+        arr.forEach((s) => {
+          const key = s.toLowerCase();
+          issueCounts[key] = (issueCounts[key] || 0) + weight;
+        });
+      };
+      filteredPosts.forEach((post) => {
+        const { keywords, importantPhrases, topics } = extractKeywords(
+          post.title,
+          post.content,
+        );
+        addMany(topics, 3);
+        addMany(importantPhrases, 2);
+        addMany(keywords, 1);
+      });
+      const commonIssues = Object.entries(issueCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20)
+        .map(([issue]) => issue);
+
       const analyticsData: AnalyticsType = {
         totalPosts: filteredPosts.length,
         escalationCount: filteredEscalations.length,
         activeUsers,
         postsByCategory,
         responseTime: 0,
+        commonIssues,
       };
 
       setAnalytics(analyticsData);

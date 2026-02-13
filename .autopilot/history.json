@@ -1,6 +1,17 @@
 {
   "commits": [
     {
+      "hash": "92d9262e87f34ecf01e8aac87dab33b5129d5b0a",
+      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2cd4a3067b803dd0aa4369930e76a931acd9eaa8b6d985ed37a68578d2e92776",
+      "files": [
+        "autopilot/history.json",
+        "app/admin/analytics.tsx",
+        "app/admin/escalations.tsx",
+        "app/admin/moderation.tsx"
+      ],
+      "timestamp": "2026-02-13T06:31:24.415Z"
+    },
+    {
       "hash": "e66bbe179d194770b83bb15c3f53ff0ba4c5ce59",
       "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 96193e438bb172a462c5b5964c22081d6581aad038f296004b52c2a17f8fe395",
       "files": [
