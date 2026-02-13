@@ -46,6 +46,7 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme];
   const { height, width } = useWindowDimensions();
   const isSmall = height < 700 || width < 360;
+  const tinySmall = height < 640 || width < 320;
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -133,24 +134,26 @@ export default function LoginScreen() {
               entering={FadeInDown.delay(200).duration(800)}
               style={[
                 styles.logoSection,
-                isSmall ? { marginBottom: 24 } : null,
+                tinySmall ? { marginBottom: 16 } : isSmall ? { marginBottom: 24 } : null,
               ]}
             >
-              <PEACELogo size={isSmall ? 88 : 140} />
+              <PEACELogo size={tinySmall ? 72 : isSmall ? 88 : 140} />
               <ThemedText
                 type="h1"
                 style={[
                   styles.title,
-                  isSmall ? { fontSize: 32, letterSpacing: 4 } : null,
+                  tinySmall ? { fontSize: 28, letterSpacing: 3 } : isSmall ? { fontSize: 32, letterSpacing: 4 } : null,
                 ]}
               >
                 PEACE
               </ThemedText>
-              <ThemedText
-                style={[styles.subtitle, isSmall ? { letterSpacing: 2 } : null]}
-              >
-                Peer Education Club
-              </ThemedText>
+              {!tinySmall && (
+                <ThemedText
+                  style={[styles.subtitle, isSmall ? { letterSpacing: 2 } : null]}
+                >
+                  Peer Education Club
+                </ThemedText>
+              )}
             </Animated.View>
 
             <Animated.View
@@ -158,7 +161,7 @@ export default function LoginScreen() {
               style={[
                 styles.card,
                 { backgroundColor: colors.card },
-                isSmall ? { padding: Spacing.lg } : null,
+                tinySmall ? { padding: Spacing.md } : isSmall ? { padding: Spacing.lg } : null,
               ]}
             >
               <ThemedText type="h2" style={styles.cardTitle}>
@@ -171,7 +174,7 @@ export default function LoginScreen() {
                   style={[
                     styles.inputWrapper,
                     { borderColor: colors.border },
-                    isSmall ? { height: 52 } : null,
+                    tinySmall ? { height: 48 } : isSmall ? { height: 52 } : null,
                   ]}
                 >
                   <Ionicons name="mail-outline" size={20} color={colors.icon} />
@@ -192,7 +195,7 @@ export default function LoginScreen() {
                   style={[
                     styles.inputWrapper,
                     { borderColor: colors.border },
-                    isSmall ? { height: 52 } : null,
+                    tinySmall ? { height: 48 } : isSmall ? { height: 52 } : null,
                   ]}
                 >
                   <Ionicons
@@ -223,7 +226,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={[
                   styles.forgotBtn,
-                  isSmall ? { marginBottom: Spacing.md } : null,
+                  tinySmall ? { marginBottom: Spacing.sm } : isSmall ? { marginBottom: Spacing.md } : null,
                 ]}
                 onPress={() => router.push("/auth/forgot-password")}
               >
@@ -239,14 +242,14 @@ export default function LoginScreen() {
                 disabled={loading || !canSignIn}
                 style={[
                   styles.loginBtnWrapper,
-                  isSmall ? { marginBottom: Spacing.md } : null,
+                  tinySmall ? { marginBottom: Spacing.sm } : isSmall ? { marginBottom: Spacing.md } : null,
                 ]}
               >
                 <LinearGradient
                   colors={colors.gradients.primary as any}
                   style={[
                     styles.loginBtn,
-                    isSmall ? { height: 56 } : null,
+                    tinySmall ? { height: 52 } : isSmall ? { height: 56 } : null,
                     (!canSignIn || loading) ? { opacity: 0.6 } : null,
                   ]}
                   start={{ x: 0, y: 0 }}
@@ -255,9 +258,7 @@ export default function LoginScreen() {
                   {loading ? (
                     <ActivityIndicator color="#FFF" />
                   ) : (
-                    <ThemedText style={styles.loginBtnText}>
-                      SIGN IN TO COMMUNITY
-                    </ThemedText>
+                    <ThemedText style={styles.loginBtnText}>Sign In</ThemedText>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
