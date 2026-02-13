@@ -8,7 +8,7 @@ require('dotenv').config();
 module.exports = {
   expo: {
     name: "PEACE",
-    slug: "Lunavo",
+    slug: "peace",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",

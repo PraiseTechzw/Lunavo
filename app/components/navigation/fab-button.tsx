@@ -9,6 +9,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { createShadow } from '@/app/utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FABProps {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -23,15 +24,17 @@ export function FAB({ icon, label, onPress, position = 'bottom-right', color }: 
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const fabColor = color || colors.primary;
+  const insets = useSafeAreaInsets();
 
   // Only show on mobile
   if (Platform.OS === 'web') {
     return null;
   }
 
+  const tabBarOffset = 100; // approximate: 25 (tab bottom) + 64 (height) + padding
   const positionStyles = {
-    'bottom-right': { bottom: 20, right: 20 },
-    'bottom-left': { bottom: 20, left: 20 },
+    'bottom-right': { bottom: insets.bottom + tabBarOffset, right: 20 },
+    'bottom-left': { bottom: insets.bottom + tabBarOffset, left: 20 },
     'top-right': { top: 20, right: 20 },
     'top-left': { top: 20, left: 20 },
   };

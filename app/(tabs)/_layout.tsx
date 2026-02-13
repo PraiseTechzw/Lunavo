@@ -85,6 +85,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="assistant"
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "robot-happy" : "robot-outline"}
+                size={26}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
+          ),
+          title: "Assist",
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
+        }}
+      />
+      <Tabs.Screen
         name="forum"
         options={{
           tabBarIcon: ({ color, focused }) => (

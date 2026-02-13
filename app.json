@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PEACE",
-    "slug": "Lunavo",
+    "slug": "peace",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "peace",

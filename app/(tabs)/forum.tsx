@@ -256,23 +256,7 @@ export default function ForumScreen() {
               </View>
             </View>
           }
-          ListFooterComponent={
-            <TouchableOpacity
-              style={[styles.createPromptCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => router.push('/create-channel')}
-            >
-              <View style={[styles.createPromptIcon, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="add" size={32} color={colors.primary} />
-              </View>
-              <View style={styles.createPromptText}>
-                <ThemedText style={styles.createPromptTitle}>Ready to lead?</ThemedText>
-                <ThemedText style={[styles.createPromptDesc, { color: colors.icon }]}>
-                  Start a new support circle. Everyone is allowed to create channels.
-                </ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </TouchableOpacity>
-          }
+          ListFooterComponent={null}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

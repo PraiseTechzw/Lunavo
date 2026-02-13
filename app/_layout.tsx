@@ -49,6 +49,10 @@ export default function RootLayout() {
     () => segments[0] === "onboarding",
     [segments],
   );
+  const isTabsRoute = useMemo(
+    () => segments[0] === "(tabs)" || segments[0] === "peer-educator",
+    [segments],
+  );
 
   useEffect(() => {
     initializeAuth();
@@ -537,7 +541,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-        {!isAuthRoute && Platform.OS !== "web" && (
+        {!isAuthRoute && !isTabsRoute && Platform.OS !== "web" && (
           <FAB
             icon="smart-toy"
             label="AI Assist"
@@ -546,7 +550,7 @@ export default function RootLayout() {
             color={colors.primary}
           />
         )}
-        {!isAuthRoute && Platform.OS === "web" && (
+        {!isAuthRoute && !isTabsRoute && Platform.OS === "web" && (
           <TouchableOpacity
             style={[
               styles.webAssistantButton,

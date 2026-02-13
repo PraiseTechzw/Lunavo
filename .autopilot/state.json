@@ -1,5 +1,5 @@
 {
-  "status": "running",
-  "reason": null,
-  "pausedAt": null
+  "status": "paused",
+  "reason": "Push failed: Command failed with exit code 128: git push origin master",
+  "pausedAt": "2026-02-13T15:59:38.110Z"
 }

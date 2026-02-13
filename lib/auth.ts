@@ -95,14 +95,14 @@ export async function signUp(
     // Sign up with Supabase Auth
     // We pass the user profile data as metadata so the Trigger can create the public.users record
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: userData.email,
+      email: userData.email.toLowerCase().trim(),
       password: userData.password,
       options: {
         emailRedirectTo: "peace://auth/confirm-signup",
         data: {
           fullName: userData.fullName,
           username: userData.username, // Add username here
-          studentNumber: userData.studentNumber,
+          studentNumber: userData.studentNumber.toUpperCase().trim(),
           program: userData.program,
           year: userData.year,
           semester: userData.semester,
@@ -182,9 +182,7 @@ export async function signUp(
 /**
  * Sign in an existing user (supports email or username)
  */
-export async function signIn(
-  credentials: SignInData,
-): Promise<{
+export async function signIn(credentials: SignInData): Promise<{
   user: any;
   error: any;
   needsVerification?: boolean;

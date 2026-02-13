@@ -154,7 +154,7 @@ export default function RegisterScreen() {
     "idle" | "checking" | "available" | "taken"
   >("idle");
   const [studentIdStatus, setStudentIdStatus] = useState<
-    "idle" | "checking" | "available" | "taken"
+    "idle" | "checking" | "available" | "taken" | "invalid"
   >("idle");
   const [showProgramPicker, setShowProgramPicker] = useState(false);
   const [programSpecialization, setProgramSpecialization] = useState("");
@@ -165,7 +165,8 @@ export default function RegisterScreen() {
         !!formData.email &&
         !!formData.studentNumber &&
         emailStatus !== "taken" &&
-        studentIdStatus !== "taken"
+        studentIdStatus !== "taken" &&
+        studentIdStatus !== "invalid"
       );
     }
     if (step === 2) {
@@ -228,17 +229,23 @@ export default function RegisterScreen() {
 
   // Logic for Student ID validation
   useEffect(() => {
-    if (formData.studentNumber.length >= 4) {
-      setStudentIdStatus("checking");
-      const t = setTimeout(async () => {
-        const { checkStudentIdAvailability } = await import("@/lib/database");
-        const avVal = await checkStudentIdAvailability(formData.studentNumber);
-        setStudentIdStatus(avVal ? "available" : "taken");
-      }, 500);
-      return () => clearTimeout(t);
-    } else {
+    const sn = formData.studentNumber.toUpperCase().trim();
+    const validFormat = /^[A-Z]\d{8}[A-Z]$/.test(sn);
+    if (!sn) {
       setStudentIdStatus("idle");
+      return;
     }
+    if (!validFormat) {
+      setStudentIdStatus("invalid");
+      return;
+    }
+    setStudentIdStatus("checking");
+    const t = setTimeout(async () => {
+      const { checkStudentIdAvailability } = await import("@/lib/database");
+      const avVal = await checkStudentIdAvailability(sn);
+      setStudentIdStatus(avVal ? "available" : "taken");
+    }, 500);
+    return () => clearTimeout(t);
   }, [formData.studentNumber]);
 
   const handleRegister = async () => {
@@ -453,9 +460,12 @@ export default function RegisterScreen() {
                     icon="card-outline"
                     value={formData.studentNumber}
                     onChange={(v: string) =>
-                      setFormData({ ...formData, studentNumber: v })
+                      setFormData({
+                        ...formData,
+                        studentNumber: v.toUpperCase().replace(/\s+/g, ""),
+                      })
                     }
-                    placeholder="C23XXXXX"
+                    placeholder="C23123456O"
                     statusIcon={
                       studentIdStatus === "checking" ? (
                         <ActivityIndicator size="small" />
@@ -471,10 +481,26 @@ export default function RegisterScreen() {
                           color={colors.danger}
                           size={20}
                         />
+                      ) : studentIdStatus === "invalid" ? (
+                        <Ionicons
+                          name="alert-circle"
+                          color={colors.danger}
+                          size={20}
+                        />
                       ) : null
                     }
                     colors={colors}
                   />
+                  {studentIdStatus === "invalid" && (
+                    <ThemedText
+                      style={[styles.hintText, { color: colors.danger }]}
+                    >
+                      Must match: Letter + 8 digits + Letter (e.g., C23123456O)
+                    </ThemedText>
+                  )}
+                  <ThemedText style={styles.hintText}>
+                    Format: Letter + 8 digits + Letter (e.g., C23123456O)
+                  </ThemedText>
                 </View>
               )}
 

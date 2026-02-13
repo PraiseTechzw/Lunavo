@@ -7,31 +7,30 @@ import { DrawerMenu } from "@/app/components/navigation/drawer-menu";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-  BorderRadius,
-  Colors,
-  PlatformStyles,
-  Spacing,
+    BorderRadius,
+    Colors,
+    PlatformStyles,
+    Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Announcement, UserRole } from "@/app/types";
-import { createShadow } from "@/app/utils/platform-styles";
 import { getCheckInStreak, getPosts, getPseudonym } from "@/app/utils/storage";
 import { getAnnouncements, getCurrentUser } from "@/lib/database";
 import {
-  Ionicons,
-  MaterialCommunityIcons,
-  MaterialIcons,
+    Ionicons,
+    MaterialCommunityIcons,
+    MaterialIcons,
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -550,6 +549,62 @@ export default function HomeScreen() {
             </LinearGradient>
           </Animated.View>
 
+          <Animated.View entering={FadeInDown.delay(100)}>
+            <View style={styles.quickActions}>
+              {[
+                {
+                  label: "Check In",
+                  icon: "heart-pulse",
+                  color: colors.primary,
+                  route: "/check-in",
+                },
+                {
+                  label: "Resources",
+                  icon: "book-open-variant",
+                  color: colors.success,
+                  route: "/(tabs)/resources",
+                },
+                {
+                  label: "Mentorship",
+                  icon: "handshake-outline",
+                  color: colors.secondary,
+                  route: "/mentorship",
+                },
+                {
+                  label: "Counseling",
+                  icon: "hand-heart-outline",
+                  color: colors.warning,
+                  route: "/book-counsellor",
+                },
+              ].map((a, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    styles.quickChip,
+                    {
+                      borderColor: a.color + "40",
+                      backgroundColor: a.color + "10",
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push(a.route as any);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons
+                    name={a.icon as any}
+                    size={18}
+                    color={a.color}
+                  />
+                  <ThemedText style={[styles.quickLabel, { color: a.color }]}>
+                    {a.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+
           {/* Urgent Support Quick Access */}
           <Animated.View entering={FadeInDown.delay(200).duration(800)}>
             <TouchableOpacity
@@ -735,7 +790,7 @@ export default function HomeScreen() {
                     color="#FFF"
                   />
                 </LinearGradient>
-                <ThemedText type="h3">Vault</ThemedText>
+                <ThemedText type="h3">Resources</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>
                   Wellness Library
                 </ThemedText>
@@ -767,9 +822,9 @@ export default function HomeScreen() {
                     color="#FFF"
                   />
                 </LinearGradient>
-                <ThemedText type="h3">Help</ThemedText>
+                <ThemedText type="h3">Counseling</ThemedText>
                 <ThemedText type="small" style={styles.actionDesc}>
-                  Seek Council
+                  Seek Counseling
                 </ThemedText>
               </TouchableOpacity>
             </Animated.View>
@@ -813,24 +868,6 @@ export default function HomeScreen() {
 
           <View style={{ height: 100 }} />
         </ScrollView>
-
-        {/* Global Action Button - FAB */}
-        <Animated.View
-          entering={FadeInDown.delay(1200)}
-          style={[styles.fabContainer, createShadow(10, colors.primary, 0.4)]}
-        >
-          <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/create-post");
-            }}
-            activeOpacity={0.9}
-          >
-            <Ionicons name="add" size={28} color="#FFF" />
-            <ThemedText style={styles.fabText}>Start Community Post</ThemedText>
-          </TouchableOpacity>
-        </Animated.View>
 
         <DrawerMenu
           visible={drawerVisible}
@@ -953,6 +990,26 @@ const styles = StyleSheet.create({
     width: 1,
     height: 30,
     backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  quickActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  quickChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  quickLabel: {
+    fontWeight: "900",
+    marginLeft: 8,
+    letterSpacing: 0.3,
   },
   glassCard: {
     flexDirection: "row",
