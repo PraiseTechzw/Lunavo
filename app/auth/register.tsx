@@ -82,6 +82,8 @@ export default function RegisterScreen() {
 
   const [step, setStep] = useState<RegisterStep>(1);
   const [loading, setLoading] = useState(false);
+  const [showPassReg, setShowPassReg] = useState(false);
+  const [showConfirmReg, setShowConfirmReg] = useState(false);
 
   // Background animation
   const floatValue = useSharedValue(0);
@@ -546,24 +548,37 @@ export default function RegisterScreen() {
                                     formData.year === y
                                       ? colors.primary
                                       : colors.border,
-                                  backgroundColor:
-                                    formData.year === y
-                                      ? colors.primary
-                                      : "transparent",
+                                  backgroundColor: "transparent",
                                   height: isSmall ? 40 : styles.yearBox.height,
                                 } as any,
                               ]}
                             >
-                              <ThemedText
-                                style={{
-                                  color:
-                                    formData.year === y ? "#FFF" : colors.text,
-                                  fontWeight: "700",
-                                  fontSize: 13,
-                                }}
-                              >
-                                {y}
-                              </ThemedText>
+                              {formData.year === y ? (
+                                <LinearGradient
+                                  colors={colors.gradients.primary as any}
+                                  style={styles.yearGradient}
+                                >
+                                  <ThemedText
+                                    style={{
+                                      color: "#FFF",
+                                      fontWeight: "700",
+                                      fontSize: 13,
+                                    }}
+                                  >
+                                    {y}
+                                  </ThemedText>
+                                </LinearGradient>
+                              ) : (
+                                <ThemedText
+                                  style={{
+                                    color: colors.text,
+                                    fontWeight: "700",
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  {y}
+                                </ThemedText>
+                              )}
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -588,28 +603,39 @@ export default function RegisterScreen() {
                                     formData.semester === s
                                       ? colors.primary
                                       : colors.border,
-                                  backgroundColor:
-                                    formData.semester === s
-                                      ? colors.primary
-                                      : "transparent",
+                                  backgroundColor: "transparent",
                                   height: isSmall
                                     ? 40
                                     : styles.semesterBox.height,
                                 } as any,
                               ]}
                             >
-                              <ThemedText
-                                style={{
-                                  color:
-                                    formData.semester === s
-                                      ? "#FFF"
-                                      : colors.text,
-                                  fontWeight: "700",
-                                  fontSize: 13,
-                                }}
-                              >
-                                {s}
-                              </ThemedText>
+                              {formData.semester === s ? (
+                                <LinearGradient
+                                  colors={colors.gradients.primary as any}
+                                  style={styles.semGradient}
+                                >
+                                  <ThemedText
+                                    style={{
+                                      color: "#FFF",
+                                      fontWeight: "700",
+                                      fontSize: 13,
+                                    }}
+                                  >
+                                    {s}
+                                  </ThemedText>
+                                </LinearGradient>
+                              ) : (
+                                <ThemedText
+                                  style={{
+                                    color: colors.text,
+                                    fontWeight: "700",
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  {s}
+                                </ThemedText>
+                              )}
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -619,6 +645,11 @@ export default function RegisterScreen() {
                       Current: {formData.year}.{formData.semester}
                     </ThemedText>
                   </View>
+                </View>
+              )}
+
+              {step === 4 && (
+                <View>
                   <InputField
                     label="Your Phone"
                     icon="phone-portrait-outline"
@@ -651,29 +682,81 @@ export default function RegisterScreen() {
                   />
                 </View>
               )}
-
-              {step === 4 && (
+              {step === 5 && (
                 <View>
                   <InputField
                     label="Password"
                     icon="lock-closed-outline"
-                    secure
+                    secure={!showPassReg}
                     value={formData.password}
                     onChange={(v: string) =>
                       setFormData({ ...formData, password: v })
                     }
                     placeholder="••••••••"
+                    statusIcon={
+                      <TouchableOpacity
+                        onPress={() => setShowPassReg(!showPassReg)}
+                      >
+                        <Ionicons
+                          name={showPassReg ? "eye-off-outline" : "eye-outline"}
+                          size={20}
+                          color={colors.icon}
+                        />
+                      </TouchableOpacity>
+                    }
                     colors={colors}
                   />
+                  <View
+                    style={[
+                      styles.progressBarTrack,
+                      { backgroundColor: colors.border, marginTop: 8 },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          backgroundColor:
+                            formData.password.length >= 10 &&
+                            /[A-Z]/.test(formData.password) &&
+                            /[0-9]/.test(formData.password) &&
+                            /[^A-Za-z0-9]/.test(formData.password)
+                              ? colors.success
+                              : formData.password.length >= 6
+                                ? colors.primary
+                                : colors.danger,
+                          width:
+                            formData.password.length >= 10
+                              ? "100%"
+                              : formData.password.length >= 6
+                                ? "66%"
+                                : "33%",
+                        },
+                      ]}
+                    />
+                  </View>
                   <InputField
                     label="Confirm"
                     icon="lock-closed-outline"
-                    secure
+                    secure={!showConfirmReg}
                     value={formData.confirmPassword}
                     onChange={(v: string) =>
                       setFormData({ ...formData, confirmPassword: v })
                     }
                     placeholder="••••••••"
+                    statusIcon={
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmReg(!showConfirmReg)}
+                      >
+                        <Ionicons
+                          name={
+                            showConfirmReg ? "eye-off-outline" : "eye-outline"
+                          }
+                          size={20}
+                          color={colors.icon}
+                        />
+                      </TouchableOpacity>
+                    }
                     colors={colors}
                   />
                   <ThemedText type="h3">Community Protocols</ThemedText>
@@ -683,6 +766,33 @@ export default function RegisterScreen() {
                     identity is shared ONLY with professional responders during
                     critical escalations.
                   </ThemedText>
+                  <View style={styles.protocolList}>
+                    {[
+                      "Respect anonymity and confidentiality",
+                      "Use real academic email for verification",
+                      "Report harm or urgent issues promptly",
+                    ].map((p, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.protocolChip,
+                          {
+                            borderColor: colors.border,
+                            backgroundColor: colors.surface,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="shield-checkmark-outline"
+                          size={16}
+                          color={colors.primary}
+                        />
+                        <ThemedText style={{ color: colors.text }}>
+                          {p}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
                   <TouchableOpacity
                     style={styles.checkboxRow}
                     onPress={() =>
@@ -744,7 +854,7 @@ export default function RegisterScreen() {
                         <ActivityIndicator color="#FFF" />
                       ) : (
                         <ThemedText style={styles.btnText}>
-                          {step === 4 ? "ESTABLISH LINK" : "CONTINUE"}
+                          {step === 5 ? "ESTABLISH LINK" : "CONTINUE"}
                         </ThemedText>
                       )}
                     </LinearGradient>
@@ -1059,6 +1169,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  yearGradient: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  semGradient: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  protocolList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  protocolChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   modalOverlay: {
     flex: 1,
