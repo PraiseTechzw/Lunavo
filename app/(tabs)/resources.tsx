@@ -12,14 +12,14 @@ import { getResources } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     FlatList,
     ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -174,52 +174,7 @@ export default function ResourcesScreen() {
     }
   };
 
-  const filterResources = () => {
-    let filtered = resources;
-
-    // Filter by category or resource type
-    if (selectedCategory !== "All") {
-      filtered = filtered.filter((r) => {
-        const categoryMap: Record<string, { cat?: string; type?: string }> = {
-          "Mental Health": { cat: "mental-health" },
-          "Substance Abuse": { cat: "substance-abuse" },
-          SRH: { cat: "sexual-health" },
-          "HIV/Safe Sex": { cat: "stis-hiv" },
-          "Family/Home": { cat: "family-home" },
-          Academic: { cat: "academic" },
-          Relationships: { cat: "relationships" },
-          Articles: { type: "article" },
-          Videos: { type: "video" },
-          PDFs: { type: "pdf" },
-        };
-
-        const mapped = categoryMap[selectedCategory];
-        if (!mapped) return true;
-
-        if (mapped.cat) return r.category === mapped.cat;
-        if (mapped.type) return r.resourceType === mapped.type;
-        return true;
-      });
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(
-        (r) =>
-          r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (r.description || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      );
-    }
-
-    // Filter by favorites
-    if (showFavoritesOnly) {
-      filtered = filtered.filter((r) => favorites.has(r.id));
-    }
-
-    setFilteredResources(filtered);
-  };
+  // duplicate removed: filterResources defined above with useCallback
 
   const toggleFavorite = async (resourceId: string) => {
     try {

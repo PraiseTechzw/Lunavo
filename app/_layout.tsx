@@ -77,7 +77,7 @@ export default function RootLayout() {
     } catch (error) {
       console.error("Error initializing notifications:", error);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isInitialized) return;

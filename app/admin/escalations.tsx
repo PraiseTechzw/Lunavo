@@ -2,7 +2,7 @@
  * Escalation Management Screen - View and manage escalated posts
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -33,16 +33,57 @@ export default function EscalationsScreen() {
   const [filter, setFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
   const escalationsChannelRef = useRef<RealtimeChannel | null>(null);
 
-  useEffect(() => {
-    loadEscalations();
-    setupRealtimeSubscriptions();
+  const loadEscalations = useCallback(async () => {
+    const allPosts = await getPosts();
+    let filtered = allPosts.filter(p => p.escalationLevel !== 'none');
+    
+    if (filter !== 'all') {
+      filtered = filtered.filter(p => p.escalationLevel === filter);
+    }
+    
+    filtered.sort((a, b) => {
+      const levelOrder = { critical: 5, high: 4, medium: 3, low: 2, none: 0 };
+      return levelOrder[b.escalationLevel] - levelOrder[a.escalationLevel];
+    });
+    
+    setEscalatedPosts(filtered);
+  }, [filter]);
+
+  const postChangesChannelRef = useRef<RealtimeChannel | null>(null);
+
+  const setupRealtimeSubscriptions = useCallback(() => {
+    const escalationsChannel = subscribeToEscalations(() => {
+      loadEscalations();
+    });
+
+    const postChangesChannel = subscribeToPostChanges(({ eventType, post }) => {
+      if (post && post.escalationLevel !== 'none') {
+        loadEscalations();
+      } else if (eventType === 'UPDATE' && post) {
+        setEscalatedPosts((prev) =>
+          prev.map((p) => (p.id === post.id ? post : p))
+        );
+      }
+    });
+
+    escalationsChannelRef.current = escalationsChannel;
+    postChangesChannelRef.current = postChangesChannel;
 
     return () => {
-      if (escalationsChannelRef.current) {
-        unsubscribe(escalationsChannelRef.current);
+      if (escalationsChannelRef.current) unsubscribe(escalationsChannelRef.current);
+      if (postChangesChannelRef.current) unsubscribe(postChangesChannelRef.current);
+    };
+  }, [loadEscalations]);
+
+  useEffect(() => {
+    loadEscalations();
+    const unsubscribeAll = setupRealtimeSubscriptions();
+    return () => {
+      if (unsubscribeAll) {
+        unsubscribeAll();
       }
     };
-  }, [filter]);
+  }, [filter, loadEscalations, setupRealtimeSubscriptions]);
 
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new escalations
@@ -67,21 +108,7 @@ export default function EscalationsScreen() {
     escalationsChannelRef.current = escalationsChannel;
   };
 
-  const loadEscalations = async () => {
-    const allPosts = await getPosts();
-    let filtered = allPosts.filter(p => p.escalationLevel !== 'none');
-    
-    if (filter !== 'all') {
-      filtered = filtered.filter(p => p.escalationLevel === filter);
-    }
-    
-    filtered.sort((a, b) => {
-      const levelOrder = { critical: 5, high: 4, medium: 3, low: 2, none: 0 };
-      return levelOrder[b.escalationLevel] - levelOrder[a.escalationLevel];
-    });
-    
-    setEscalatedPosts(filtered);
-  };
+  
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -116,7 +143,7 @@ export default function EscalationsScreen() {
     }
   };
 
-  const filters: Array<'all' | 'critical' | 'high' | 'medium' | 'low'> = ['all', 'critical', 'high', 'medium', 'low'];
+  const filters: ('all' | 'critical' | 'high' | 'medium' | 'low')[] = ['all', 'critical', 'high', 'medium', 'low'];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>

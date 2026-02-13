@@ -7,36 +7,31 @@ import { DrawerMenu } from "@/app/components/navigation/drawer-menu";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Announcement, UserRole } from "@/app/types";
 import { createShadow } from "@/app/utils/platform-styles";
-import {
-    getCheckInStreak,
-    getPosts,
-    getPseudonym,
-    hasCheckedInToday,
-} from "@/app/utils/storage";
+import { getCheckInStreak, getPosts, getPseudonym } from "@/app/utils/storage";
 import { getAnnouncements, getCurrentUser } from "@/lib/database";
 import {
-    Ionicons,
-    MaterialCommunityIcons,
-    MaterialIcons,
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons,
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -96,9 +91,8 @@ export default function HomeScreen() {
   }, []);
 
   const loadStats = useCallback(async () => {
-    const [streak, checkedIn, posts, anns] = await Promise.all([
+    const [streak, posts, anns] = await Promise.all([
       getCheckInStreak(),
-      hasCheckedInToday(),
       getPosts(),
       getAnnouncements(),
     ]);
