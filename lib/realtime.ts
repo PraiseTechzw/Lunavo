@@ -417,3 +417,43 @@ export function subscribeToSupportSessions(
 
   return channel;
 }
+
+/**
+ * Typing indicators using Realtime broadcast channels (ephemeral, not stored in DB)
+ */
+export function createTypingChannel(sessionId: string): RealtimeChannel {
+  return supabase.channel(`typing:${sessionId}`, {
+    config: { broadcast: { self: true } },
+  });
+}
+
+export function subscribeToTyping(
+  sessionId: string,
+  onTyping: (payload: { sessionId: string; senderId: string }) => void
+): RealtimeChannel {
+  const channel = createTypingChannel(sessionId).on(
+    'broadcast',
+    { event: 'typing' },
+    (payload: any) => {
+      if (payload?.senderId) {
+        onTyping({ sessionId, senderId: payload.senderId });
+      }
+    },
+  );
+  channel.subscribe();
+  return channel;
+}
+
+export function sendTyping(sessionId: string, senderId: string) {
+  const channel = createTypingChannel(sessionId);
+  channel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { senderId },
+      });
+    }
+  });
+  return channel;
+}

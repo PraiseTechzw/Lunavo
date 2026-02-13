@@ -12,8 +12,7 @@ import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
     getCurrentUser,
     getSupportMessages,
-    sendSupportMessage,
-    updateSupportSession,
+    sendSupportMessage
 } from "@/lib/database";
 import { subscribeToMessages, unsubscribe } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,8 +50,6 @@ export default function ChatDetailScreen() {
         setUserId(user?.id || null);
         const initial = await getSupportMessages(id as string);
         setMessages(initial);
-        // Mark session as active upon opening
-        await updateSupportSession(id as string, { status: "active" });
       } catch (error) {
         console.error("Error loading messages:", error);
       } finally {
@@ -92,8 +89,7 @@ export default function ChatDetailScreen() {
       setMessages((prev) => [...prev, sent]);
       setInput("");
       scrollToEnd();
-      // Update session preview
-      await updateSupportSession(id as string, { preview: trimmed });
+      // Preview update removed to avoid RLS violations; list derives preview from last message
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {

@@ -1876,6 +1876,18 @@ export async function getSupportMessages(sessionId: string): Promise<SupportMess
   return data || [];
 }
 
+export async function getLastSupportMessage(sessionId: string): Promise<SupportMessage | null> {
+  const { data, error } = await supabase
+    .from('support_messages')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  return (data && data[0]) || null;
+}
+
 export async function sendSupportMessage(message: Omit<SupportMessage, 'id' | 'created_at' | 'is_read'>): Promise<SupportMessage> {
   const { data, error } = await supabase
     .from('support_messages')
