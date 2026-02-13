@@ -18,7 +18,7 @@ import { signUp } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -159,6 +159,40 @@ export default function RegisterScreen() {
   const [showProgramPicker, setShowProgramPicker] = useState(false);
   const [programSpecialization, setProgramSpecialization] = useState("");
 
+  const canContinue = useMemo(() => {
+    if (step === 1) {
+      return (
+        !!formData.email &&
+        !!formData.studentNumber &&
+        emailStatus !== "taken" &&
+        studentIdStatus !== "taken"
+      );
+    }
+    if (step === 2) {
+      return (
+        !!formData.fullName &&
+        !!formData.program &&
+        !!formData.username &&
+        usernameStatus !== "taken"
+      );
+    }
+    if (step === 3) {
+      return !!formData.year && !!formData.semester;
+    }
+    if (step === 4) {
+      return (
+        !!formData.phone &&
+        !!formData.emergencyContactName &&
+        !!formData.emergencyContactPhone
+      );
+    }
+    if (step === 5) {
+      const strongEnough = formData.password.length >= 6;
+      const matches = formData.password === formData.confirmPassword;
+      return strongEnough && matches && formData.acceptedTerms;
+    }
+    return true;
+  }, [step, formData, emailStatus, usernameStatus, studentIdStatus]);
   // Logic for Email validation
   useEffect(() => {
     if (formData.email.includes("@")) {
@@ -842,11 +876,14 @@ export default function RegisterScreen() {
                   <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={handleButtonPress}
-                    disabled={loading}
+                    disabled={loading || !canContinue}
                   >
                     <LinearGradient
                       colors={colors.gradients.primary as any}
-                      style={styles.primaryBtn}
+                      style={[
+                        styles.primaryBtn,
+                        !canContinue || loading ? { opacity: 0.6 } : null,
+                      ]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                     >

@@ -17,7 +17,7 @@ import { signIn } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -50,6 +50,10 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const canSignIn = useMemo(
+    () => !!emailOrUsername.trim() && !!password.trim(),
+    [emailOrUsername, password],
+  );
 
   // Background animation values
   const floatValue = useSharedValue(0);
@@ -232,7 +236,7 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 onPress={handleLogin}
-                disabled={loading}
+                disabled={loading || !canSignIn}
                 style={[
                   styles.loginBtnWrapper,
                   isSmall ? { marginBottom: Spacing.md } : null,
@@ -240,7 +244,11 @@ export default function LoginScreen() {
               >
                 <LinearGradient
                   colors={colors.gradients.primary as any}
-                  style={[styles.loginBtn, isSmall ? { height: 56 } : null]}
+                  style={[
+                    styles.loginBtn,
+                    isSmall ? { height: 56 } : null,
+                    (!canSignIn || loading) ? { opacity: 0.6 } : null,
+                  ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >

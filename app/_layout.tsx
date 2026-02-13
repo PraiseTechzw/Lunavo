@@ -45,6 +45,7 @@ export default function RootLayout() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const isAuthRoute = useMemo(() => segments[0] === "auth", [segments]);
+  const isOnboardingRoute = useMemo(() => segments[0] === "onboarding", [segments]);
 
   useEffect(() => {
     initializeAuth();
@@ -81,10 +82,10 @@ export default function RootLayout() {
   }, [router]);
 
   useEffect(() => {
-    if (isAuthRoute && assistantOpen) {
+    if ((isAuthRoute || isOnboardingRoute) && assistantOpen) {
       setAssistantOpen(false);
     }
-  }, [isAuthRoute, assistantOpen]);
+  }, [isAuthRoute, isOnboardingRoute, assistantOpen]);
 
   useEffect(() => {
     if (!isInitialized) return;
