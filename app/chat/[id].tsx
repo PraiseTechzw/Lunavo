@@ -1,23 +1,33 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
+import {
+    BorderRadius,
+    Colors,
+    PlatformStyles,
+    Spacing,
+} from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { SupportMessage } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
-import { getCurrentUser, getSupportMessages, sendSupportMessage, updateSupportSession } from "@/lib/database";
+import {
+    getCurrentUser,
+    getSupportMessages,
+    sendSupportMessage,
+    updateSupportSession,
+} from "@/lib/database";
 import { subscribeToMessages, unsubscribe } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -95,14 +105,11 @@ export default function ChatDetailScreen() {
     const isMine = item.sender_id === userId;
     return (
       <View
-        style={[
-          styles.messageRow,
-          isMine ? styles.mineRow : styles.theirRow,
-        ]}
+        style={[styles.messageRow, isMine ? styles.mineRow : styles.theirRow]}
       >
         {!isMine && (
-          <View style={[styles.avatar, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="person-outline" size={16} color="#FFF" />
+          <View style={styles.labelWrap}>
+            <ThemedText style={styles.labelText}>Supporter</ThemedText>
           </View>
         )}
         <View
@@ -119,8 +126,8 @@ export default function ChatDetailScreen() {
           </ThemedText>
         </View>
         {isMine && (
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Ionicons name="person-outline" size={16} color="#FFF" />
+          <View style={styles.labelWrap}>
+            <ThemedText style={styles.labelText}>You</ThemedText>
           </View>
         )}
       </View>
@@ -131,18 +138,15 @@ export default function ChatDetailScreen() {
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={getCursorStyle()}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText type="h2" style={styles.headerTitle}>
-            Crisis Chat
+            Anonymous Chat
           </ThemedText>
-          <TouchableOpacity
-            style={styles.headerAction}
-            onPress={() => router.push("/peer-educator/queue")}
-          >
-            <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
-          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -164,9 +168,18 @@ export default function ChatDetailScreen() {
               onContentSizeChange={scrollToEnd}
             />
 
-            <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.inputRow,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <TextInput
-                style={[styles.input, createInputStyle(), { color: colors.text }]}
+                style={[
+                  styles.input,
+                  createInputStyle(),
+                  { color: colors.text },
+                ]}
                 placeholder="Type a message..."
                 placeholderTextColor={colors.icon}
                 value={input}
@@ -203,9 +216,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: { fontWeight: "900" },
-  headerAction: {
-    padding: 8,
-    borderRadius: BorderRadius.md,
+  labelWrap: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginHorizontal: 6,
+  },
+  labelText: {
+    fontSize: 10,
+    opacity: 0.6,
   },
   loadingBox: {
     flex: 1,
