@@ -8,10 +8,10 @@ import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { CUT_SCHOOLS } from "@/app/constants/programs";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { signUp } from "@/lib/auth";
@@ -20,30 +20,30 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    FadeInRight,
-    FadeOutLeft,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  Easing,
+  FadeInRight,
+  FadeOutLeft,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type RegisterStep = 1 | 2 | 3 | 4;
+type RegisterStep = 1 | 2 | 3 | 4 | 5;
 
 const InputField = ({
   label,
@@ -250,7 +250,7 @@ export default function RegisterScreen() {
 
   const handleButtonPress = () => {
     animateButtonPress();
-    if (step === 4) {
+    if (step === 5) {
       // Delay the actual registration to let animation play
       setTimeout(handleRegister, 150);
     } else {
@@ -308,7 +308,7 @@ export default function RegisterScreen() {
                 <Ionicons name="arrow-back" size={24} color={colors.text} />
               </TouchableOpacity>
               <View style={styles.progressTrack}>
-                {[1, 2, 3, 4].map((s) => (
+                {[1, 2, 3, 4, 5].map((s) => (
                   <View
                     key={s}
                     style={[
@@ -325,7 +325,7 @@ export default function RegisterScreen() {
             </View>
             <View style={{ marginBottom: 20 }}>
               <ThemedText style={[styles.progressInfo, { color: colors.text }]}>
-                Step {step} of 4
+                Step {step} of 5
               </ThemedText>
               <View
                 style={[
@@ -338,7 +338,7 @@ export default function RegisterScreen() {
                     styles.progressBarFill,
                     {
                       backgroundColor: colors.primary,
-                      width: `${(step / 4) * 100}%`,
+                      width: `${(step / 5) * 100}%`,
                     },
                   ]}
                 />
@@ -361,8 +361,10 @@ export default function RegisterScreen() {
                   : step === 2
                     ? "Identity"
                     : step === 3
-                      ? "Contact"
-                      : "Protocol"}
+                      ? "Academic Profile"
+                      : step === 4
+                        ? "Contact"
+                        : "Protocol"}
               </ThemedText>
             </View>
 
@@ -549,7 +551,8 @@ export default function RegisterScreen() {
                                       ? colors.primary
                                       : "transparent",
                                   height: isSmall ? 40 : styles.yearBox.height,
-                                } as any]}
+                                } as any,
+                              ]}
                             >
                               <ThemedText
                                 style={{
@@ -589,8 +592,11 @@ export default function RegisterScreen() {
                                     formData.semester === s
                                       ? colors.primary
                                       : "transparent",
-                                  height: isSmall ? 40 : styles.semesterBox.height,
-                                } as any]}
+                                  height: isSmall
+                                    ? 40
+                                    : styles.semesterBox.height,
+                                } as any,
+                              ]}
                             >
                               <ThemedText
                                 style={{

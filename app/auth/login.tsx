@@ -7,10 +7,10 @@ import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { signIn } from "@/lib/auth";
@@ -19,24 +19,24 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    FadeInDown,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  Easing,
+  FadeInDown,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -132,14 +132,19 @@ export default function LoginScreen() {
                 isSmall ? { marginBottom: 24 } : null,
               ]}
             >
-              <PEACELogo size={isSmall ? 100 : 140} />
+              <PEACELogo size={isSmall ? 88 : 140} />
               <ThemedText
                 type="h1"
-                style={[styles.title, isSmall ? { fontSize: 36 } : null]}
+                style={[
+                  styles.title,
+                  isSmall ? { fontSize: 32, letterSpacing: 4 } : null,
+                ]}
               >
                 PEACE
               </ThemedText>
-              <ThemedText style={styles.subtitle}>
+              <ThemedText
+                style={[styles.subtitle, isSmall ? { letterSpacing: 2 } : null]}
+              >
                 Peer Education Club
               </ThemedText>
             </Animated.View>
@@ -159,7 +164,11 @@ export default function LoginScreen() {
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Email or Username</ThemedText>
                 <View
-                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                  style={[
+                    styles.inputWrapper,
+                    { borderColor: colors.border },
+                    isSmall ? { height: 52 } : null,
+                  ]}
                 >
                   <Ionicons name="mail-outline" size={20} color={colors.icon} />
                   <TextInput
@@ -176,7 +185,11 @@ export default function LoginScreen() {
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Password</ThemedText>
                 <View
-                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                  style={[
+                    styles.inputWrapper,
+                    { borderColor: colors.border },
+                    isSmall ? { height: 52 } : null,
+                  ]}
                 >
                   <Ionicons
                     name="lock-closed-outline"
@@ -204,7 +217,10 @@ export default function LoginScreen() {
               </View>
 
               <TouchableOpacity
-                style={styles.forgotBtn}
+                style={[
+                  styles.forgotBtn,
+                  isSmall ? { marginBottom: Spacing.md } : null,
+                ]}
                 onPress={() => router.push("/auth/forgot-password")}
               >
                 <ThemedText
@@ -217,7 +233,10 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={loading}
-                style={styles.loginBtnWrapper}
+                style={[
+                  styles.loginBtnWrapper,
+                  isSmall ? { marginBottom: Spacing.md } : null,
+                ]}
               >
                 <LinearGradient
                   colors={colors.gradients.primary as any}
@@ -307,7 +326,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
   },
   cardTitle: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     textAlign: "center",
   },
   inputGroup: {
@@ -324,7 +343,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
-    height: 60,
+    height: 56,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     gap: Spacing.md,
