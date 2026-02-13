@@ -6,28 +6,28 @@ import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
 import {
-  canAccessRoute,
-  getDefaultRoute,
-  isMobile,
-  isStudentAffairsMobileBlocked,
+    canAccessRoute,
+    getDefaultRoute,
+    isMobile,
+    isStudentAffairsMobileBlocked,
 } from "@/app/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import {
-  addNotificationResponseListener,
-  registerForPushNotifications,
+    addNotificationResponseListener,
+    registerForPushNotifications,
 } from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Modal,
-  Platform,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
@@ -45,7 +45,10 @@ export default function RootLayout() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const isAuthRoute = useMemo(() => segments[0] === "auth", [segments]);
-  const isOnboardingRoute = useMemo(() => segments[0] === "onboarding", [segments]);
+  const isOnboardingRoute = useMemo(
+    () => segments[0] === "onboarding",
+    [segments],
+  );
 
   useEffect(() => {
     initializeAuth();
@@ -325,6 +328,16 @@ export default function RootLayout() {
         data: { subscription },
       } = onAuthStateChange((event, session) => {
         setIsAuthenticated(!!session);
+        if (event === "PASSWORD_RECOVERY") {
+          router.replace("/auth/reset-password");
+        }
+        if (event === "SIGNED_OUT") {
+          // Stay safe: ensure we land on login if signed out by recovery flow
+          const navGroup = segments[0];
+          if (navGroup !== "auth") {
+            router.replace("/auth/login");
+          }
+        }
       });
 
       setIsInitialized(true);

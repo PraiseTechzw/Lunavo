@@ -24,6 +24,7 @@ export default function AuthLayout() {
       <Stack.Screen name="verify-student" options={{ headerShown: false }} />
       <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+      <Stack.Screen name="confirm-signup" options={{ headerShown: false }} />
     </Stack>
   );
 }
