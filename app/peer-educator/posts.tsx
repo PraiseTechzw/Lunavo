@@ -2,7 +2,7 @@
  * Posts Needing Help - Peer Educator view
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,12 +17,10 @@ import { ThemedText } from '@/app/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPosts, getReplies, getCurrentUser } from '@/lib/database';
+import { getCursorStyle } from '@/app/utils/platform-styles';
+import { getPosts, getReplies } from '@/lib/database';
 import { Post, PostCategory } from '@/app/types';
-import { formatDistanceToNow } from 'date-fns';
 import { PostCard } from '@/app/components/post-card';
-import { CATEGORIES } from '@/app/constants/categories';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function PostsNeedingHelpScreen() {
@@ -44,9 +42,9 @@ export default function PostsNeedingHelpScreen() {
     if (user) {
       loadPosts();
     }
-  }, [user, selectedCategory, sortBy]);
+  }, [user, selectedCategory, sortBy, loadPosts]);
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
       const [allPosts, allReplies] = await Promise.all([
         getPosts({ category: selectedCategory !== 'all' ? selectedCategory : undefined }),
@@ -88,7 +86,7 @@ export default function PostsNeedingHelpScreen() {
     } catch (error) {
       console.error('Error loading posts:', error);
     }
-  };
+  }, [selectedCategory, sortBy, getPosts, getReplies, user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -114,7 +112,7 @@ export default function PostsNeedingHelpScreen() {
     );
   }
 
-  const categories: Array<{ id: PostCategory | 'all'; label: string }> = [
+  const categories: { id: PostCategory | 'all'; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'mental-health', label: 'Mental Health' },
     { id: 'academic', label: 'Academic' },

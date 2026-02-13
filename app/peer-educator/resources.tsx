@@ -2,7 +2,7 @@
  * Resource Library - All resources for peer educators
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,7 +22,6 @@ import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
 import { getResources } from '@/lib/database';
 import { PostCategory } from '@/app/types';
-import { CATEGORIES } from '@/app/constants/categories';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -61,13 +60,13 @@ export default function ResourcesScreen() {
       loadResources();
       loadBookmarks();
     }
-  }, [user]);
+  }, [user, loadResources]);
 
   useEffect(() => {
     filterResources();
-  }, [resources, selectedCategory, searchQuery]);
+  }, [filterResources]);
 
-  const loadResources = async () => {
+  const loadResources = useCallback(async () => {
     try {
       const allResources = await getResources();
       
@@ -87,7 +86,7 @@ export default function ResourcesScreen() {
     } catch (error) {
       console.error('Error loading resources:', error);
     }
-  };
+  }, [bookmarkedIds]);
 
   const loadBookmarks = async () => {
     try {
@@ -101,7 +100,7 @@ export default function ResourcesScreen() {
     }
   };
 
-  const filterResources = () => {
+  const filterResources = useCallback(() => {
     let filtered = resources;
 
     // Filter by category
@@ -121,7 +120,7 @@ export default function ResourcesScreen() {
     }
 
     setFilteredResources(filtered);
-  };
+  }, [resources, selectedCategory, searchQuery]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -266,7 +265,7 @@ export default function ResourcesScreen() {
     );
   }
 
-  const categories: Array<{ id: PostCategory | 'all'; label: string }> = [
+  const categories: { id: PostCategory | 'all'; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'mental-health', label: 'Mental Health' },
     { id: 'crisis', label: 'Crisis' },

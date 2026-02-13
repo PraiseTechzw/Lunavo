@@ -21,7 +21,7 @@ export default function PeerEducatorLayout() {
 
   useEffect(() => {
     loadUser();
-  }, []);
+  }, [loadUser]);
 
   const loadUser = async () => {
     const user = await getCurrentUser();

@@ -3,7 +3,7 @@
  * Weekly view (Wednesdays 16:00-16:30)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -45,9 +45,9 @@ export default function MeetingCalendarScreen() {
     if (user) {
       loadMeetings();
     }
-  }, [user]);
+  }, [user, loadMeetings]);
 
-  const loadMeetings = async () => {
+  const loadMeetings = useCallback(async () => {
     try {
       const [meetings, myAttendance] = await Promise.all([
         getMeetings(),
@@ -75,7 +75,7 @@ export default function MeetingCalendarScreen() {
     } catch (error) {
       console.error('Error loading meetings:', error);
     }
-  };
+  }, [user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
