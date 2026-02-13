@@ -134,7 +134,11 @@ export default function LoginScreen() {
               entering={FadeInDown.delay(200).duration(800)}
               style={[
                 styles.logoSection,
-                tinySmall ? { marginBottom: 16 } : isSmall ? { marginBottom: 24 } : null,
+                tinySmall
+                  ? { marginBottom: 16 }
+                  : isSmall
+                    ? { marginBottom: 24 }
+                    : null,
               ]}
             >
               <PEACELogo size={tinySmall ? 72 : isSmall ? 88 : 140} />
@@ -142,14 +146,21 @@ export default function LoginScreen() {
                 type="h1"
                 style={[
                   styles.title,
-                  tinySmall ? { fontSize: 28, letterSpacing: 3 } : isSmall ? { fontSize: 32, letterSpacing: 4 } : null,
+                  tinySmall
+                    ? { fontSize: 26, letterSpacing: 2, marginTop: Spacing.sm }
+                    : isSmall
+                      ? { fontSize: 32, letterSpacing: 4 }
+                      : null,
                 ]}
               >
                 PEACE
               </ThemedText>
               {!tinySmall && (
                 <ThemedText
-                  style={[styles.subtitle, isSmall ? { letterSpacing: 2 } : null]}
+                  style={[
+                    styles.subtitle,
+                    isSmall ? { letterSpacing: 2 } : null,
+                  ]}
                 >
                   Peer Education Club
                 </ThemedText>
@@ -161,7 +172,11 @@ export default function LoginScreen() {
               style={[
                 styles.card,
                 { backgroundColor: colors.card },
-                tinySmall ? { padding: Spacing.md } : isSmall ? { padding: Spacing.lg } : null,
+                tinySmall
+                  ? { padding: Spacing.md }
+                  : isSmall
+                    ? { padding: Spacing.lg }
+                    : null,
               ]}
             >
               <ThemedText type="h2" style={styles.cardTitle}>
@@ -174,12 +189,20 @@ export default function LoginScreen() {
                   style={[
                     styles.inputWrapper,
                     { borderColor: colors.border },
-                    tinySmall ? { height: 48 } : isSmall ? { height: 52 } : null,
+                    tinySmall
+                      ? { height: 48 }
+                      : isSmall
+                        ? { height: 52 }
+                        : null,
                   ]}
                 >
                   <Ionicons name="mail-outline" size={20} color={colors.icon} />
                   <TextInput
-                    style={[styles.input, { color: colors.text }]}
+                    style={[
+                      styles.input,
+                      { color: colors.text },
+                      tinySmall ? { fontSize: 15 } : null,
+                    ]}
                     placeholder="yourname@cut.ac.zw"
                     placeholderTextColor={colors.icon}
                     value={emailOrUsername}
@@ -195,7 +218,11 @@ export default function LoginScreen() {
                   style={[
                     styles.inputWrapper,
                     { borderColor: colors.border },
-                    tinySmall ? { height: 48 } : isSmall ? { height: 52 } : null,
+                    tinySmall
+                      ? { height: 48 }
+                      : isSmall
+                        ? { height: 52 }
+                        : null,
                   ]}
                 >
                   <Ionicons
@@ -204,7 +231,11 @@ export default function LoginScreen() {
                     color={colors.icon}
                   />
                   <TextInput
-                    style={[styles.input, { color: colors.text }]}
+                    style={[
+                      styles.input,
+                      { color: colors.text },
+                      tinySmall ? { fontSize: 15 } : null,
+                    ]}
                     placeholder="••••••••"
                     placeholderTextColor={colors.icon}
                     value={password}
@@ -226,7 +257,11 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={[
                   styles.forgotBtn,
-                  tinySmall ? { marginBottom: Spacing.sm } : isSmall ? { marginBottom: Spacing.md } : null,
+                  tinySmall
+                    ? { marginBottom: Spacing.sm }
+                    : isSmall
+                      ? { marginBottom: Spacing.md }
+                      : null,
                 ]}
                 onPress={() => router.push("/auth/forgot-password")}
               >
@@ -242,15 +277,23 @@ export default function LoginScreen() {
                 disabled={loading || !canSignIn}
                 style={[
                   styles.loginBtnWrapper,
-                  tinySmall ? { marginBottom: Spacing.sm } : isSmall ? { marginBottom: Spacing.md } : null,
+                  tinySmall
+                    ? { marginBottom: Spacing.sm }
+                    : isSmall
+                      ? { marginBottom: Spacing.md }
+                      : null,
                 ]}
               >
                 <LinearGradient
                   colors={colors.gradients.primary as any}
                   style={[
                     styles.loginBtn,
-                    tinySmall ? { height: 52 } : isSmall ? { height: 56 } : null,
-                    (!canSignIn || loading) ? { opacity: 0.6 } : null,
+                    tinySmall
+                      ? { height: 52 }
+                      : isSmall
+                        ? { height: 56 }
+                        : null,
+                    !canSignIn || loading ? { opacity: 0.6 } : null,
                   ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -263,7 +306,12 @@ export default function LoginScreen() {
                 </LinearGradient>
               </TouchableOpacity>
 
-              <View style={styles.footer}>
+              <View
+                style={[
+                  styles.footer,
+                  tinySmall ? { marginTop: Spacing.sm } : null,
+                ]}
+              >
                 <ThemedText style={{ opacity: 0.6 }}>
                   Don&apos;t have an account?{" "}
                 </ThemedText>
