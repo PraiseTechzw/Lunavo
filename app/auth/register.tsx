@@ -43,7 +43,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type RegisterStep = 1 | 2 | 3 | 4 | 5;
+type RegisterStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 const InputField = ({
   label,
@@ -189,7 +189,10 @@ export default function RegisterScreen() {
     if (step === 5) {
       const strongEnough = formData.password.length >= 6;
       const matches = formData.password === formData.confirmPassword;
-      return strongEnough && matches && formData.acceptedTerms;
+      return strongEnough && matches;
+    }
+    if (step === 6) {
+      return formData.acceptedTerms;
     }
     return true;
   }, [step, formData, emailStatus, usernameStatus, studentIdStatus]);
@@ -286,7 +289,7 @@ export default function RegisterScreen() {
 
   const handleButtonPress = () => {
     animateButtonPress();
-    if (step === 5) {
+    if (step === 6) {
       // Delay the actual registration to let animation play
       setTimeout(handleRegister, 150);
     } else {
@@ -344,7 +347,7 @@ export default function RegisterScreen() {
                 <Ionicons name="arrow-back" size={24} color={colors.text} />
               </TouchableOpacity>
               <View style={styles.progressTrack}>
-                {[1, 2, 3, 4, 5].map((s) => (
+                {[1, 2, 3, 4, 5, 6].map((s) => (
                   <View
                     key={s}
                     style={[
@@ -361,7 +364,7 @@ export default function RegisterScreen() {
             </View>
             <View style={{ marginBottom: 20 }}>
               <ThemedText style={[styles.progressInfo, { color: colors.text }]}>
-                Step {step} of 5
+                Step {step} of 6
               </ThemedText>
               <View
                 style={[
@@ -374,7 +377,7 @@ export default function RegisterScreen() {
                     styles.progressBarFill,
                     {
                       backgroundColor: colors.primary,
-                      width: `${(step / 5) * 100}%`,
+                      width: `${(step / 6) * 100}%`,
                     },
                   ]}
                 />
@@ -400,7 +403,9 @@ export default function RegisterScreen() {
                       ? "Academic Profile"
                       : step === 4
                         ? "Contact"
-                        : "Protocol"}
+                        : step === 5
+                          ? "Security"
+                          : "Protocol"}
               </ThemedText>
             </View>
 
@@ -809,6 +814,11 @@ export default function RegisterScreen() {
                     }
                     colors={colors}
                   />
+                </View>
+              )}
+
+              {step === 6 && (
+                <View>
                   <ThemedText type="h3">Community Protocols</ThemedText>
                   <ThemedText style={styles.termsText}>
                     By joining PEACE, you agree to uphold our values of
@@ -907,7 +917,7 @@ export default function RegisterScreen() {
                         <ActivityIndicator color="#FFF" />
                       ) : (
                         <ThemedText style={styles.btnText}>
-                          {step === 5 ? "ESTABLISH LINK" : "CONTINUE"}
+                          {step === 6 ? "ESTABLISH LINK" : "CONTINUE"}
                         </ThemedText>
                       )}
                     </LinearGradient>
