@@ -206,7 +206,7 @@ export default function SupportQueueScreen() {
                                             <View style={styles.cardContent}>
                                                 <ThemedText style={styles.pseudonym}>{request.student_pseudonym}</ThemedText>
                                                 <ThemedText style={[styles.preview, { color: colors.icon }]} numberOfLines={2}>
-                                                    "{request.preview || 'No preview available'}"
+                                                    {request.preview || 'No preview available'}
                                                 </ThemedText>
                                             </View>
                                         </View>

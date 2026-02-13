@@ -4,7 +4,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import {
   Animated,
   Modal,
@@ -34,35 +34,7 @@ const Toast = ({ visible, message, type = 'info', duration = 3000, onHide }: Toa
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (visible) {
-      // Show animation
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 65,
-          friction: 8,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      // Auto hide after duration
-      const timer = setTimeout(() => {
-        hideToast();
-      }, duration);
-
-      return () => clearTimeout(timer);
-    } else {
-      hideToast();
-    }
-  }, [visible]);
-
-  const hideToast = () => {
+  const hideToast = useCallback(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: -100,
@@ -77,7 +49,33 @@ const Toast = ({ visible, message, type = 'info', duration = 3000, onHide }: Toa
     ]).start(() => {
       onHide();
     });
-  };
+  }, [opacityAnim, slideAnim, onHide]);
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 8,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      const timer = setTimeout(() => {
+        hideToast();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    } else {
+      hideToast();
+    }
+  }, [visible, duration, hideToast, opacityAnim, slideAnim]);
 
   const getIcon = () => {
     switch (type) {

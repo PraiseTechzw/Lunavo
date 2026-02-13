@@ -8,7 +8,6 @@ import {
   createPost as createPostInDB,
   updatePost as updatePostInDB,
   getPost as getPostFromDB,
-  getReplies as getRepliesFromDB,
   createReply as createReplyInDB,
   getCurrentUser as getCurrentUserFromDB,
   createCheckIn as createCheckInInDB,

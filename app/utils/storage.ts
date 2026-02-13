@@ -3,36 +3,34 @@
  * Now using Supabase backend instead of AsyncStorage
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Post, User, Reply, Report, Analytics, CheckIn } from '@/app/types';
+import { Analytics, CheckIn, Post, Reply, Report, User } from "@/app/types";
 import {
-  getPosts as getPostsFromDB,
-  createPost as createPostInDB,
-  updatePost as updatePostInDB,
-  getPost as getPostFromDB,
-  getReplies as getRepliesFromDB,
-  createReply as createReplyInDB,
-  getCurrentUser as getCurrentUserFromDB,
-  createCheckIn as createCheckInInDB,
-  getCheckIns as getCheckInsFromDB,
-  hasCheckedInToday as hasCheckedInTodayFromDB,
-  getCheckInStreak as getCheckInStreakFromDB,
-  createReport as createReportInDB,
-  getReports as getReportsFromDB,
-  updateReport as updateReportInDB,
-  getAnalytics as getAnalyticsFromDB,
-} from '@/lib/database';
+    createCheckIn as createCheckInInDB,
+    createPost as createPostInDB,
+    createReply as createReplyInDB,
+    createReport as createReportInDB,
+    getAnalytics as getAnalyticsFromDB,
+    getCheckIns as getCheckInsFromDB,
+    getCheckInStreak as getCheckInStreakFromDB,
+    getCurrentUser as getCurrentUserFromDB,
+    getPosts as getPostsFromDB,
+    getReports as getReportsFromDB,
+    hasCheckedInToday as hasCheckedInTodayFromDB,
+    updatePost as updatePostInDB,
+    updateReport as updateReportInDB,
+} from "@/lib/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEYS = {
-  USER: '@lunavo:user',
-  POSTS: '@lunavo:posts',
-  REPLIES: '@lunavo:replies',
-  USER_PSEUDONYM: '@lunavo:pseudonym',
-  SETTINGS: '@lunavo:settings',
-  CHECK_INS: '@lunavo:check_ins',
-  LAST_CHECK_IN_DATE: '@lunavo:last_check_in_date',
-  REPORTS: '@lunavo:reports',
-  ANALYTICS: '@lunavo:analytics',
+  USER: "@lunavo:user",
+  POSTS: "@lunavo:posts",
+  REPLIES: "@lunavo:replies",
+  USER_PSEUDONYM: "@lunavo:pseudonym",
+  SETTINGS: "@lunavo:settings",
+  CHECK_INS: "@lunavo:check_ins",
+  LAST_CHECK_IN_DATE: "@lunavo:last_check_in_date",
+  REPORTS: "@lunavo:reports",
+  ANALYTICS: "@lunavo:analytics",
 };
 
 /**
@@ -63,7 +61,7 @@ export async function getPosts(): Promise<Post[]> {
 
 export async function addPost(post: Post): Promise<void> {
   // Auto-detect and escalate if needed
-  const { autoEscalatePost } = await import('@/lib/escalation-detection');
+  const { autoEscalatePost } = await import("@/lib/escalation-detection");
   await autoEscalatePost(post);
 
   await createPostInDB({
@@ -78,7 +76,10 @@ export async function addPost(post: Post): Promise<void> {
   });
 }
 
-export async function updatePost(postId: string, updates: Partial<Post>): Promise<void> {
+export async function updatePost(
+  postId: string,
+  updates: Partial<Post>,
+): Promise<void> {
   await updatePostInDB(postId, updates);
 }
 
@@ -97,7 +98,7 @@ export async function saveReplies(replies: Reply[]): Promise<void> {
 
 export async function addReply(reply: Reply): Promise<void> {
   const user = await getCurrentUserFromDB();
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
   await createReplyInDB({
     postId: reply.postId,
@@ -122,7 +123,9 @@ export async function getPseudonym(): Promise<string | null> {
 /**
  * Settings storage
  */
-export async function saveSettings(settings: Record<string, any>): Promise<void> {
+export async function saveSettings(
+  settings: Record<string, any>,
+): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 }
 
@@ -131,22 +134,9 @@ export async function getSettings(): Promise<Record<string, any>> {
   return data ? JSON.parse(data) : {};
 }
 
-/**
- * Check-in storage (using Supabase)
- */
-export interface CheckIn {
-  id: string;
-  userId: string;
-  mood: string;
-  note?: string;
-  feelingStrength?: number;
-  date: string; // YYYY-MM-DD format
-  timestamp: number;
-}
-
 export async function saveCheckIn(checkIn: CheckIn): Promise<void> {
   const user = await getCurrentUserFromDB();
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
   await createCheckInInDB({
     userId: user.id,
@@ -198,7 +188,10 @@ export async function addReport(report: Report): Promise<void> {
   });
 }
 
-export async function updateReport(reportId: string, updates: Partial<Report>): Promise<void> {
+export async function updateReport(
+  reportId: string,
+  updates: Partial<Report>,
+): Promise<void> {
   await updateReportInDB(reportId, updates);
 }
 

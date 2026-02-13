@@ -2,7 +2,7 @@
  * Resource Detail Screen
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
@@ -39,15 +39,7 @@ export default function ResourceDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadResource();
-      checkFavoriteStatus();
-      checkDownloadStatus();
-    }
-  }, [id]);
-
-  const loadResource = async () => {
+  const loadResource = useCallback(async () => {
     try {
       if (!id) return;
       const resourceData = await getResource(id);
@@ -58,9 +50,9 @@ export default function ResourceDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const checkFavoriteStatus = async () => {
+  const checkFavoriteStatus = useCallback(async () => {
     try {
       const favoritesJson = await AsyncStorage.getItem(FAVORITES_KEY);
       if (favoritesJson) {
@@ -70,9 +62,9 @@ export default function ResourceDetailScreen() {
     } catch (error) {
       console.error('Error checking favorite status:', error);
     }
-  };
+  }, [id]);
 
-  const checkDownloadStatus = async () => {
+  const checkDownloadStatus = useCallback(async () => {
     try {
       const downloadsJson = await AsyncStorage.getItem(DOWNLOADS_KEY);
       if (downloadsJson) {
@@ -82,7 +74,15 @@ export default function ResourceDetailScreen() {
     } catch (error) {
       console.error('Error checking download status:', error);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadResource();
+      checkFavoriteStatus();
+      checkDownloadStatus();
+    }
+  }, [id, loadResource, checkFavoriteStatus, checkDownloadStatus]);
 
   const toggleFavorite = async () => {
     try {

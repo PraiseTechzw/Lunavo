@@ -2,7 +2,7 @@
  * Training Resources - Ongoing training for peer educators
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -45,13 +45,7 @@ export default function TrainingScreen() {
   const [resources, setResources] = useState<TrainingResource[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  useEffect(() => {
-    if (user) {
-      loadTrainingResources();
-    }
-  }, [user, selectedCategory]);
-
-  const loadTrainingResources = async () => {
+  const loadTrainingResources = useCallback(async () => {
     try {
       // Mock training resources - in production, these would come from database
       const trainingResources: TrainingResource[] = [
@@ -104,7 +98,13 @@ export default function TrainingScreen() {
     } catch (error) {
       console.error('Error loading training resources:', error);
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (user) {
+      loadTrainingResources();
+    }
+  }, [user, selectedCategory, loadTrainingResources]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -113,7 +113,6 @@ export default function TrainingScreen() {
   };
 
   const handleResourcePress = (resource: TrainingResource) => {
-    // TODO: Navigate to resource viewer
     Alert.alert('Training Resource', `Opening ${resource.title}`);
   };
 

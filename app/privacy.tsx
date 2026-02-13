@@ -2,26 +2,24 @@
  * Privacy Policy Screen
  */
 
-import { DrawerHeader } from '@/app/components/navigation/drawer-header';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { DrawerHeader } from "@/app/components/navigation/drawer-header";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const [drawerVisible, setDrawerVisible] = useState(false);
 
   const sections = [
     {
-      title: 'Information We Collect',
+      title: "Information We Collect",
       content: `We collect information that you provide directly to us, including:
 • Account information (email, username, student number)
 • Profile information (pseudonym, preferences)
@@ -31,7 +29,7 @@ export default function PrivacyScreen() {
 We use this information to provide, maintain, and improve our services.`,
     },
     {
-      title: 'How We Use Your Information',
+      title: "How We Use Your Information",
       content: `Your information is used to:
 • Provide mental health support services
 • Facilitate peer-to-peer connections
@@ -42,7 +40,7 @@ We use this information to provide, maintain, and improve our services.`,
 We never sell your personal information to third parties.`,
     },
     {
-      title: 'Anonymous Posting',
+      title: "Anonymous Posting",
       content: `You can post anonymously on the platform. When posting anonymously:
 • Your identity is protected from other users
 • Your posts are not linked to your profile
@@ -52,7 +50,7 @@ We never sell your personal information to third parties.`,
 Anonymous posts are still subject to community guidelines.`,
     },
     {
-      title: 'Data Security',
+      title: "Data Security",
       content: `We implement industry-standard security measures:
 • Encrypted data transmission (SSL/TLS)
 • Secure database storage
@@ -62,7 +60,7 @@ Anonymous posts are still subject to community guidelines.`,
 However, no method of transmission over the internet is 100% secure.`,
     },
     {
-      title: 'Your Rights',
+      title: "Your Rights",
       content: `You have the right to:
 • Access your personal data
 • Correct inaccurate information
@@ -73,7 +71,7 @@ However, no method of transmission over the internet is 100% secure.`,
 Contact us at privacy@peaceclub.cut.ac.zw to exercise these rights.`,
     },
     {
-      title: 'Third-Party Services',
+      title: "Third-Party Services",
       content: `We may use third-party services for:
 • Analytics and performance monitoring
 • Cloud storage and hosting
@@ -82,7 +80,7 @@ Contact us at privacy@peaceclub.cut.ac.zw to exercise these rights.`,
 These services are bound by their own privacy policies and data protection agreements.`,
     },
     {
-      title: 'Children\'s Privacy',
+      title: "Children's Privacy",
       content: `Our platform is designed for students aged 13 and above. We comply with:
 • COPPA (Children's Online Privacy Protection Act)
 • FERPA (Family Educational Rights and Privacy Act)
@@ -91,7 +89,7 @@ These services are bound by their own privacy policies and data protection agree
 We do not knowingly collect information from children under 13.`,
     },
     {
-      title: 'Changes to This Policy',
+      title: "Changes to This Policy",
       content: `We may update this privacy policy from time to time. We will:
 • Notify you of significant changes
 • Post the updated policy on this page
@@ -102,14 +100,14 @@ Continued use of the platform after changes constitutes acceptance.`,
   ];
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
           title="Privacy Policy"
-          onMenuPress={() => setDrawerVisible(false)}
+          onMenuPress={() => {}}
           rightAction={{
-            icon: 'close',
+            icon: "close",
             onPress: () => router.back(),
           }}
         />
@@ -121,31 +119,58 @@ Continued use of the platform after changes constitutes acceptance.`,
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-              <MaterialIcons name="privacy-tip" size={48} color={colors.primary} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <MaterialIcons
+                name="privacy-tip"
+                size={48}
+                color={colors.primary}
+              />
             </View>
-            <ThemedText type="h1" style={[styles.title, { color: colors.text }]}>
+            <ThemedText
+              type="h1"
+              style={[styles.title, { color: colors.text }]}
+            >
               Privacy Policy
             </ThemedText>
-            <ThemedText type="small" style={[styles.lastUpdated, { color: colors.icon }]}>
+            <ThemedText
+              type="small"
+              style={[styles.lastUpdated, { color: colors.icon }]}
+            >
               Last Updated: {new Date().toLocaleDateString()}
             </ThemedText>
           </View>
 
           {/* Introduction */}
           <View style={[styles.introCard, { backgroundColor: colors.card }]}>
-            <ThemedText type="body" style={[styles.introText, { color: colors.text }]}>
-              At PEACE, we are committed to protecting your privacy and ensuring the security of your personal information. As the official platform of the Peer Education Club (PE Club), this policy explains how we collect, use, and safeguard your data when you use our platform.
+            <ThemedText
+              type="body"
+              style={[styles.introText, { color: colors.text }]}
+            >
+              Lunavo is committed to protecting your privacy and ensuring the
+              security of your personal information. As a student-centric
+              support ecosystem for CUT, this policy explains how we collect,
+              use, and safeguard your data when you use our platform.
             </ThemedText>
           </View>
 
           {/* Sections */}
           {sections.map((section, index) => (
             <View key={index} style={styles.section}>
-              <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+              <ThemedText
+                type="h3"
+                style={[styles.sectionTitle, { color: colors.text }]}
+              >
                 {section.title}
               </ThemedText>
-              <ThemedText type="body" style={[styles.sectionContent, { color: colors.icon }]}>
+              <ThemedText
+                type="body"
+                style={[styles.sectionContent, { color: colors.icon }]}
+              >
                 {section.content}
               </ThemedText>
             </View>
@@ -154,10 +179,13 @@ Continued use of the platform after changes constitutes acceptance.`,
           {/* Contact */}
           <View style={[styles.contactCard, { backgroundColor: colors.card }]}>
             <MaterialIcons name="email" size={24} color={colors.primary} />
-            <ThemedText type="body" style={[styles.contactText, { color: colors.text }]}>
-              Questions about privacy? Contact us at{' '}
-              <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
-                privacy@peaceclub.cut.ac.zw
+            <ThemedText
+              type="body"
+              style={[styles.contactText, { color: colors.text }]}
+            >
+              Questions about privacy? Contact us at{" "}
+              <ThemedText style={{ color: colors.primary, fontWeight: "600" }}>
+                privacy@lunavo.app
               </ThemedText>
             </ThemedText>
           </View>
@@ -184,7 +212,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xl,
     paddingTop: Spacing.lg,
   },
@@ -192,19 +220,19 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: Spacing.xs,
   },
   lastUpdated: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
   introCard: {
     padding: Spacing.lg,
@@ -220,7 +248,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: Spacing.md,
   },
   sectionContent: {
@@ -228,8 +256,8 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   contactCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     gap: Spacing.md,

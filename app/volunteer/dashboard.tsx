@@ -30,7 +30,7 @@ export default function VolunteerDashboardScreen() {
   const colors = Colors[colorScheme];
   const [refreshing, setRefreshing] = useState(false);
   const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalResponses: 142, // Mock for demo
     helpfulResponses: 89,
     activeThreads: 5,
