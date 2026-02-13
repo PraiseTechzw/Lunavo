@@ -3,43 +3,58 @@
  * Overhauled with PEACE branding, Glassmorphism, and Blobs
  */
 
-import { PEACELogo } from '@/app/components/peace-logo';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CUT_SCHOOLS } from '@/app/constants/programs';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { signUp } from '@/lib/auth';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { PEACELogo } from "@/app/components/peace-logo";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { CUT_SCHOOLS } from "@/app/constants/programs";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+    BorderRadius,
+    Colors,
+    PlatformStyles,
+    Spacing,
+} from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { signUp } from "@/lib/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
+} from "react-native";
 import Animated, {
-  Easing,
-  FadeInRight,
-  FadeOutLeft,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+    Easing,
+    FadeInRight,
+    FadeOutLeft,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type RegisterStep = 1 | 2 | 3 | 4;
 
-const InputField = ({ label, icon, value, onChange, placeholder, secure = false, statusIcon, colors }: any) => (
+const InputField = ({
+  label,
+  icon,
+  value,
+  onChange,
+  placeholder,
+  secure = false,
+  statusIcon,
+  colors,
+}: any) => (
   <View style={styles.inputGroup}>
     <ThemedText style={styles.label}>{label}</ThemedText>
     <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
@@ -60,8 +75,10 @@ const InputField = ({ label, icon, value, onChange, placeholder, secure = false,
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
+  const { height, width } = useWindowDimensions();
+  const isSmall = height < 700 || width < 360;
 
   const [step, setStep] = useState<RegisterStep>(1);
   const [loading, setLoading] = useState(false);
@@ -72,7 +89,7 @@ export default function RegisterScreen() {
     floatValue.value = withRepeat(
       withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -82,7 +99,10 @@ export default function RegisterScreen() {
 
   const animateButtonPress = () => {
     buttonScale.value = withTiming(0.95, { duration: 100 }, () => {
-      buttonScale.value = withTiming(1, { duration: 200, easing: Easing.elastic(1.2) });
+      buttonScale.value = withTiming(1, {
+        duration: 200,
+        easing: Easing.elastic(1.2),
+      });
     });
     buttonOpacity.value = withTiming(0.8, { duration: 100 }, () => {
       buttonOpacity.value = withTiming(1, { duration: 200 });
@@ -97,95 +117,105 @@ export default function RegisterScreen() {
   const blob1Style = useAnimatedStyle(() => ({
     transform: [
       { translateY: interpolate(floatValue.value, [0, 1], [0, 60]) },
-      { translateX: interpolate(floatValue.value, [0, 1], [0, 30]) }
-    ]
+      { translateX: interpolate(floatValue.value, [0, 1], [0, 30]) },
+    ],
   }));
 
   const blob2Style = useAnimatedStyle(() => ({
     transform: [
       { translateY: interpolate(floatValue.value, [0, 1], [0, -50]) },
-      { translateX: interpolate(floatValue.value, [0, 1], [0, -20]) }
-    ]
+      { translateX: interpolate(floatValue.value, [0, 1], [0, -20]) },
+    ],
   }));
 
   // Form State
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
-    studentNumber: '',
-    program: '',
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    studentNumber: "",
+    program: "",
     year: 1,
     semester: 1,
-    username: '',
-    phone: '',
-    emergencyContactName: '',
-    emergencyContactPhone: '',
+    username: "",
+    phone: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
     acceptedTerms: false,
   });
 
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const [studentIdStatus, setStudentIdStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [emailStatus, setEmailStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const [usernameStatus, setUsernameStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const [studentIdStatus, setStudentIdStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
   const [showProgramPicker, setShowProgramPicker] = useState(false);
-  const [programSpecialization, setProgramSpecialization] = useState('');
+  const [programSpecialization, setProgramSpecialization] = useState("");
 
   // Logic for Email validation
   useEffect(() => {
-    if (formData.email.includes('@')) {
-      setEmailStatus('checking');
+    if (formData.email.includes("@")) {
+      setEmailStatus("checking");
       const t = setTimeout(async () => {
-        const { checkEmailAvailability } = await import('@/lib/database');
+        const { checkEmailAvailability } = await import("@/lib/database");
         const avVal = await checkEmailAvailability(formData.email);
-        setEmailStatus(avVal ? 'available' : 'taken');
+        setEmailStatus(avVal ? "available" : "taken");
       }, 500);
       return () => clearTimeout(t);
     } else {
-      setEmailStatus('idle');
+      setEmailStatus("idle");
     }
   }, [formData.email]);
 
   // Logic for Username validation
   useEffect(() => {
     if (formData.username.length >= 3) {
-      setUsernameStatus('checking');
+      setUsernameStatus("checking");
       const t = setTimeout(async () => {
-        const { checkUsernameAvailability } = await import('@/lib/database');
+        const { checkUsernameAvailability } = await import("@/lib/database");
         const avVal = await checkUsernameAvailability(formData.username);
-        setUsernameStatus(avVal ? 'available' : 'taken');
+        setUsernameStatus(avVal ? "available" : "taken");
       }, 500);
       return () => clearTimeout(t);
     } else {
-      setUsernameStatus('idle');
+      setUsernameStatus("idle");
     }
   }, [formData.username]);
 
   // Logic for Student ID validation
   useEffect(() => {
     if (formData.studentNumber.length >= 4) {
-      setStudentIdStatus('checking');
+      setStudentIdStatus("checking");
       const t = setTimeout(async () => {
-        const { checkStudentIdAvailability } = await import('@/lib/database');
+        const { checkStudentIdAvailability } = await import("@/lib/database");
         const avVal = await checkStudentIdAvailability(formData.studentNumber);
-        setStudentIdStatus(avVal ? 'available' : 'taken');
+        setStudentIdStatus(avVal ? "available" : "taken");
       }, 500);
       return () => clearTimeout(t);
     } else {
-      setStudentIdStatus('idle');
+      setStudentIdStatus("idle");
     }
   }, [formData.studentNumber]);
 
   const handleRegister = async () => {
-    console.log('[Register] Handle register called');
+    console.log("[Register] Handle register called");
     if (!formData.acceptedTerms) {
-      console.log('[Register] Terms not accepted');
-      Alert.alert('Required', 'Accept terms to proceed.');
+      console.log("[Register] Terms not accepted");
+      Alert.alert("Required", "Accept terms to proceed.");
       return;
     }
     setLoading(true);
     try {
-      console.log('[Register] Calling signUp with:', { ...formData, password: '***', confirmPassword: '***' });
+      console.log("[Register] Calling signUp with:", {
+        ...formData,
+        password: "***",
+        confirmPassword: "***",
+      });
       const { user, error } = await signUp({
         email: formData.email,
         password: formData.password,
@@ -198,18 +228,21 @@ export default function RegisterScreen() {
         phone: formData.phone,
         emergencyContactName: formData.emergencyContactName,
         emergencyContactPhone: formData.emergencyContactPhone,
-        role: 'student',
+        role: "student",
       });
 
-      console.log('[Register] signUp result:', { hasUser: !!user, error });
+      console.log("[Register] signUp result:", { hasUser: !!user, error });
 
       if (error) throw error;
 
-      console.log('[Register] Success. Navigating to verify-email.');
-      router.replace({ pathname: '/auth/verify-email', params: { email: formData.email } });
+      console.log("[Register] Success. Navigating to verify-email.");
+      router.replace({
+        pathname: "/auth/verify-email",
+        params: { email: formData.email },
+      });
     } catch (e: any) {
-      console.error('[Register] Error caught:', e);
-      Alert.alert('Error', e.message);
+      console.error("[Register] Error caught:", e);
+      Alert.alert("Error", e.message);
     } finally {
       setLoading(false);
     }
@@ -229,36 +262,73 @@ export default function RegisterScreen() {
     <ThemedView style={styles.container}>
       {/* Animated Background Blobs */}
       <View style={styles.background}>
-        <Animated.View style={[styles.blobWrapper, blob1Style, { top: -200, left: -100 }]}>
-          <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.blob} />
+        <Animated.View
+          style={[styles.blobWrapper, blob1Style, { top: -200, left: -100 }]}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.blob}
+          />
         </Animated.View>
-        <Animated.View style={[styles.blobWrapper, blob2Style, { bottom: -200, right: -100 }]}>
-          <LinearGradient colors={[colors.success, colors.primary]} style={styles.blob} />
+        <Animated.View
+          style={[
+            styles.blobWrapper,
+            blob2Style,
+            { bottom: -200, right: -100 },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.success, colors.primary]}
+            style={styles.blob}
+          />
         </Animated.View>
       </View>
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
-
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              isSmall ? { padding: Spacing.lg } : null,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={false}
+          >
             <View style={styles.fixedHeader}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={styles.backBtn}
+              >
                 <Ionicons name="arrow-back" size={24} color={colors.text} />
               </TouchableOpacity>
               <View style={styles.progressTrack}>
-                {[1, 2, 3, 4].map(s => (
-                  <View key={s} style={[styles.progressDot, {
-                    backgroundColor: s <= step ? colors.primary : colors.border,
-                    width: s === step ? 30 : 20
-                  }]} />
+                {[1, 2, 3, 4].map((s) => (
+                  <View
+                    key={s}
+                    style={[
+                      styles.progressDot,
+                      {
+                        backgroundColor:
+                          s <= step ? colors.primary : colors.border,
+                        width: s === step ? 30 : 20,
+                      },
+                    ]}
+                  />
                 ))}
               </View>
             </View>
 
             <View style={styles.logoSection}>
-              <PEACELogo size={80} />
+              <PEACELogo size={isSmall ? 64 : 80} />
               <ThemedText type="h2" style={styles.stepTitle}>
-                {step === 1 ? 'Academic ID' : step === 2 ? 'Identity' : step === 3 ? 'Contact' : 'Protocol'}
+                {step === 1
+                  ? "Academic ID"
+                  : step === 2
+                    ? "Identity"
+                    : step === 3
+                      ? "Contact"
+                      : "Protocol"}
               </ThemedText>
             </View>
 
@@ -266,7 +336,11 @@ export default function RegisterScreen() {
               key={step}
               entering={FadeInRight.duration(400)}
               exiting={FadeOutLeft.duration(400)}
-              style={[styles.card, { backgroundColor: colors.card }]}
+              style={[
+                styles.card,
+                { backgroundColor: colors.card },
+                isSmall ? { padding: Spacing.lg } : null,
+              ]}
             >
               {step === 1 && (
                 <View>
@@ -274,22 +348,78 @@ export default function RegisterScreen() {
                     label="University Email"
                     icon="mail-outline"
                     value={formData.email}
-                    onChange={(v: string) => setFormData({ ...formData, email: v })}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, email: v })
+                    }
                     placeholder="name@cut.ac.zw"
-                    statusIcon={emailStatus === 'checking' ? <ActivityIndicator size="small" /> : emailStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : emailStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    statusIcon={
+                      emailStatus === "checking" ? (
+                        <ActivityIndicator size="small" />
+                      ) : emailStatus === "available" ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          color={colors.success}
+                          size={20}
+                        />
+                      ) : emailStatus === "taken" ? (
+                        <Ionicons
+                          name="close-circle"
+                          color={colors.danger}
+                          size={20}
+                        />
+                      ) : null
+                    }
                     colors={colors}
                   />
                   <InputField
                     label="Student ID"
                     icon="card-outline"
                     value={formData.studentNumber}
-                    onChange={(v: string) => setFormData({ ...formData, studentNumber: v })}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, studentNumber: v })
+                    }
                     placeholder="C23XXXXX"
-                    statusIcon={studentIdStatus === 'checking' ? <ActivityIndicator size="small" /> : studentIdStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : studentIdStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    statusIcon={
+                      studentIdStatus === "checking" ? (
+                        <ActivityIndicator size="small" />
+                      ) : studentIdStatus === "available" ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          color={colors.success}
+                          size={20}
+                        />
+                      ) : studentIdStatus === "taken" ? (
+                        <Ionicons
+                          name="close-circle"
+                          color={colors.danger}
+                          size={20}
+                        />
+                      ) : null
+                    }
                     colors={colors}
                   />
-                  <InputField label="Password" icon="lock-closed-outline" secure value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} placeholder="••••••••" colors={colors} />
-                  <InputField label="Confirm" icon="lock-closed-outline" secure value={formData.confirmPassword} onChange={(v: string) => setFormData({ ...formData, confirmPassword: v })} placeholder="••••••••" colors={colors} />
+                  <InputField
+                    label="Password"
+                    icon="lock-closed-outline"
+                    secure
+                    value={formData.password}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, password: v })
+                    }
+                    placeholder="••••••••"
+                    colors={colors}
+                  />
+                  <InputField
+                    label="Confirm"
+                    icon="lock-closed-outline"
+                    secure
+                    value={formData.confirmPassword}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, confirmPassword: v })
+                    }
+                    placeholder="••••••••"
+                    colors={colors}
+                  />
                 </View>
               )}
 
@@ -299,83 +429,209 @@ export default function RegisterScreen() {
                     label="Full Name"
                     icon="person-outline"
                     value={formData.fullName}
-                    onChange={(v: string) => setFormData({ ...formData, fullName: v })}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, fullName: v })
+                    }
                     placeholder="As on student ID"
                     colors={colors}
                   />
                   <View style={styles.inputGroup}>
-                    <ThemedText style={styles.label}>Program of Study</ThemedText>
+                    <ThemedText style={styles.label}>
+                      Program of Study
+                    </ThemedText>
                     <TouchableOpacity
                       onPress={() => setShowProgramPicker(true)}
-                      style={[styles.inputWrapper, { borderColor: colors.border }]}
+                      style={[
+                        styles.inputWrapper,
+                        { borderColor: colors.border },
+                      ]}
                     >
-                      <Ionicons name="school-outline" size={20} color={colors.icon} />
-                      <ThemedText style={[styles.input, { color: formData.program ? colors.text : colors.icon }]}>
-                        {formData.program || 'Select your program'}
+                      <Ionicons
+                        name="school-outline"
+                        size={20}
+                        color={colors.icon}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.input,
+                          {
+                            color: formData.program ? colors.text : colors.icon,
+                          },
+                        ]}
+                      >
+                        {formData.program || "Select your program"}
                       </ThemedText>
-                      <Ionicons name="chevron-down-outline" size={20} color={colors.icon} />
+                      <Ionicons
+                        name="chevron-down-outline"
+                        size={20}
+                        color={colors.icon}
+                      />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <ThemedText style={styles.label}>Academic Year & Semester</ThemedText>
+                    <ThemedText style={styles.label}>
+                      Academic Year & Semester
+                    </ThemedText>
                     <View style={styles.academicRow}>
                       <View style={{ flex: 1 }}>
-                        <ThemedText style={[styles.label, { fontSize: 11, opacity: 0.6 }]}>Year</ThemedText>
+                        <ThemedText
+                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
+                        >
+                          Year
+                        </ThemedText>
                         <View style={styles.yearRow}>
-                          {[1, 2, 3, 4, 5].map(y => (
+                          {[1, 2, 3, 4, 5].map((y) => (
                             <TouchableOpacity
                               key={y}
-                              onPress={() => setFormData({ ...formData, year: y })}
-                              style={[styles.yearBox, {
-                                borderColor: formData.year === y ? colors.primary : colors.border,
-                                backgroundColor: formData.year === y ? colors.primary : 'transparent',
-                              }]}
+                              onPress={() =>
+                                setFormData({ ...formData, year: y })
+                              }
+                              style={[
+                                styles.yearBox,
+                                {
+                                  borderColor:
+                                    formData.year === y
+                                      ? colors.primary
+                                      : colors.border,
+                                  backgroundColor:
+                                    formData.year === y
+                                      ? colors.primary
+                                      : "transparent",
+                                },
+                              ]}
                             >
-                              <ThemedText style={{ color: formData.year === y ? '#FFF' : colors.text, fontWeight: '700', fontSize: 14 }}>{y}</ThemedText>
+                              <ThemedText
+                                style={{
+                                  color:
+                                    formData.year === y ? "#FFF" : colors.text,
+                                  fontWeight: "700",
+                                  fontSize: 14,
+                                }}
+                              >
+                                {y}
+                              </ThemedText>
                             </TouchableOpacity>
                           ))}
                         </View>
                       </View>
                       <View style={{ flex: 1, marginLeft: 10 }}>
-                        <ThemedText style={[styles.label, { fontSize: 11, opacity: 0.6 }]}>Semester</ThemedText>
+                        <ThemedText
+                          style={[styles.label, { fontSize: 11, opacity: 0.6 }]}
+                        >
+                          Semester
+                        </ThemedText>
                         <View style={styles.yearRow}>
-                          {[1, 2].map(s => (
+                          {[1, 2].map((s) => (
                             <TouchableOpacity
                               key={s}
-                              onPress={() => setFormData({ ...formData, semester: s })}
-                              style={[styles.semesterBox, {
-                                borderColor: formData.semester === s ? colors.primary : colors.border,
-                                backgroundColor: formData.semester === s ? colors.primary : 'transparent',
-                              }]}
+                              onPress={() =>
+                                setFormData({ ...formData, semester: s })
+                              }
+                              style={[
+                                styles.semesterBox,
+                                {
+                                  borderColor:
+                                    formData.semester === s
+                                      ? colors.primary
+                                      : colors.border,
+                                  backgroundColor:
+                                    formData.semester === s
+                                      ? colors.primary
+                                      : "transparent",
+                                },
+                              ]}
                             >
-                              <ThemedText style={{ color: formData.semester === s ? '#FFF' : colors.text, fontWeight: '700', fontSize: 14 }}>{s}</ThemedText>
+                              <ThemedText
+                                style={{
+                                  color:
+                                    formData.semester === s
+                                      ? "#FFF"
+                                      : colors.text,
+                                  fontWeight: "700",
+                                  fontSize: 14,
+                                }}
+                              >
+                                {s}
+                              </ThemedText>
                             </TouchableOpacity>
                           ))}
                         </View>
                       </View>
                     </View>
-                    <ThemedText style={[styles.hintText, { marginTop: 8 }]}>Current: {formData.year}.{formData.semester}</ThemedText>
+                    <ThemedText style={[styles.hintText, { marginTop: 8 }]}>
+                      Current: {formData.year}.{formData.semester}
+                    </ThemedText>
                   </View>
 
                   <InputField
                     label="Community Alias"
                     icon="at-outline"
                     value={formData.username}
-                    onChange={(v: string) => setFormData({ ...formData, username: v.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                    onChange={(v: string) =>
+                      setFormData({
+                        ...formData,
+                        username: v.toLowerCase().replace(/[^a-z0-9_]/g, ""),
+                      })
+                    }
                     placeholder="lowercase_only"
-                    statusIcon={usernameStatus === 'checking' ? <ActivityIndicator size="small" /> : usernameStatus === 'available' ? <Ionicons name="checkmark-circle" color={colors.success} size={20} /> : usernameStatus === 'taken' ? <Ionicons name="close-circle" color={colors.danger} size={20} /> : null}
+                    statusIcon={
+                      usernameStatus === "checking" ? (
+                        <ActivityIndicator size="small" />
+                      ) : usernameStatus === "available" ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          color={colors.success}
+                          size={20}
+                        />
+                      ) : usernameStatus === "taken" ? (
+                        <Ionicons
+                          name="close-circle"
+                          color={colors.danger}
+                          size={20}
+                        />
+                      ) : null
+                    }
                     colors={colors}
                   />
-                  <ThemedText style={styles.hintText}>Lowercase only (a-z, 0-9, _). Visible to peers.</ThemedText>
+                  <ThemedText style={styles.hintText}>
+                    Lowercase only (a-z, 0-9, _). Visible to peers.
+                  </ThemedText>
                 </View>
               )}
 
               {step === 3 && (
                 <View>
-                  <InputField label="Your Phone" icon="phone-portrait-outline" value={formData.phone} onChange={(v: string) => setFormData({ ...formData, phone: v })} placeholder="+263..." colors={colors} />
-                  <InputField label="Emergency Name" icon="people-outline" value={formData.emergencyContactName} onChange={(v: string) => setFormData({ ...formData, emergencyContactName: v })} placeholder="Full Name" colors={colors} />
-                  <InputField label="Emergency Phone" icon="call-outline" value={formData.emergencyContactPhone} onChange={(v: string) => setFormData({ ...formData, emergencyContactPhone: v })} placeholder="+263..." colors={colors} />
+                  <InputField
+                    label="Your Phone"
+                    icon="phone-portrait-outline"
+                    value={formData.phone}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, phone: v })
+                    }
+                    placeholder="+263..."
+                    colors={colors}
+                  />
+                  <InputField
+                    label="Emergency Name"
+                    icon="people-outline"
+                    value={formData.emergencyContactName}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, emergencyContactName: v })
+                    }
+                    placeholder="Full Name"
+                    colors={colors}
+                  />
+                  <InputField
+                    label="Emergency Phone"
+                    icon="call-outline"
+                    value={formData.emergencyContactPhone}
+                    onChange={(v: string) =>
+                      setFormData({ ...formData, emergencyContactPhone: v })
+                    }
+                    placeholder="+263..."
+                    colors={colors}
+                  />
                 </View>
               )}
 
@@ -383,17 +639,35 @@ export default function RegisterScreen() {
                 <View>
                   <ThemedText type="h3">Community Protocols</ThemedText>
                   <ThemedText style={styles.termsText}>
-                    By joining PEACE, you agree to uphold our values of anonymity, mutual respect, and
-                    institutional oversight. Your identity is shared ONLY with professional responders
-                    during critical escalations.
+                    By joining PEACE, you agree to uphold our values of
+                    anonymity, mutual respect, and institutional oversight. Your
+                    identity is shared ONLY with professional responders during
+                    critical escalations.
                   </ThemedText>
                   <TouchableOpacity
                     style={styles.checkboxRow}
-                    onPress={() => setFormData({ ...formData, acceptedTerms: !formData.acceptedTerms })}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        acceptedTerms: !formData.acceptedTerms,
+                      })
+                    }
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: formData.acceptedTerms ? colors.primary : 'transparent' }]}>
-                      {formData.acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: colors.primary,
+                          backgroundColor: formData.acceptedTerms
+                            ? colors.primary
+                            : "transparent",
+                        },
+                      ]}
+                    >
+                      {formData.acceptedTerms && (
+                        <Ionicons name="checkmark" size={14} color="#FFF" />
+                      )}
                     </View>
                     <ThemedText>I uphold the PEACE protocol</ThemedText>
                   </TouchableOpacity>
@@ -402,18 +676,38 @@ export default function RegisterScreen() {
 
               <View style={styles.actionRow}>
                 {step > 1 && (
-                  <TouchableOpacity style={[styles.navBtn, { borderColor: colors.border }]} onPress={() => setStep((step - 1) as any)}>
+                  <TouchableOpacity
+                    style={[styles.navBtn, { borderColor: colors.border }]}
+                    onPress={() => setStep((step - 1) as any)}
+                  >
                     <ThemedText>Back</ThemedText>
                   </TouchableOpacity>
                 )}
-                <Animated.View style={[styles.primaryBtnWrapper, { flex: 1 }, animatedButtonStyle]}>
+                <Animated.View
+                  style={[
+                    styles.primaryBtnWrapper,
+                    { flex: 1 },
+                    animatedButtonStyle,
+                  ]}
+                >
                   <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={handleButtonPress}
                     disabled={loading}
                   >
-                    <LinearGradient colors={colors.gradients.primary as any} style={styles.primaryBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                      {loading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.btnText}>{step === 4 ? 'ESTABLISH LINK' : 'CONTINUE'}</ThemedText>}
+                    <LinearGradient
+                      colors={colors.gradients.primary as any}
+                      style={styles.primaryBtn}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <ThemedText style={styles.btnText}>
+                          {step === 4 ? "ESTABLISH LINK" : "CONTINUE"}
+                        </ThemedText>
+                      )}
                     </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
@@ -421,13 +715,17 @@ export default function RegisterScreen() {
             </Animated.View>
 
             <View style={styles.footer}>
-              <ThemedText style={{ opacity: 0.6 }}>Already connected? </ThemedText>
-              <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '700' }}>Sign In</ThemedText>
+              <ThemedText style={{ opacity: 0.6 }}>
+                Already connected?{" "}
+              </ThemedText>
+              <TouchableOpacity onPress={() => router.push("/auth/login")}>
+                <ThemedText
+                  style={{ color: colors.primary, fontWeight: "700" }}
+                >
+                  Sign In
+                </ThemedText>
               </TouchableOpacity>
             </View>
-
-            
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -440,7 +738,12 @@ export default function RegisterScreen() {
         onRequestClose={() => setShowProgramPicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <ThemedText type="h3">Select Your Program</ThemedText>
               <TouchableOpacity onPress={() => setShowProgramPicker(false)}>
@@ -448,40 +751,74 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.programList} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.programList}
+              showsVerticalScrollIndicator={false}
+            >
               {CUT_SCHOOLS.map((school, schoolIndex) => (
                 <View key={schoolIndex} style={styles.schoolSection}>
-                  <ThemedText style={styles.schoolName}>{school.name}</ThemedText>
+                  <ThemedText style={styles.schoolName}>
+                    {school.name}
+                  </ThemedText>
                   {school.programs.map((program, progIndex) => (
                     <TouchableOpacity
                       key={progIndex}
-                      style={[styles.programItem, {
-                        backgroundColor: formData.program === program.name ? colors.primary + '20' : colors.card,
-                        borderColor: formData.program === program.name ? colors.primary : colors.border,
-                      }]}
+                      style={[
+                        styles.programItem,
+                        {
+                          backgroundColor:
+                            formData.program === program.name
+                              ? colors.primary + "20"
+                              : colors.card,
+                          borderColor:
+                            formData.program === program.name
+                              ? colors.primary
+                              : colors.border,
+                        },
+                      ]}
                       onPress={() => {
                         setFormData({ ...formData, program: program.name });
                         setShowProgramPicker(false);
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <ThemedText style={styles.programName}>{program.name}</ThemedText>
+                        <ThemedText style={styles.programName}>
+                          {program.name}
+                        </ThemedText>
                         <View style={styles.programMeta}>
-                          <View style={[styles.durationBadge, { backgroundColor: colors.primary + '30' }]}>
-                            <Ionicons name="time-outline" size={12} color={colors.primary} />
-                            <ThemedText style={[styles.durationText, { color: colors.primary }]}>
+                          <View
+                            style={[
+                              styles.durationBadge,
+                              { backgroundColor: colors.primary + "30" },
+                            ]}
+                          >
+                            <Ionicons
+                              name="time-outline"
+                              size={12}
+                              color={colors.primary}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.durationText,
+                                { color: colors.primary },
+                              ]}
+                            >
                               {program.duration} years
                             </ThemedText>
                           </View>
                           {program.options && (
                             <ThemedText style={styles.optionsText}>
-                              Options: {program.options.join(', ')}
+                              Options: {program.options.join(", ")}
                             </ThemedText>
                           )}
                         </View>
                       </View>
                       {formData.program === program.name && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color={colors.primary}
+                        />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -502,16 +839,16 @@ const styles = StyleSheet.create({
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   blobWrapper: {
-    position: 'absolute',
+    position: "absolute",
     width: 600,
     height: 600,
   },
   blob: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 300,
     opacity: 0.1,
   },
@@ -521,23 +858,23 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   fixedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 40,
   },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   progressTrack: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   progressDot: {
@@ -545,41 +882,41 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   logoSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 30,
   },
   stepTitle: {
     marginTop: 10,
     letterSpacing: 2,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontWeight: "900",
+    textTransform: "uppercase",
   },
   card: {
     padding: Spacing.xl,
     borderRadius: BorderRadius.xxl,
     ...PlatformStyles.premiumShadow,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   inputGroup: {
     marginBottom: Spacing.lg,
   },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Spacing.xs,
     marginLeft: 4,
     opacity: 0.7,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     height: 60,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     gap: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   input: {
     flex: 1,
@@ -588,7 +925,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 12,
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
   },
   termsText: {
     marginTop: Spacing.md,
@@ -596,8 +933,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginTop: 30,
     marginBottom: 20,
@@ -607,11 +944,11 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   actionRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.md,
     marginTop: 20,
   },
@@ -620,8 +957,8 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   primaryBtnWrapper: {
     ...PlatformStyles.premiumShadow,
@@ -629,65 +966,65 @@ const styles = StyleSheet.create({
   primaryBtn: {
     height: 60,
     borderRadius: BorderRadius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   btnText: {
-    color: '#FFF',
-    fontWeight: '900',
+    color: "#FFF",
+    fontWeight: "900",
     letterSpacing: 1,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 30,
   },
   academicRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginTop: 8,
   },
   yearRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 5,
   },
   yearBox: {
-    width: '18%',
+    width: "18%",
     height: 45,
     borderRadius: 10,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   semesterBox: {
-    width: '48%',
+    width: "48%",
     height: 45,
     borderRadius: 10,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    height: '85%',
+    height: "85%",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: Spacing.xl,
     ...PlatformStyles.premiumShadow,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: "rgba(255,255,255,0.1)",
   },
   programList: {
     flex: 1,
@@ -697,15 +1034,15 @@ const styles = StyleSheet.create({
   },
   schoolName: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
     opacity: 0.5,
     marginBottom: 12,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   programItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
     borderRadius: 12,
     borderWidth: 1,
@@ -714,19 +1051,19 @@ const styles = StyleSheet.create({
   },
   programName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     lineHeight: 20,
     marginBottom: 6,
   },
   programMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   durationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -734,11 +1071,11 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   optionsText: {
     fontSize: 11,
     opacity: 0.6,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
 });

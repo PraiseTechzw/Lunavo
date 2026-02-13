@@ -6,28 +6,28 @@ import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
 import {
-    canAccessRoute,
-    getDefaultRoute,
-    isMobile,
-    isStudentAffairsMobileBlocked,
+  canAccessRoute,
+  getDefaultRoute,
+  isMobile,
+  isStudentAffairsMobileBlocked,
 } from "@/app/utils/navigation";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import {
-    addNotificationResponseListener,
-    registerForPushNotifications,
+  addNotificationResponseListener,
+  registerForPushNotifications,
 } from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Modal,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
@@ -44,6 +44,7 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
+  const isAuthRoute = useMemo(() => segments[0] === "auth", [segments]);
 
   useEffect(() => {
     initializeAuth();
@@ -78,6 +79,12 @@ export default function RootLayout() {
       console.error("Error initializing notifications:", error);
     }
   }, [router]);
+
+  useEffect(() => {
+    if (isAuthRoute && assistantOpen) {
+      setAssistantOpen(false);
+    }
+  }, [isAuthRoute, assistantOpen]);
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -516,7 +523,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-        {Platform.OS !== "web" && (
+        {!isAuthRoute && Platform.OS !== "web" && (
           <FAB
             icon="smart-toy"
             label="AI Assist"
@@ -525,7 +532,7 @@ export default function RootLayout() {
             color={colors.primary}
           />
         )}
-        {Platform.OS === "web" && (
+        {!isAuthRoute && Platform.OS === "web" && (
           <TouchableOpacity
             style={[
               styles.webAssistantButton,
@@ -540,7 +547,7 @@ export default function RootLayout() {
           </TouchableOpacity>
         )}
         <Modal
-          visible={assistantOpen}
+          visible={assistantOpen && !isAuthRoute}
           transparent
           animationType="fade"
           onRequestClose={() => setAssistantOpen(false)}

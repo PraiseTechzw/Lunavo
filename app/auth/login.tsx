@@ -3,43 +3,51 @@
  * Uses Glassmorphism, Reanimated, and LinearGradients
  */
 
-import { PEACELogo } from '@/app/components/peace-logo';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { signIn } from '@/lib/auth';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { PEACELogo } from "@/app/components/peace-logo";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+    BorderRadius,
+    Colors,
+    PlatformStyles,
+    Spacing,
+} from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { signIn } from "@/lib/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
+} from "react-native";
 import Animated, {
-  Easing,
-  FadeInDown,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+    Easing,
+    FadeInDown,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const [emailOrUsername, setEmailOrUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { height, width } = useWindowDimensions();
+  const isSmall = height < 700 || width < 360;
+  const [emailOrUsername, setEmailOrUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -50,7 +58,7 @@ export default function LoginScreen() {
     floatValue.value = withRepeat(
       withTiming(1, { duration: 10000, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -68,7 +76,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!emailOrUsername.trim() || !password.trim()) {
-      Alert.alert('Missing Information', 'Please fill in all fields.');
+      Alert.alert("Missing Information", "Please fill in all fields.");
       return;
     }
 
@@ -76,9 +84,9 @@ export default function LoginScreen() {
     try {
       const { user, error } = await signIn({ emailOrUsername, password });
       if (error) throw error;
-      if (user) router.replace('/(tabs)');
+      if (user) router.replace("/(tabs)");
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Check your credentials.');
+      Alert.alert("Login Failed", error.message || "Check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -88,30 +96,71 @@ export default function LoginScreen() {
     <ThemedView style={styles.container}>
       {/* Animated Background Blobs */}
       <View style={styles.background}>
-        <Animated.View style={[styles.blobWrapper, blob1Style, { top: -100, right: -100 }]}>
-          <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.blob} />
+        <Animated.View
+          style={[styles.blobWrapper, blob1Style, { top: -100, right: -100 }]}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.blob}
+          />
         </Animated.View>
-        <Animated.View style={[styles.blobWrapper, blob2Style, { bottom: -100, left: -100 }]}>
-          <LinearGradient colors={[colors.secondary, colors.primary]} style={styles.blob} />
+        <Animated.View
+          style={[styles.blobWrapper, blob2Style, { bottom: -100, left: -100 }]}
+        >
+          <LinearGradient
+            colors={[colors.secondary, colors.primary]}
+            style={styles.blob}
+          />
         </Animated.View>
       </View>
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
-
-            <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.logoSection}>
-              <PEACELogo size={140} />
-              <ThemedText type="h1" style={styles.title}>PEACE</ThemedText>
-              <ThemedText style={styles.subtitle}>Peer Education Club</ThemedText>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              isSmall ? { padding: Spacing.lg } : null,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={false}
+          >
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(800)}
+              style={[
+                styles.logoSection,
+                isSmall ? { marginBottom: 24 } : null,
+              ]}
+            >
+              <PEACELogo size={isSmall ? 100 : 140} />
+              <ThemedText
+                type="h1"
+                style={[styles.title, isSmall ? { fontSize: 36 } : null]}
+              >
+                PEACE
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                Peer Education Club
+              </ThemedText>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(400).duration(800)} style={[styles.card, { backgroundColor: colors.card }]}>
-              <ThemedText type="h2" style={styles.cardTitle}>Sign In</ThemedText>
+            <Animated.View
+              entering={FadeInDown.delay(400).duration(800)}
+              style={[
+                styles.card,
+                { backgroundColor: colors.card },
+                isSmall ? { padding: Spacing.lg } : null,
+              ]}
+            >
+              <ThemedText type="h2" style={styles.cardTitle}>
+                Sign In
+              </ThemedText>
 
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Email or Username</ThemedText>
-                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                <View
+                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                >
                   <Ionicons name="mail-outline" size={20} color={colors.icon} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
@@ -126,8 +175,14 @@ export default function LoginScreen() {
 
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Password</ThemedText>
-                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
+                <View
+                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.icon}
+                  />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="••••••••"
@@ -136,14 +191,27 @@ export default function LoginScreen() {
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={colors.icon} />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color={colors.icon}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.forgotBtn} onPress={() => router.push('/auth/forgot-password')}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Forgot Password?</ThemedText>
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => router.push("/auth/forgot-password")}
+              >
+                <ThemedText
+                  style={{ color: colors.primary, fontWeight: "600" }}
+                >
+                  Forgot Password?
+                </ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -153,27 +221,33 @@ export default function LoginScreen() {
               >
                 <LinearGradient
                   colors={colors.gradients.primary as any}
-                  style={styles.loginBtn}
+                  style={[styles.loginBtn, isSmall ? { height: 56 } : null]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
                   {loading ? (
                     <ActivityIndicator color="#FFF" />
                   ) : (
-                    <ThemedText style={styles.loginBtnText}>SIGN IN TO COMMUNITY</ThemedText>
+                    <ThemedText style={styles.loginBtnText}>
+                      SIGN IN TO COMMUNITY
+                    </ThemedText>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
 
               <View style={styles.footer}>
-                <ThemedText style={{ opacity: 0.6 }}>Don&apos;t have an account? </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/auth/register')}>
-                  <ThemedText style={{ color: colors.primary, fontWeight: '700' }}>Register Now</ThemedText>
+                <ThemedText style={{ opacity: 0.6 }}>
+                  Don&apos;t have an account?{" "}
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push("/auth/register")}>
+                  <ThemedText
+                    style={{ color: colors.primary, fontWeight: "700" }}
+                  >
+                    Register Now
+                  </ThemedText>
                 </TouchableOpacity>
               </View>
             </Animated.View>
-
-            
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -187,16 +261,16 @@ const styles = StyleSheet.create({
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   blobWrapper: {
-    position: 'absolute',
+    position: "absolute",
     width: 600,
     height: 600,
   },
   blob: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 300,
     opacity: 0.15,
   },
@@ -206,62 +280,62 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   logoSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   title: {
     fontSize: 48,
-    fontWeight: '900',
+    fontWeight: "900",
     marginTop: Spacing.md,
     letterSpacing: 8,
   },
   subtitle: {
     fontSize: 14,
     opacity: 0.6,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 4,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   card: {
     padding: Spacing.xl,
     borderRadius: BorderRadius.xxl,
     ...PlatformStyles.premiumShadow,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   cardTitle: {
     marginBottom: Spacing.xl,
-    textAlign: 'center',
+    textAlign: "center",
   },
   inputGroup: {
     marginBottom: Spacing.lg,
   },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Spacing.xs,
     marginLeft: 4,
     opacity: 0.7,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     height: 60,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     gap: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   input: {
     flex: 1,
     fontSize: 16,
   },
   forgotBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: Spacing.xl,
   },
   loginBtnWrapper: {
@@ -271,18 +345,18 @@ const styles = StyleSheet.create({
   loginBtn: {
     height: 60,
     borderRadius: BorderRadius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loginBtnText: {
-    color: '#FFF',
-    fontWeight: '900',
+    color: "#FFF",
+    fontWeight: "900",
     letterSpacing: 1,
     fontSize: 16,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: Spacing.md,
   },
 });
