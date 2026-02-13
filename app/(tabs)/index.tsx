@@ -317,7 +317,7 @@ export default function HomeScreen() {
                 </View>
 
                 <ThemedText type="h1" style={styles.heroTitle}>Mission: Wellness</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>"{currentQuote}"</ThemedText>
+                <ThemedText style={styles.heroSubtitle}>&quot;{currentQuote}&quot;</ThemedText>
 
                 <View style={styles.glassStatsContainer}>
                   <View style={styles.heroStat}>

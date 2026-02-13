@@ -267,7 +267,7 @@ export default function MeetingDetailScreen() {
                   >
                     <MaterialIcons name="check-circle" size={24} color="#FFFFFF" />
                     <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.sm }}>
-                      I'll Attend
+                      I&apos;ll Attend
                     </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -277,7 +277,7 @@ export default function MeetingDetailScreen() {
                   >
                     <MaterialIcons name="cancel" size={24} color={colors.text} />
                     <ThemedText type="body" style={{ color: colors.text, fontWeight: '600', marginLeft: Spacing.sm }}>
-                      Can't Attend
+                      Can&apos;t Attend
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -289,7 +289,7 @@ export default function MeetingDetailScreen() {
                     color={myAttendance ? colors.success : colors.icon}
                   />
                   <ThemedText type="body" style={{ color: colors.text, fontWeight: '600', marginLeft: Spacing.md }}>
-                    {myAttendance ? 'You are attending' : "You can't attend"}
+                    {myAttendance ? 'You are attending' : 'You can&apos;t attend'}
                   </ThemedText>
                   <TouchableOpacity
                     style={[styles.changeButton, { borderColor: colors.border }]}

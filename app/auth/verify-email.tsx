@@ -193,7 +193,7 @@ export default function VerifyEmailScreen() {
               </TouchableOpacity>
 
               <View style={styles.resendRow}>
-                <ThemedText style={{ opacity: 0.6 }}>Didn't receive it? </ThemedText>
+                <ThemedText style={{ opacity: 0.6 }}>Didn&apos;t receive it? </ThemedText>
                 <TouchableOpacity disabled={countdown > 0} onPress={async () => {
                   setResending(true);
                   await resendOTP(email || '');

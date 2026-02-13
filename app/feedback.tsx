@@ -96,7 +96,7 @@ export default function FeedbackScreen() {
               <MaterialIcons name="feedback" size={48} color={colors.primary} />
             </View>
             <ThemedText type="h1" style={[styles.title, { color: colors.text }]}>
-              We'd Love Your Feedback
+              We&apos;d Love Your Feedback
             </ThemedText>
             <ThemedText type="body" style={[styles.subtitle, { color: colors.icon }]}>
               Help us improve Lunavo by sharing your thoughts, reporting bugs, or suggesting features

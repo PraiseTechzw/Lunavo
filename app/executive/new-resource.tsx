@@ -187,7 +187,7 @@ export default function NewResourceScreen() {
                             layout={Layout.springify()}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Let's start with basics</ThemedText>
+                            <ThemedText style={styles.stepTitle}>Let&apos;s start with basics</ThemedText>
                             <ThemedText style={styles.stepSubtitle}>What are we sharing with the network today?</ThemedText>
 
                             <View style={styles.inputGroup}>
