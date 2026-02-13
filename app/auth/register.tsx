@@ -583,7 +583,11 @@ export default function RegisterScreen() {
                                       ? colors.primary
                                       : colors.border,
                                   backgroundColor: "transparent",
-                                  height: isSmall ? 40 : styles.yearBox.height,
+                                  height: isSmall ? 36 : styles.yearBox.height,
+                                  borderRadius: 999,
+                                  transform: [
+                                    { scale: formData.year === y ? 1.06 : 1 },
+                                  ],
                                 } as any,
                               ]}
                             >
@@ -596,10 +600,10 @@ export default function RegisterScreen() {
                                     style={{
                                       color: "#FFF",
                                       fontWeight: "700",
-                                      fontSize: 13,
+                                      fontSize: 12,
                                     }}
                                   >
-                                    {y}
+                                    Y{y}
                                   </ThemedText>
                                 </LinearGradient>
                               ) : (
@@ -607,10 +611,10 @@ export default function RegisterScreen() {
                                   style={{
                                     color: colors.text,
                                     fontWeight: "700",
-                                    fontSize: 13,
+                                    fontSize: 12,
                                   }}
                                 >
-                                  {y}
+                                  Y{y}
                                 </ThemedText>
                               )}
                             </TouchableOpacity>
@@ -639,8 +643,14 @@ export default function RegisterScreen() {
                                       : colors.border,
                                   backgroundColor: "transparent",
                                   height: isSmall
-                                    ? 40
+                                    ? 36
                                     : styles.semesterBox.height,
+                                  borderRadius: 999,
+                                  transform: [
+                                    {
+                                      scale: formData.semester === s ? 1.06 : 1,
+                                    },
+                                  ],
                                 } as any,
                               ]}
                             >
@@ -653,10 +663,10 @@ export default function RegisterScreen() {
                                     style={{
                                       color: "#FFF",
                                       fontWeight: "700",
-                                      fontSize: 13,
+                                      fontSize: 12,
                                     }}
                                   >
-                                    {s}
+                                    S{s}
                                   </ThemedText>
                                 </LinearGradient>
                               ) : (
@@ -664,10 +674,10 @@ export default function RegisterScreen() {
                                   style={{
                                     color: colors.text,
                                     fontWeight: "700",
-                                    fontSize: 13,
+                                    fontSize: 12,
                                   }}
                                 >
-                                  {s}
+                                  S{s}
                                 </ThemedText>
                               )}
                             </TouchableOpacity>
@@ -676,7 +686,13 @@ export default function RegisterScreen() {
                       </View>
                     </View>
                     <ThemedText style={[styles.hintText, { marginTop: 6 }]}>
-                      Current: {formData.year}.{formData.semester}
+                      Selected: Year {formData.year} (
+                      {
+                        ["First", "Second", "Third", "Fourth", "Fifth"][
+                          formData.year - 1
+                        ]
+                      }
+                      ) • Semester {formData.semester}
                     </ThemedText>
                   </View>
                 </View>
