@@ -6,11 +6,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import Constants from "expo-constants";
 
-// Get environment variables (sanitize to avoid quoted/backtick values)
+// Get environment variables (sanitize to avoid quoted/backtick values anywhere)
 const sanitize = (v: string | undefined | null): string =>
-  (v ?? "").trim().replace(/^["']+|["']+$/g, "");
+  (v ?? "").trim().replace(/["'`]/g, "");
 
-    .replace(/^["'`]+|["'`]+$/g, '');
+const supabaseUrl = sanitize(
   process.env.EXPO_PUBLIC_SUPABASE_URL ||
     Constants.expoConfig?.extra?.supabaseUrl,
 );
@@ -29,7 +29,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Basic URL validation to give clearer guidance early
 if (!/^https?:\/\/.+/i.test(supabaseUrl)) {
   throw new Error(
-    'Invalid EXPO_PUBLIC_SUPABASE_URL. It must start with https:// and contain no quotes or backticks.'
+    "Invalid EXPO_PUBLIC_SUPABASE_URL. It must start with https:// and contain no quotes or backticks.",
   );
 }
 
