@@ -3,43 +3,45 @@
  * Weekly view (Wednesdays 16:00-16:30)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { Meeting } from "@/app/types";
+import { createShadow, getCursorStyle } from "@/app/utils/platform-styles";
+import { useRoleGuard } from "@/hooks/use-auth-guard";
+import { createOrUpdateAttendance, getMeetings } from "@/lib/database";
+import { scheduleRemindersForNewRSVP } from "@/lib/meeting-reminders";
+import { MaterialIcons } from "@expo/vector-icons";
+import { format, isPast } from "date-fns";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getMeetings, getMeetingAttendance, getCurrentUser, createOrUpdateAttendance } from '@/lib/database';
-import { scheduleRemindersForNewRSVP } from '@/lib/meeting-reminders';
-import { Meeting, MeetingType } from '@/app/types';
-import { format, isSameDay, parseISO, startOfWeek, addDays, isPast } from 'date-fns';
-import { useRoleGuard } from '@/hooks/use-auth-guard';
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MeetingCalendarScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
-    ['peer-educator', 'peer-educator-executive', 'admin'],
-    '/(tabs)'
+    ["peer-educator", "peer-educator-executive", "admin"],
+    "/(tabs)",
   );
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>({});
-  const [viewMode, setViewMode] = useState<'upcoming' | 'past'>('upcoming');
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [viewMode, setViewMode] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
     if (user) {
@@ -57,11 +59,19 @@ export default function MeetingCalendarScreen() {
       const now = new Date();
       const upcoming = meetings
         .filter((m) => new Date(m.scheduledDate) >= now)
-        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+        .sort(
+          (a, b) =>
+            new Date(a.scheduledDate).getTime() -
+            new Date(b.scheduledDate).getTime(),
+        );
 
       const past = meetings
         .filter((m) => new Date(m.scheduledDate) < now)
-        .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+        .sort(
+          (a, b) =>
+            new Date(b.scheduledDate).getTime() -
+            new Date(a.scheduledDate).getTime(),
+        );
 
       setUpcomingMeetings(upcoming);
       setPastMeetings(past);
@@ -73,7 +83,7 @@ export default function MeetingCalendarScreen() {
       });
       setAttendanceMap(attendance);
     } catch (error) {
-      console.error('Error loading meetings:', error);
+      console.error("Error loading meetings:", error);
     }
   }, [user]);
 
@@ -93,13 +103,13 @@ export default function MeetingCalendarScreen() {
         attended: attending,
       });
       setAttendanceMap((prev) => ({ ...prev, [meetingId]: attending }));
-      
+
       // Schedule reminders if attending
       if (attending) {
         await scheduleRemindersForNewRSVP(user.id, meetingId, attending);
       }
     } catch (error) {
-      console.error('Error updating RSVP:', error);
+      console.error("Error updating RSVP:", error);
     }
   };
 
@@ -121,7 +131,11 @@ export default function MeetingCalendarScreen() {
     return (
       <TouchableOpacity
         key={meeting.id}
-        style={[styles.meetingCard, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}
+        style={[
+          styles.meetingCard,
+          { backgroundColor: colors.card },
+          createShadow(2, "#000", 0.1),
+        ]}
         onPress={() => router.push(`/meetings/${meeting.id}`)}
         activeOpacity={0.7}
       >
@@ -129,11 +143,17 @@ export default function MeetingCalendarScreen() {
           <View style={styles.meetingInfo}>
             <MaterialIcons name="event" size={24} color={colors.primary} />
             <View style={styles.meetingDetails}>
-              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+              <ThemedText
+                type="body"
+                style={{ fontWeight: "600", color: colors.text }}
+              >
                 {meeting.title}
               </ThemedText>
               <ThemedText type="small" style={{ color: colors.icon }}>
-                {format(new Date(meeting.scheduledDate), 'EEE, MMM dd, yyyy • HH:mm')}
+                {format(
+                  new Date(meeting.scheduledDate),
+                  "EEE, MMM dd, yyyy • HH:mm",
+                )}
               </ThemedText>
               {meeting.location && (
                 <ThemedText type="small" style={{ color: colors.icon }}>
@@ -142,9 +162,17 @@ export default function MeetingCalendarScreen() {
               )}
             </View>
           </View>
-          {meeting.meetingType === 'weekly' && (
-            <View style={[styles.weeklyBadge, { backgroundColor: colors.primary + '20' }]}>
-              <ThemedText type="small" style={{ color: colors.primary, fontWeight: '600' }}>
+          {meeting.meetingType === "weekly" && (
+            <View
+              style={[
+                styles.weeklyBadge,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={{ color: colors.primary, fontWeight: "600" }}
+              >
                 Weekly
               </ThemedText>
             </View>
@@ -152,7 +180,11 @@ export default function MeetingCalendarScreen() {
         </View>
 
         {meeting.description && (
-          <ThemedText type="small" style={{ color: colors.text, marginTop: Spacing.sm }} numberOfLines={2}>
+          <ThemedText
+            type="small"
+            style={{ color: colors.text, marginTop: Spacing.sm }}
+            numberOfLines={2}
+          >
             {meeting.description}
           </ThemedText>
         )}
@@ -162,15 +194,18 @@ export default function MeetingCalendarScreen() {
             {hasRSVPed ? (
               <View style={styles.rsvpStatus}>
                 <MaterialIcons
-                  name={isAttending ? 'check-circle' : 'cancel'}
+                  name={isAttending ? "check-circle" : "cancel"}
                   size={20}
                   color={isAttending ? colors.success : colors.icon}
                 />
                 <ThemedText
                   type="small"
-                  style={{ color: isAttending ? colors.success : colors.icon, marginLeft: Spacing.xs }}
+                  style={{
+                    color: isAttending ? colors.success : colors.icon,
+                    marginLeft: Spacing.xs,
+                  }}
                 >
-                  {isAttending ? 'Attending' : 'Not Attending'}
+                  {isAttending ? "Attending" : "Not Attending"}
                 </ThemedText>
               </View>
             ) : (
@@ -183,7 +218,9 @@ export default function MeetingCalendarScreen() {
                 style={[
                   styles.rsvpButton,
                   {
-                    backgroundColor: isAttending ? colors.success : colors.surface,
+                    backgroundColor: isAttending
+                      ? colors.success
+                      : colors.surface,
                     borderWidth: 1,
                     borderColor: isAttending ? colors.success : colors.border,
                   },
@@ -192,7 +229,10 @@ export default function MeetingCalendarScreen() {
               >
                 <ThemedText
                   type="small"
-                  style={{ color: isAttending ? '#FFFFFF' : colors.text, fontWeight: '600' }}
+                  style={{
+                    color: isAttending ? "#FFFFFF" : colors.text,
+                    fontWeight: "600",
+                  }}
                 >
                   Yes
                 </ThemedText>
@@ -201,9 +241,13 @@ export default function MeetingCalendarScreen() {
                 style={[
                   styles.rsvpButton,
                   {
-                    backgroundColor: !isAttending && hasRSVPed ? colors.danger : colors.surface,
+                    backgroundColor:
+                      !isAttending && hasRSVPed
+                        ? colors.danger
+                        : colors.surface,
                     borderWidth: 1,
-                    borderColor: !isAttending && hasRSVPed ? colors.danger : colors.border,
+                    borderColor:
+                      !isAttending && hasRSVPed ? colors.danger : colors.border,
                   },
                 ]}
                 onPress={() => handleRSVP(meeting.id, false)}
@@ -211,8 +255,8 @@ export default function MeetingCalendarScreen() {
                 <ThemedText
                   type="small"
                   style={{
-                    color: !isAttending && hasRSVPed ? '#FFFFFF' : colors.text,
-                    fontWeight: '600',
+                    color: !isAttending && hasRSVPed ? "#FFFFFF" : colors.text,
+                    fontWeight: "600",
                   }}
                 >
                   No
@@ -227,8 +271,10 @@ export default function MeetingCalendarScreen() {
 
   if (authLoading) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+        <ThemedView
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ThemedText>Loading...</ThemedText>
         </ThemedView>
       </SafeAreaView>
@@ -236,21 +282,29 @@ export default function MeetingCalendarScreen() {
   }
 
   const nextWeeklyMeeting = getNextWednesday();
-  const displayedMeetings = viewMode === 'upcoming' ? upcomingMeetings : pastMeetings;
+  const displayedMeetings =
+    viewMode === "upcoming" ? upcomingMeetings : pastMeetings;
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
           }
         >
           {/* Header */}
           <View style={[styles.header, { backgroundColor: colors.background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={getCursorStyle()}
+            >
               <MaterialIcons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <ThemedText type="h2" style={styles.headerTitle}>
@@ -260,14 +314,25 @@ export default function MeetingCalendarScreen() {
           </View>
 
           {/* Next Weekly Meeting Info */}
-          <View style={[styles.nextMeetingCard, { backgroundColor: colors.primary + '20' }]}>
+          <View
+            style={[
+              styles.nextMeetingCard,
+              { backgroundColor: colors.primary + "20" },
+            ]}
+          >
             <MaterialIcons name="event" size={32} color={colors.primary} />
             <View style={styles.nextMeetingInfo}>
-              <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
+              <ThemedText
+                type="body"
+                style={{ fontWeight: "600", color: colors.text }}
+              >
                 Next Weekly Meeting
               </ThemedText>
               <ThemedText type="small" style={{ color: colors.icon }}>
-                {format(nextWeeklyMeeting, 'EEEE, MMMM dd, yyyy • 16:00 - 16:30')}
+                {format(
+                  nextWeeklyMeeting,
+                  "EEEE, MMMM dd, yyyy • 16:00 - 16:30",
+                )}
               </ThemedText>
             </View>
           </View>
@@ -278,16 +343,17 @@ export default function MeetingCalendarScreen() {
               style={[
                 styles.toggleButton,
                 {
-                  backgroundColor: viewMode === 'upcoming' ? colors.primary : colors.surface,
+                  backgroundColor:
+                    viewMode === "upcoming" ? colors.primary : colors.surface,
                 },
               ]}
-              onPress={() => setViewMode('upcoming')}
+              onPress={() => setViewMode("upcoming")}
             >
               <ThemedText
                 type="body"
                 style={{
-                  color: viewMode === 'upcoming' ? '#FFFFFF' : colors.text,
-                  fontWeight: '600',
+                  color: viewMode === "upcoming" ? "#FFFFFF" : colors.text,
+                  fontWeight: "600",
                 }}
               >
                 Upcoming ({upcomingMeetings.length})
@@ -297,16 +363,17 @@ export default function MeetingCalendarScreen() {
               style={[
                 styles.toggleButton,
                 {
-                  backgroundColor: viewMode === 'past' ? colors.primary : colors.surface,
+                  backgroundColor:
+                    viewMode === "past" ? colors.primary : colors.surface,
                 },
               ]}
-              onPress={() => setViewMode('past')}
+              onPress={() => setViewMode("past")}
             >
               <ThemedText
                 type="body"
                 style={{
-                  color: viewMode === 'past' ? '#FFFFFF' : colors.text,
-                  fontWeight: '600',
+                  color: viewMode === "past" ? "#FFFFFF" : colors.text,
+                  fontWeight: "600",
                 }}
               >
                 Past ({pastMeetings.length})
@@ -318,8 +385,11 @@ export default function MeetingCalendarScreen() {
           {displayedMeetings.length === 0 ? (
             <View style={styles.emptyContainer}>
               <MaterialIcons name="event-busy" size={64} color={colors.icon} />
-              <ThemedText type="body" style={[styles.emptyText, { color: colors.icon }]}>
-                No {viewMode === 'upcoming' ? 'upcoming' : 'past'} meetings
+              <ThemedText
+                type="body"
+                style={[styles.emptyText, { color: colors.icon }]}
+              >
+                No {viewMode === "upcoming" ? "upcoming" : "past"} meetings
               </ThemedText>
             </View>
           ) : (
@@ -346,19 +416,19 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 20,
   },
   nextMeetingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
@@ -368,7 +438,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   viewToggle: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
@@ -376,7 +446,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   meetingCard: {
     padding: Spacing.lg,
@@ -384,12 +454,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   meetingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   meetingInfo: {
-    flexDirection: 'row',
+    flexDirection: "row",
     flex: 1,
   },
   meetingDetails: {
@@ -402,20 +472,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   rsvpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
   },
   rsvpStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   rsvpButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
   },
   rsvpButton: {
@@ -424,14 +494,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: Spacing.xxl,
     marginTop: Spacing.xxl,
   },
   emptyText: {
     marginTop: Spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
-

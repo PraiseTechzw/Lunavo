@@ -19,8 +19,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResources, getCurrentUser } from '@/lib/database';
-import { PostCategory } from '@/app/types';
+// database and types not needed here
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 interface OrientationModule {

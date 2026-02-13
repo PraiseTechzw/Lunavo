@@ -13,7 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Alert,
   Linking,
@@ -100,9 +100,9 @@ export default function ClubInfoScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -128,7 +128,7 @@ export default function ClubInfoScreen() {
     } catch (error) {
       console.error('Error loading data:', error);
     }
-  };
+  }, []);
 
   const loadClubStats = async () => {
     try {

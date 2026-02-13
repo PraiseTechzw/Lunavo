@@ -28,7 +28,6 @@ export default function TrendsAnalysisScreen() {
   const colors = Colors[colorScheme];
   const { user, loading: authLoading } = useRoleGuard(['student-affairs', 'admin'], '/(tabs)');
 
-  const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const [dailyPosts, setDailyPosts] = useState<[string, number][]>([]);
   const [escalationTrends, setEscalationTrends] = useState<Record<string, number>>({});

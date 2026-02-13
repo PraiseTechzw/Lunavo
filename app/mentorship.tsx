@@ -31,13 +31,6 @@ interface Mentor {
   bio: string;
 }
 
-
-
-const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-const [mentors, setMentors] = useState<Mentor[]>([]);
-const [loading, setLoading] = useState(true);
-const [searchQuery, setSearchQuery] = useState('');
-
 const mentorshipChannels = [
   {
     id: 'academic',
@@ -76,6 +69,7 @@ export default function MentorshipScreen() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchMentors();

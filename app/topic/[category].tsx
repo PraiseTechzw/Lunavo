@@ -15,7 +15,7 @@ import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function TopicScreen() {
@@ -48,17 +48,17 @@ export default function TopicScreen() {
         return () => {
             if (channelRef.current) unsubscribe(channelRef.current);
         };
-    }, [activeCategory]);
+    }, [activeCategory, loadPosts, setupSubscription, loadCategoryInfo]);
 
-    const loadCategoryInfo = async () => {
+    const loadCategoryInfo = useCallback(async () => {
         const stats = await getTopicStats();
         const stat = stats.find(s => s.category === activeCategory);
         if (stat?.categoryDetails) {
             setCategoryInfo(stat.categoryDetails);
         }
-    };
+    }, [activeCategory]);
 
-    const loadPosts = async () => {
+    const loadPosts = useCallback(async () => {
         try {
             setLoading(true);
             // Fetch posts for this category
@@ -69,7 +69,7 @@ export default function TopicScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeCategory]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -80,13 +80,13 @@ export default function TopicScreen() {
         setRefreshing(false);
     };
 
-    const setupSubscription = () => {
+    const setupSubscription = useCallback(() => {
         channelRef.current = subscribeToPosts((payload) => {
             // If we needed to filter only for this category we could check payload
             // But re-fetching is safer for ensuring we get the mapped post with author
             loadPosts();
         });
-    };
+    }, [loadPosts]);
 
     const renderHeader = () => (
         <View style={styles.header}>

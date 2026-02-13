@@ -9,7 +9,7 @@ import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/t
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Analytics } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { getAnalytics, getEscalations, getPosts } from '@/lib/database';
+import { getAnalytics, getPosts } from '@/lib/database';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -30,7 +30,6 @@ export default function StudentAffairsDashboardScreen() {
   const colors = Colors[colorScheme];
   const { user, loading: authLoading } = useRoleGuard(['student-affairs', 'admin'], '/(tabs)');
 
-  const [refreshing, setRefreshing] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [topCategories, setTopCategories] = useState<[string, number][]>([]);
 
@@ -40,10 +39,9 @@ export default function StudentAffairsDashboardScreen() {
 
   const loadData = async () => {
     try {
-      const [analyticsData, posts, escalations] = await Promise.all([
+      const [analyticsData, posts] = await Promise.all([
         getAnalytics(),
         getPosts(),
-        getEscalations(),
       ]);
       setAnalytics(analyticsData);
 

@@ -258,24 +258,9 @@ export default function OnboardingScreen() {
         <View style={styles.footer}>
           {/* Pagination */}
           <View style={styles.pagination}>
-            {onboardingData.map((_, i) => {
-              const dotStyle = useAnimatedStyle(() => {
-                const dotWidth = interpolate(
-                  scrollX.value,
-                  [(i - 1) * width, i * width, (i + 1) * width],
-                  [8, 32, 8],
-                  'clamp'
-                );
-                const opacity = interpolate(
-                  scrollX.value,
-                  [(i - 1) * width, i * width, (i + 1) * width],
-                  [0.5, 1, 0.5],
-                  'clamp'
-                );
-                return { width: dotWidth, opacity };
-              });
-              return <Animated.View key={i} style={[styles.dot, dotStyle]} />;
-            })}
+            {onboardingData.map((_, i) => (
+              <Dot key={i} index={i} scrollX={scrollX} />
+            ))}
           </View>
 
           {/* Button */}
@@ -303,6 +288,25 @@ export default function OnboardingScreen() {
       </SafeAreaView>
     </Animated.View>
   );
+}
+
+function Dot({ index, scrollX }: any) {
+  const dotStyle = useAnimatedStyle(() => {
+    const dotWidth = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [8, 32, 8],
+      'clamp'
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [0.5, 1, 0.5],
+      'clamp'
+    );
+    return { width: dotWidth, opacity };
+  });
+  return <Animated.View style={[styles.dot, dotStyle]} />;
 }
 
 function OnboardingItem({ item, index, scrollX, colors }: any) {

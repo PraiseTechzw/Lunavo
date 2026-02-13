@@ -3,35 +3,39 @@
  * Fixed: Only major tabs are visible to prevent overcrowding
  */
 
-import { Colors, PlatformStyles } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { UserRole } from '@/app/types';
-import { getCurrentUser } from '@/lib/database';
-import { getRoleAccentColor } from '@/lib/permissions';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { Tabs, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Colors, PlatformStyles } from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { UserRole } from "@/app/types";
+import { getCurrentUser } from "@/lib/database";
+import { getRoleAccentColor } from "@/lib/permissions";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Tabs, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 
 export default function PeerEducatorLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const router = useRouter();
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
-
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     const user = await getCurrentUser();
     if (user) {
       setUserRole(user.role as UserRole);
-      if (!['peer-educator', 'peer-educator-executive', 'admin'].includes(user.role)) {
-        router.replace('/(tabs)');
+      if (
+        !["peer-educator", "peer-educator-executive", "admin"].includes(
+          user.role,
+        )
+      ) {
+        router.replace("/(tabs)");
       }
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   const roleColor = userRole ? getRoleAccentColor(userRole) : colors.primary;
 
@@ -43,11 +47,14 @@ export default function PeerEducatorLayout() {
         tabBarActiveTintColor: roleColor,
         tabBarInactiveTintColor: colors.icon,
         tabBarStyle: {
-          position: 'absolute',
+          position: "absolute",
           bottom: 25,
           left: 20,
           right: 20,
-          backgroundColor: colorScheme === 'dark' ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.95)',
+          backgroundColor:
+            colorScheme === "dark"
+              ? "rgba(15, 23, 42, 0.98)"
+              : "rgba(255, 255, 255, 0.95)",
           borderRadius: 24,
           height: 68,
           borderTopWidth: 0,
@@ -57,16 +64,20 @@ export default function PeerEducatorLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '700',
+          fontWeight: "700",
         },
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? "view-dashboard" : "view-dashboard-outline"} size={22} color={color} />
+            <MaterialCommunityIcons
+              name={focused ? "view-dashboard" : "view-dashboard-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
         listeners={{ tabPress: () => Haptics.selectionAsync() }}
@@ -75,9 +86,13 @@ export default function PeerEducatorLayout() {
       <Tabs.Screen
         name="queue"
         options={{
-          title: 'Queue',
+          title: "Queue",
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? "account-group" : "account-group-outline"} size={22} color={color} />
+            <MaterialCommunityIcons
+              name={focused ? "account-group" : "account-group-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
         listeners={{ tabPress: () => Haptics.selectionAsync() }}
@@ -86,9 +101,13 @@ export default function PeerEducatorLayout() {
       <Tabs.Screen
         name="posts"
         options={{
-          title: 'Forum',
+          title: "Forum",
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? "message-text" : "message-text-outline"} size={22} color={color} />
+            <MaterialCommunityIcons
+              name={focused ? "message-text" : "message-text-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
         listeners={{ tabPress: () => Haptics.selectionAsync() }}
@@ -97,9 +116,13 @@ export default function PeerEducatorLayout() {
       <Tabs.Screen
         name="activity-log"
         options={{
-          title: 'Logs',
+          title: "Logs",
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? "clipboard-list" : "clipboard-list-outline"} size={22} color={color} />
+            <MaterialCommunityIcons
+              name={focused ? "clipboard-list" : "clipboard-list-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
         listeners={{ tabPress: () => Haptics.selectionAsync() }}
@@ -108,9 +131,13 @@ export default function PeerEducatorLayout() {
       <Tabs.Screen
         name="meetings"
         options={{
-          title: 'Events',
+          title: "Events",
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? "calendar-star" : "calendar-star-outline"} size={22} color={color} />
+            <MaterialCommunityIcons
+              name={focused ? "calendar-star" : "calendar-star-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
         listeners={{ tabPress: () => Haptics.selectionAsync() }}
