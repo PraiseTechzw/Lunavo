@@ -2,7 +2,7 @@
  * Content Moderation Screen - Review and moderate posts
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -38,12 +38,7 @@ export default function ModerationScreen() {
   const [bulkMode, setBulkMode] = useState(false);
   const [moderationHistory, setModerationHistory] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadPosts();
-    loadModerationHistory();
-  }, [filter]);
-
-  const loadModerationHistory = async () => {
+  const loadModerationHistory = useCallback(async () => {
     try {
       const historyJson = await AsyncStorage.getItem(MODERATION_HISTORY_KEY);
       if (historyJson) {
@@ -52,7 +47,9 @@ export default function ModerationScreen() {
     } catch (error) {
       console.error('Error loading moderation history:', error);
     }
-  };
+  }, []);
+
+  
 
   const saveModerationAction = async (action: {
     postId: string;
@@ -69,18 +66,16 @@ export default function ModerationScreen() {
     }
   };
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
       const posts = await getPosts();
       let filtered = posts;
       
       switch (filter) {
         case 'queue':
-          // Moderation queue: prioritize by reported count, escalation level, and recency
           filtered = posts
             .filter(p => p.isFlagged || p.reportedCount > 0 || p.escalationLevel !== 'none')
             .sort((a, b) => {
-              // Priority: critical escalations first, then by report count, then by recency
               const levelOrder: Record<string, number> = { critical: 5, high: 4, medium: 3, low: 2, none: 0 };
               const levelDiff = (levelOrder[b.escalationLevel] || 0) - (levelOrder[a.escalationLevel] || 0);
               if (levelDiff !== 0) return levelDiff;
@@ -110,7 +105,7 @@ export default function ModerationScreen() {
     } catch (error) {
       console.error('Error loading posts:', error);
     }
-  };
+  }, [filter]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -237,7 +232,7 @@ export default function ModerationScreen() {
     );
   };
 
-  const filters: Array<'all' | 'flagged' | 'reported' | 'escalated' | 'queue' | 'history'> = [
+  const filters: ('all' | 'flagged' | 'reported' | 'escalated' | 'queue' | 'history')[] = [
     'queue',
     'all',
     'flagged',
@@ -245,6 +240,11 @@ export default function ModerationScreen() {
     'escalated',
     'history',
   ];
+
+  useEffect(() => {
+    loadPosts();
+    loadModerationHistory();
+  }, [filter, loadPosts, loadModerationHistory]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>

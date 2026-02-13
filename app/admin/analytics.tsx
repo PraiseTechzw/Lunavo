@@ -13,7 +13,7 @@ import { getEscalations, getPosts, getUsers } from "@/lib/database";
 import { MaterialIcons } from "@expo/vector-icons";
 import { endOfDay, format, startOfDay, subDays } from "date-fns";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     Alert,
     Dimensions,

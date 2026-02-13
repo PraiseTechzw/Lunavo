@@ -9,7 +9,7 @@ import { Colors } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 export default function AdminLayout() {
@@ -17,11 +17,7 @@ export default function AdminLayout() {
   const colors = Colors[colorScheme];
   const [userRole, setUserRole] = useState<'admin' | null>(null);
 
-  useEffect(() => {
-    loadUserRole();
-  }, []);
-
-  const loadUserRole = async () => {
+  const loadUserRole = useCallback(async () => {
     try {
       const user = await getCurrentUser();
       if (user && user.role === 'admin') {
@@ -30,7 +26,11 @@ export default function AdminLayout() {
     } catch (error) {
       console.error('Error loading user role:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserRole();
+  }, [loadUserRole]);
 
   return (
     <View style={styles.container}>
@@ -101,5 +101,4 @@ const styles = StyleSheet.create({
     marginLeft: 280, // Sidebar width
   },
 });
-
 
