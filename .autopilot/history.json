@@ -1,6 +1,33 @@
 {
   "commits": [
     {
+      "hash": "c85f4fd48b72ff6bbd289a955e39ea379e2e7425",
+      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: e769a70b7acb98f0536ca97d442ba69b73db44119cdfce13c6791b2863ba7d89",
+      "files": [
+        "autopilot/history.json",
+        "app/_layout.tsx",
+        "app/auth/login.tsx",
+        "app/auth/register.tsx",
+        "app/onboarding.tsx",
+        "assets/images/adaptive-icon.png",
+        "assets/images/android-icon-background.png",
+        "assets/images/android-icon-foreground.png",
+        "assets/images/android-icon-monochrome.png",
+        "assets/images/favicon.png",
+        "assets/images/icon.png",
+        "assets/images/partial-react-logo.png",
+        "assets/images/react-logo.png",
+        "assets/images/react-logo@2x.png",
+        "assets/images/react-logo@3x.png",
+        "assets/images/splash-icon-dark.png",
+        "assets/images/splash-icon.png",
+        "com.swmansion.worklets.AndroidUIScheduler",
+        "com.swmansion.worklets.AndroidUIScheduler$1",
+        "com.swmansion.worklets.a"
+      ],
+      "timestamp": "2026-02-13T10:17:07.862Z"
+    },
+    {
       "hash": "afc3f4ecfac29a0db8cbc514d25f1f6ac7cb67e1",
       "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: cca1b256ce62ae26f5bcc669f3bd76dbde3b8ed9f9473215c9f8a79f60d2ae9d",
       "files": [
