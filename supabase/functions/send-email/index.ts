@@ -1,38 +1,54 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
 
 serve(async (req) => {
   try {
+    if (req.method === "OPTIONS") {
+      return new Response("ok", { headers: corsHeaders });
+    }
     if (req.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Method not allowed" }, 405);
     }
 
     const apiKey = Deno.env.get("RESEND_API_KEY");
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Missing RESEND_API_KEY" }, 500);
     }
 
-    const { to, subject, html, text, from, cc, bcc } = await req.json();
-    if (!to || !subject || (!html && !text)) {
-      return new Response(JSON.stringify({ error: "Invalid payload" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    let payloadBody: any;
+    try {
+      payloadBody = await req.json();
+    } catch {
+      return json({ error: "Invalid JSON" }, 400);
     }
+    const { to, subject, html, text, from, cc, bcc, reply_to } = payloadBody;
+    if (!to || !subject || (!html && !text)) {
+      return json({ error: "Invalid payload" }, 400);
+    }
+
+    const toList = Array.isArray(to) ? to : [to];
+    const ccList = cc ? (Array.isArray(cc) ? cc : [cc]) : undefined;
+    const bccList = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined;
 
     const payload = {
       from: from || "onboarding@resend.dev",
-      to,
-      cc,
-      bcc,
+      to: toList,
+      cc: ccList,
+      bcc: bccList,
       subject,
       html,
       text,
+      reply_to,
     };
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -45,14 +61,8 @@ serve(async (req) => {
     });
 
     const data = await res.json();
-    return new Response(JSON.stringify(data), {
-      status: res.ok ? 200 : res.status,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(data, res.ok ? 200 : res.status);
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Server error" }, 500);
   }
 });
