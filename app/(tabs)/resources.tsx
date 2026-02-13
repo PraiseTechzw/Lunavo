@@ -40,24 +40,7 @@ const categories = [
   'PDFs'
 ];
 
-const featuredResources: any[] = [
-  {
-    id: '1',
-    title: 'Exam Stress Tips',
-    resourceType: 'article',
-    category: 'academic',
-    iconName: 'library-outline',
-    gradient: ['#9B59B6', '#3498DB'],
-  },
-  {
-    id: '2',
-    title: 'Guided Meditation',
-    resourceType: 'video',
-    category: 'mental-health',
-    iconName: 'body-outline',
-    gradient: ['#E74C3C', '#F39C12'],
-  },
-];
+// removed unused featuredResources
 
 const copingStrategies: any[] = [
   {
@@ -120,9 +103,54 @@ export default function ResourcesScreen() {
     loadFavorites();
   }, []);
 
+  const filterResources = useCallback(() => {
+    let filtered = resources;
+
+    // Filter by category or resource type
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter((r) => {
+        const categoryMap: Record<string, { cat?: string; type?: string }> = {
+          'Mental Health': { cat: 'mental-health' },
+          'Substance Abuse': { cat: 'substance-abuse' },
+          'SRH': { cat: 'sexual-health' },
+          'HIV/Safe Sex': { cat: 'stis-hiv' },
+          'Family/Home': { cat: 'family-home' },
+          'Academic': { cat: 'academic' },
+          'Relationships': { cat: 'relationships' },
+          'Articles': { type: 'article' },
+          'Videos': { type: 'video' },
+          'PDFs': { type: 'pdf' },
+        };
+
+        const mapped = categoryMap[selectedCategory];
+        if (!mapped) return true;
+
+        if (mapped.cat) return r.category === mapped.cat;
+        if (mapped.type) return r.resourceType === mapped.type;
+        return true;
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (r) =>
+          r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (r.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by favorites
+    if (showFavoritesOnly) {
+      filtered = filtered.filter((r) => favorites.has(r.id));
+    }
+
+    setFilteredResources(filtered);
+  }, [resources, selectedCategory, searchQuery, showFavoritesOnly, favorites]);
+
   useEffect(() => {
     filterResources();
-  }, [resources, selectedCategory, searchQuery, showFavoritesOnly, favorites]);
+  }, [filterResources]);
 
   const loadResources = async () => {
     try {
@@ -262,31 +290,7 @@ export default function ResourcesScreen() {
     );
   };
 
-  const renderCopingCard = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[
-        styles.copingCard,
-        { backgroundColor: colors.card },
-        createShadow(1, '#000', 0.05),
-      ]}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.copingIcon, { backgroundColor: item.color + '30' }]}>
-        <Text style={styles.copingEmoji}>{item.icon}</Text>
-      </View>
-      <View style={styles.copingContent}>
-        <ThemedText type="body" style={styles.copingTitle}>
-          {item.title}
-        </ThemedText>
-        <ThemedText type="small" style={styles.copingMeta}>
-          {item.duration || item.type}
-        </ThemedText>
-      </View>
-      <TouchableOpacity>
-        <Ionicons name="bookmark-outline" size={20} color={colors.icon} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
+  // removed unused renderCopingCard
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeAreaTop}>

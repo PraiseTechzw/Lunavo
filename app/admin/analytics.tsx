@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Dimensions,
   TouchableOpacity,
+  Alert,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,12 +20,11 @@ import { ThemedText } from '@/app/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { getAnalytics, getPosts, getEscalations, getUsers } from '@/lib/database';
+import { getPosts, getEscalations, getUsers } from '@/lib/database';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { Analytics as AnalyticsType, PostCategory } from '@/app/types';
 import { CATEGORIES } from '@/app/constants/categories';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import { Alert, Share } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -36,7 +37,7 @@ export default function AnalyticsScreen() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all' | 'custom'>('30d');
   const [customStartDate, setCustomStartDate] = useState<Date>(subDays(new Date(), 30));
   const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // removed unused showDatePicker state
 
   useEffect(() => {
     loadAnalytics();
@@ -217,9 +218,7 @@ export default function AnalyticsScreen() {
                   ]}
                   onPress={() => {
                     setDateRange(range);
-                    if (range === 'custom') {
-                      setShowDatePicker(true);
-                    }
+                    // custom date range UI can be implemented here
                   }}
                 >
                   <ThemedText

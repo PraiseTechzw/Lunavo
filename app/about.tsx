@@ -11,7 +11,7 @@ import { createShadow } from "@/app/utils/platform-styles";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Linking,
@@ -26,7 +26,6 @@ export default function AboutScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const [drawerVisible, setDrawerVisible] = useState(false);
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const headerTranslate = useRef(new Animated.Value(12)).current;
   const sectionOpacity = useRef(new Animated.Value(0)).current;
@@ -51,7 +50,7 @@ export default function AboutScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [headerOpacity, headerTranslate, sectionOpacity]);
 
   const topics = ["education", "peers"];
   const features = [
@@ -111,7 +110,7 @@ export default function AboutScreen() {
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
           title="About Lunavo"
-          onMenuPress={() => setDrawerVisible(false)}
+          onMenuPress={() => {}}
           rightAction={{
             icon: "close",
             onPress: () => router.back(),

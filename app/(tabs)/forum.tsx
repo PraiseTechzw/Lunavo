@@ -15,7 +15,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -28,41 +27,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
-
-const getCategoryIcon = (category: PostCategory): string => {
-  const iconMap: Record<PostCategory, string> = {
-    'mental-health': 'leaf-outline',
-    'crisis': 'pulse-outline',
-    'substance-abuse': 'fitness-outline',
-    'sexual-health': 'heart-circle-outline',
-    'stis-hiv': 'shield-outline',
-    'family-home': 'home-outline',
-    'academic': 'school-outline',
-    'social': 'people-circle-outline',
-    'relationships': 'infinite-outline',
-    'campus': 'business-outline',
-    'general': 'chatbubbles-outline',
-  };
-  return iconMap[category] || 'help-circle-outline';
-};
-
-const getCategoryDisplayName = (category: PostCategory): string => {
-  const nameMap: Record<PostCategory, string> = {
-    'mental-health': 'Wellness & Mind',
-    'crisis': 'Urgent Support',
-    'substance-abuse': 'Recovery Path',
-    'sexual-health': 'Vitality',
-    'stis-hiv': 'Protection',
-    'family-home': 'Sanctuary',
-    'academic': 'Scholarship',
-    'social': 'Connections',
-    'relationships': 'Harmony',
-    'campus': 'Campus Life',
-    'general': 'Open Forum',
-  };
-  return nameMap[category] || category;
-};
+// removed unused helpers
 
 export default function ForumScreen() {
   const router = useRouter();
@@ -72,9 +37,21 @@ export default function ForumScreen() {
   const [displayedTopics, setDisplayedTopics] = useState<TopicStats[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'trending'>('all');
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const postsChannelRef = useRef<RealtimeChannel | null>(null);
+
+  const loadTopicStats = useCallback(async () => {
+    try {
+      const stats = await getTopicStats();
+      setTopicStats(stats);
+    } catch (error) {
+      console.error('Error loading topic stats:', error);
+    }
+  }, []);
+
+  const setupRealtimeSubscriptions = useCallback(() => {
+    postsChannelRef.current = subscribeToPosts(() => loadTopicStats());
+  }, [loadTopicStats]);
 
   useEffect(() => {
     loadTopicStats();
@@ -82,25 +59,9 @@ export default function ForumScreen() {
     return () => {
       if (postsChannelRef.current) unsubscribe(postsChannelRef.current);
     };
-  }, []);
+  }, [loadTopicStats, setupRealtimeSubscriptions]);
 
-  useEffect(() => {
-    filterTopics();
-  }, [searchQuery, selectedFilter, topicStats]);
-
-  const loadTopicStats = async () => {
-    try {
-      setLoading(true);
-      const stats = await getTopicStats();
-      setTopicStats(stats);
-    } catch (error) {
-      console.error('Error loading topic stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterTopics = () => {
+  const filterTopics = useCallback(() => {
     let filtered = [...topicStats];
     if (searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase();
@@ -122,7 +83,11 @@ export default function ForumScreen() {
       });
     }
     setDisplayedTopics(filtered);
-  };
+  }, [searchQuery, selectedFilter, topicStats]);
+
+  useEffect(() => {
+    filterTopics();
+  }, [filterTopics]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -131,9 +96,7 @@ export default function ForumScreen() {
     setRefreshing(false);
   };
 
-  const setupRealtimeSubscriptions = () => {
-    postsChannelRef.current = subscribeToPosts(() => loadTopicStats());
-  };
+  // setupRealtimeSubscriptions wrapped in useCallback above
 
   const renderTopicCard = ({ item, index }: { item: TopicStats, index: number }) => {
     const category = item.categoryDetails || CATEGORIES[item.category as PostCategory];

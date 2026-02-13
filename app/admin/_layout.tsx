@@ -10,10 +10,7 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, Platform, StyleSheet, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
-const isDesktop = Platform.OS === 'web' && width >= 1024;
+import { Platform, StyleSheet, View } from 'react-native';
 
 export default function AdminLayout() {
   const colorScheme = useColorScheme() ?? 'light';

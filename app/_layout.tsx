@@ -20,7 +20,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Modal,
     Platform,
@@ -42,16 +42,15 @@ export default function RootLayout() {
   >(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
 
   useEffect(() => {
     initializeAuth();
     initializeNotifications();
-  }, []);
+  }, [initializeAuth, initializeNotifications]);
 
-  const initializeNotifications = async () => {
+  const initializeNotifications = useCallback(async () => {
     try {
       // Register for push notifications
       await registerForPushNotifications();
@@ -78,7 +77,7 @@ export default function RootLayout() {
     } catch (error) {
       console.error("Error initializing notifications:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -145,7 +144,7 @@ export default function RootLayout() {
           router.replace("/(tabs)");
         });
     }
-  }, [isAuthenticated, segments, isInitialized, isOnboardingComplete]);
+  }, [isAuthenticated, segments, isInitialized, isOnboardingComplete, router]);
 
   // Comprehensive role-based navigation protection
   useEffect(() => {
@@ -157,7 +156,6 @@ export default function RootLayout() {
         if (!currentUser) return;
 
         const role = currentUser.role as UserRole;
-        setUserRole(role);
         const currentRoute = segments.join("/");
         const platform = isMobile ? "mobile" : "web";
 
@@ -222,7 +220,7 @@ export default function RootLayout() {
     };
 
     checkRoleAccess();
-  }, [isAuthenticated, segments, isInitialized]);
+  }, [isAuthenticated, segments, isInitialized, router]);
 
   const assistantSuggestions = useMemo(() => {
     const current = segments.join("/");
@@ -302,9 +300,9 @@ export default function RootLayout() {
       });
     }
     return list;
-  }, [segments]);
+  }, [segments, router]);
 
-  const initializeAuth = async () => {
+  const initializeAuth = useCallback(async () => {
     try {
       // Check onboarding status
       const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
@@ -332,7 +330,7 @@ export default function RootLayout() {
       setIsOnboardingComplete(false);
       setIsInitialized(true);
     }
-  };
+  }, []);
 
   if (!isInitialized || isOnboardingComplete === null) {
     return null; // Loading state
