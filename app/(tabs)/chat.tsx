@@ -72,7 +72,7 @@ export default function ChatListScreen() {
       const sessions = await getUserSupportSessions(user.id);
 
       const mappedChats: Chat[] = await Promise.all(sessions.map(async (session) => {
-        let displayName = 'Peer Supporter';
+        let displayName = 'Anonymous Peer';
         if (session.educator_id) {
           const educator = await getUser(session.educator_id);
           if (educator) displayName = educator.pseudonym;
