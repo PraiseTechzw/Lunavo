@@ -1,6 +1,11 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { Colors, Spacing } from "@/app/constants/theme";
+import {
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
+} from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { SupportMessage } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
@@ -26,10 +31,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
@@ -39,13 +46,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SupportSession } from "@/app/types";
 import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
-declare const styles: any;
-
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
+  const bubbleMaxWidth = Math.min(
+    Math.round(Dimensions.get("window").width * 0.78),
+    420,
+  );
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,7 +284,11 @@ export default function ChatDetailScreen() {
                 colors={[colors.primary, colors.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.bubble, styles.mineBubble]}
+                style={[
+                  styles.bubble,
+                  styles.mineBubble,
+                  { maxWidth: bubbleMaxWidth },
+                ]}
               >
                 {item.type === "image" ? (
                   <Image
@@ -315,7 +328,7 @@ export default function ChatDetailScreen() {
               <View
                 style={[
                   {
-                    maxWidth: "70%",
+                    maxWidth: bubbleMaxWidth,
                     paddingHorizontal: Spacing.md,
                     paddingVertical: Spacing.sm,
                     borderRadius: BorderRadius.lg,
@@ -547,3 +560,147 @@ export default function ChatDetailScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  headerTitle: {
+    fontWeight: "700",
+  },
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginLeft: Spacing.md,
+  },
+  toolsRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  toolChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginRight: Spacing.sm,
+    borderWidth: 1,
+  },
+  toolChipText: {
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  loadingBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  messagesList: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.md,
+  },
+  dateDivider: {
+    alignSelf: "center",
+    marginVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 999,
+    ...PlatformStyles.shadow,
+  },
+  messageRow: {
+    marginVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  mineRow: {
+    alignItems: "flex-end",
+  },
+  theirRow: {
+    alignItems: "flex-start",
+  },
+  bubble: {
+    maxWidth: "70%",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginHorizontal: Spacing.sm,
+  },
+  mineBubble: {
+    borderWidth: 0,
+    ...PlatformStyles.premiumShadow,
+  },
+  theirBubble: {
+    ...PlatformStyles.shadow,
+  },
+  ticks: {
+    position: "absolute",
+    right: 8,
+    bottom: 6,
+    flexDirection: "row",
+    gap: 4,
+  },
+  reactionBadge: {
+    position: "absolute",
+    left: 8,
+    bottom: -18,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  labelWrap: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginHorizontal: 6,
+    marginTop: 6,
+  },
+  labelText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  timeRow: {
+    marginTop: 2,
+    paddingHorizontal: Spacing.lg,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  attachBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+  },
+  sendBtn: {
+    height: 36,
+    width: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
