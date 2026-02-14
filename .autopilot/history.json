@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "09875392af8332ce57aa4d84dbff59df9c32327a",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 51af635b5ee96e28d6bcabc23b76581c63e5850f12470e29e8dff748bb69ac06",
+      "files": [
+        "autopilot/history.json",
+        "app/book-counsellor.tsx",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T18:34:04.215Z"
+    },
+    {
       "hash": "8736eaf6b37d2f25482ad8d0ac97c09ac0e28ba0",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5342a0be2180dc901dbcf52f46b2e290e509c995aae643827418933f1a7e40d4",
       "files": [

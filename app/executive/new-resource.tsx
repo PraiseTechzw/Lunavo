@@ -7,6 +7,7 @@ import { createResource, uploadResourceFile } from '@/lib/database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -418,21 +419,32 @@ export default function NewResourceScreen() {
                     )}
 
                     <TouchableOpacity
-                        style={[
-                            styles.primaryButton,
-                            { backgroundColor: colors.primary },
-                            step === 1 && { flex: 1 }
-                        ]}
+                        style={[styles.primaryButton, step === 1 && { flex: 1 }]}
                         onPress={step === 3 ? handleSubmit : nextStep}
                         disabled={submitting}
+                        activeOpacity={0.8}
                     >
-                        {submitting || uploading ? (
-                            <ActivityIndicator color="#FFF" />
-                        ) : (
-                            <ThemedText style={styles.buttonText}>
-                                {step === 3 ? "Publish Now" : "Continue"}
-                            </ThemedText>
-                        )}
+                        <LinearGradient
+                            colors={colors.gradients.primary as any}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.buttonGradient}
+                        >
+                            {submitting || uploading ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <View style={styles.buttonContent}>
+                                    <ThemedText style={styles.buttonText}>
+                                        {step === 3 ? "Publish Now" : "Continue"}
+                                    </ThemedText>
+                                    <MaterialCommunityIcons
+                                        name={step === 3 ? "check-decagram" : "arrow-right"}
+                                        size={20}
+                                        color="#FFF"
+                                    />
+                                </View>
+                            )}
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -645,9 +657,19 @@ const styles = StyleSheet.create({
         flex: 2,
         height: 56,
         borderRadius: BorderRadius.xl,
+        overflow: 'hidden',
+        ...PlatformStyles.shadow,
+    },
+    buttonGradient: {
+        flex: 1,
+        width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        ...PlatformStyles.shadow,
+    },
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     secondaryButton: {
         flex: 1,
