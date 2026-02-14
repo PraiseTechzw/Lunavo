@@ -1,11 +1,6 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import {
-  BorderRadius,
-  Colors,
-  PlatformStyles,
-  Spacing,
-} from "@/app/constants/theme";
+import { Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { SupportMessage } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
@@ -23,7 +18,6 @@ import {
   unsubscribe,
 } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -36,7 +30,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
@@ -166,13 +159,15 @@ export default function ChatDetailScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.6,
-      base64: false,
+      base64: true,
     });
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
     const uri = asset.uri;
-    
-    
+    try {
+      const base64 = asset.base64 || "";
+      if (!base64) return;
+      const mime =
         asset.type === "image" ? asset.mimeType || "image/jpeg" : "image/jpeg";
       const dataUri = `data:${mime};base64,${base64}`;
       const optimistic: SupportMessage = {
@@ -317,9 +312,17 @@ export default function ChatDetailScreen() {
             ) : (
               <View
                 style={[
-                  styles.bubble,
-                  styles.theirBubble,
-                  { backgroundColor: colors.card, borderColor: colors.border },
+                  {
+                    maxWidth: "70%",
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: Spacing.sm,
+                    borderRadius: BorderRadius.lg,
+                    borderWidth: 1,
+                    marginHorizontal: Spacing.sm,
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                  PlatformStyles.shadow,
                 ]}
               >
                 {item.type === "image" ? (
@@ -542,149 +545,3 @@ export default function ChatDetailScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: { fontWeight: "900" },
-  priorityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-  },
-  toolsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-  },
-  toolChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    marginRight: Spacing.sm,
-    borderWidth: 1,
-    borderColor: "transparent",
-    backgroundColor: "rgba(0,0,0,0.04)",
-  },
-  toolChipText: {
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  labelWrap: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginHorizontal: 6,
-  },
-  labelText: {
-    fontSize: 10,
-    opacity: 0.6,
-  },
-  loadingBox: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  messagesList: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
-  },
-  messageRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginBottom: Spacing.sm,
-  },
-  mineRow: {
-    justifyContent: "flex-end",
-  },
-  theirRow: {
-    justifyContent: "flex-start",
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    ...PlatformStyles.premiumShadow,
-  },
-  bubble: {
-    maxWidth: "70%",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    marginHorizontal: Spacing.sm,
-  },
-  mineBubble: {
-    borderWidth: 0,
-    ...PlatformStyles.premiumShadow,
-  },
-  theirBubble: {
-    ...PlatformStyles.shadow,
-  },
-  ticks: {
-    position: "absolute",
-    bottom: -10,
-    right: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  reactionBadge: {
-    position: "absolute",
-    bottom: -10,
-    right: -10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  timeRow: {
-    paddingHorizontal: Spacing.lg,
-    marginTop: 2,
-  },
-  dateDivider: {
-    alignItems: "center",
-    marginVertical: Spacing.sm,
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderTopWidth: 1,
-  },
-  attachBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    borderRadius: BorderRadius.lg,
-  },
-  sendBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-  },
-});
