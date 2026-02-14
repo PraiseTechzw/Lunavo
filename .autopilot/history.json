@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "2b262da032e0b5897ab34e392096d18b0096a8a4",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 700ffe58c0f6fa1ed8f1e0fbaddf804b380bc5a678dce76984e6d3ef9dba0eb1",
+      "files": [
+        "autopilot/history.json",
+        "app/_layout.tsx",
+        "app/utils/navigation.ts"
+      ],
+      "timestamp": "2026-02-14T13:10:22.088Z"
+    },
+    {
       "hash": "e69ca7c8c18772c1a8d45721e29ed48d76797571",
       "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: a8715386e8a84c4e6ad15ad7035c79acb89e6aa88f4e2d5d9e0fa00b8172e4af",
       "files": [
