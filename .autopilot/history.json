@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "2fbe75c1aa57767559e415bbd1d925b969ba18e1",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b54dae17470a8c1a2032f635f071fc6e5b34b6e9e5130fd2de133eae653d0444",
+      "files": [
+        "autopilot/history.json",
+        "app/components/navigation/drawer-menu.tsx",
+        "app/utils/navigation.ts"
+      ],
+      "timestamp": "2026-02-14T13:41:13.758Z"
+    },
+    {
       "hash": "2b262da032e0b5897ab34e392096d18b0096a8a4",
       "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 700ffe58c0f6fa1ed8f1e0fbaddf804b380bc5a678dce76984e6d3ef9dba0eb1",
       "files": [

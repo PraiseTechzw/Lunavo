@@ -192,6 +192,39 @@ export default function PEExecutiveDashboard() {
                     </TouchableOpacity>
                 </View>
 
+                {/* Educator Tools */}
+                <ThemedText style={styles.sectionTitle}>Educator Tools</ThemedText>
+                <View style={styles.secondaryActionGrid}>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/peer-educator/dashboard')}
+                  >
+                    <MaterialCommunityIcons name="view-dashboard-outline" size={24} color={colors.primary} />
+                    <ThemedText style={styles.secondaryActionText}>Dashboard</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/peer-educator/queue')}
+                  >
+                    <MaterialCommunityIcons name="account-group-outline" size={24} color="#6366F1" />
+                    <ThemedText style={styles.secondaryActionText}>Support Queue</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/meetings')}
+                  >
+                    <MaterialCommunityIcons name="calendar-clock" size={24} color="#F59E0B" />
+                    <ThemedText style={styles.secondaryActionText}>Meetings</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionCard, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/(tabs)/forum')}
+                  >
+                    <MaterialCommunityIcons name="message-text-outline" size={24} color="#10B981" />
+                    <ThemedText style={styles.secondaryActionText}>Forum</ThemedText>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Team Performance Table Section */}
                 <View style={styles.sectionHeader}>
                     <ThemedText style={styles.sectionTitle}>Team Overview</ThemedText>
