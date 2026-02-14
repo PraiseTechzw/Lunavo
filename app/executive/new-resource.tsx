@@ -348,48 +348,81 @@ export default function NewResourceScreen() {
                             style={styles.stepContainer}
                         >
                             <ThemedText style={styles.stepTitle}>
-                                {isGallery ? "Upload the media" : "Provide the content"}
+                                {form.resourceType === 'link' ? "Where does it lead?" :
+                                    form.resourceType === 'article' ? "Write your article" :
+                                        isGallery ? "Upload the media" : "Provide the content"}
                             </ThemedText>
                             <ThemedText style={styles.stepSubtitle}>
-                                {isGallery ? "Pick a high-quality photo or video from your gallery." : "Link an external resource or upload a file directly."}
+                                {form.resourceType === 'link' ? "Paste the full website address below." :
+                                    form.resourceType === 'article' ? "Provide a rich description or the full content of your article." :
+                                        isGallery ? "Pick a high-quality photo or video from your gallery." :
+                                            "Link an external resource or upload a file directly."}
                             </ThemedText>
 
                             <View style={styles.sourceChoiceContainer}>
-                                <TouchableOpacity
-                                    style={[styles.uploadBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
-                                    onPress={handlePickFile}
-                                >
-                                    <MaterialCommunityIcons
-                                        name={form.localUri ? "check-circle" : (isGallery ? "image-plus" : "cloud-upload-outline")}
-                                        size={48}
-                                        color={form.localUri ? colors.primary : colors.icon}
-                                    />
-                                    <ThemedText style={styles.uploadText}>
-                                        {form.localUri ? "File Selected!" : (isGallery ? "Select Photo/Video" : "Upload from Gallery")}
-                                    </ThemedText>
-                                    {form.localUri && (
-                                        <ThemedText style={styles.fileName} numberOfLines={1}>{form.localUri.split('/').pop()}</ThemedText>
-                                    )}
-                                </TouchableOpacity>
-
-                                {!isGallery && (
+                                {form.resourceType === 'article' ? (
+                                    <View style={styles.inputGroup}>
+                                        <ThemedText style={styles.label}>ARTICLE CONTENT</ThemedText>
+                                        <TextInput
+                                            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                            placeholder="Write your article here..."
+                                            placeholderTextColor={colors.icon}
+                                            multiline
+                                            numberOfLines={12}
+                                            value={form.description}
+                                            onChangeText={(t) => setForm({ ...form, description: t })}
+                                        />
+                                    </View>
+                                ) : form.resourceType === 'link' ? (
+                                    <View style={styles.inputGroup}>
+                                        <ThemedText style={styles.label}>WEBSITE / RESOURCE URL</ThemedText>
+                                        <TextInput
+                                            style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                            placeholder="https://..."
+                                            placeholderTextColor={colors.icon}
+                                            value={form.url}
+                                            onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                        />
+                                    </View>
+                                ) : (
                                     <>
-                                        <View style={styles.orDivider}>
-                                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                            <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
-                                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                        </View>
-
-                                        <View style={styles.inputGroup}>
-                                            <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
-                                            <TextInput
-                                                style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                                placeholder="https://..."
-                                                placeholderTextColor={colors.icon}
-                                                value={form.url}
-                                                onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                        <TouchableOpacity
+                                            style={[styles.uploadBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
+                                            onPress={handlePickFile}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name={form.localUri ? "check-circle" : (isGallery ? "image-plus" : "cloud-upload-outline")}
+                                                size={48}
+                                                color={form.localUri ? colors.primary : colors.icon}
                                             />
-                                        </View>
+                                            <ThemedText style={styles.uploadText}>
+                                                {form.localUri ? "File Selected!" : (isGallery ? "Select Photo/Video" : "Upload from Gallery")}
+                                            </ThemedText>
+                                            {form.localUri && (
+                                                <ThemedText style={styles.fileName} numberOfLines={1}>{form.localUri.split('/').pop()}</ThemedText>
+                                            )}
+                                        </TouchableOpacity>
+
+                                        {!isGallery && (
+                                            <>
+                                                <View style={styles.orDivider}>
+                                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                                    <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
+                                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                                </View>
+
+                                                <View style={styles.inputGroup}>
+                                                    <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
+                                                    <TextInput
+                                                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                        placeholder="https://..."
+                                                        placeholderTextColor={colors.icon}
+                                                        value={form.url}
+                                                        onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                                    />
+                                                </View>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </View>
@@ -402,23 +435,27 @@ export default function NewResourceScreen() {
                             exiting={FadeOutLeft}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>{isGallery ? "Add Context" : "Final Enrichment"}</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {isGallery ? "Add Context" : "Final Enrichment"}
+                            </ThemedText>
                             <ThemedText style={styles.stepSubtitle}>
                                 {isGallery ? "Tell others what was happening in this moment." : "Add a description and tags to help students find it."}
                             </ThemedText>
 
-                            <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>DESCRIPTION / CAPTION</ThemedText>
-                                <TextInput
-                                    style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder={isGallery ? "Describe this memory..." : "Briefly explain what this resource covers..."}
-                                    placeholderTextColor={colors.icon}
-                                    multiline
-                                    numberOfLines={4}
-                                    value={form.description}
-                                    onChangeText={(t) => setForm({ ...form, description: t })}
-                                />
-                            </View>
+                            {form.resourceType !== 'article' && (
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={styles.label}>{isGallery ? "CAPTION" : "DESCRIPTION"}</ThemedText>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                        placeholder={isGallery ? "Describe this memory..." : "Briefly explain what this resource covers..."}
+                                        placeholderTextColor={colors.icon}
+                                        multiline
+                                        numberOfLines={4}
+                                        value={form.description}
+                                        onChangeText={(t) => setForm({ ...form, description: t })}
+                                    />
+                                </View>
+                            )}
 
                             <View style={styles.inputGroup}>
                                 <ThemedText style={styles.label}>ADDITIONAL TAGS (OPTIONAL)</ThemedText>
@@ -433,9 +470,16 @@ export default function NewResourceScreen() {
 
                             <View style={[styles.previewCard, { backgroundColor: colors.surface, borderLeftColor: CATEGORIES.find(c => c.id === form.category)?.color || colors.primary }]}>
                                 <ThemedText style={styles.previewTag}>PREVIEW</ThemedText>
-                                <ThemedText style={styles.previewTitle}>{form.title || 'Untitled'}</ThemedText>
+                                <View style={styles.previewHeaderRow}>
+                                    <ThemedText style={styles.previewTitle}>{form.title || 'Untitled'}</ThemedText>
+                                    <MaterialCommunityIcons
+                                        name={RESOURCE_TYPES.find(r => r.id === form.resourceType)?.icon as any}
+                                        size={20}
+                                        color={colors.primary}
+                                    />
+                                </View>
                                 <ThemedText style={styles.previewMeta}>
-                                    {isGallery ? `Album: ${form.album}` : `${form.category} • ${form.resourceType}`}
+                                    {isGallery ? `Album: ${form.album}` : `${CATEGORIES.find(c => c.id === form.category)?.label} • ${form.resourceType}`}
                                 </ThemedText>
                             </View>
                         </Animated.View>
@@ -499,8 +543,7 @@ export default function NewResourceScreen() {
                     >
                         <View style={styles.loaderContainer}>
                             <Animated.View
-                                entering={FadeIn.delay(200)}
-                                style={styles.pulsingIcon}
+                                style={[styles.pulsingIcon, pulseStyle]}
                             >
                                 <MaterialCommunityIcons
                                     name={uploading ? "cloud-upload" : "check-decagram"}
@@ -713,9 +756,16 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginBottom: 8,
     },
+    previewHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+    },
     previewTitle: {
         fontSize: 20,
         fontWeight: '800',
+        flex: 1,
     },
     previewMeta: {
         fontSize: 14,

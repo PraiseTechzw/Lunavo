@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "9f3e97cc40060d2cc3b9ae3073a7f634db37d23b",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 37bb470c9104c228db7bf219a323316173794c3ccfb7742250c8f6faebc0c820",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T18:57:28.605Z"
+    },
+    {
       "hash": "349ac46e0b9a164a7130f44971d581978d554e24",
       "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f1875a7b3b0da4f6150aa5222e1cc5c4b348b5556a3dffa9cedac735f5df4afc",
       "files": [
@@ -1055,25 +1064,6 @@
         "app/profile-settings.tsx"
       ],
       "timestamp": "2026-02-13T05:45:39.972Z"
-    },
-    {
-      "hash": "3193b76f17c5695d416cc5c85612b2e21aa50cb1",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 046921891a6fe0d395184e521c005a7bdd3e1e1b227842c86d8a3d0405678070",
-      "files": [
-        "pp/peer-educator/queue.tsx",
-        "app/peer-educator/training.tsx",
-        "app/post/[id].tsx",
-        "app/privacy.tsx",
-        "app/resource/[id].tsx",
-        "app/search.tsx",
-        "app/student-affairs/_layout.tsx",
-        "app/utils/storage-supabase.ts",
-        "app/utils/storage.ts",
-        "app/utils/toast.tsx",
-        "app/volunteer/dashboard.tsx",
-        ".autopilot/"
-      ],
-      "timestamp": "2026-02-13T05:42:17.150Z"
     }
   ]
 }
