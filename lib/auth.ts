@@ -342,7 +342,7 @@ export async function resetPassword(email: string): Promise<{ error: any }> {
   const { error } = await supabase.auth.resetPasswordForEmail(
     email.toLowerCase().trim(),
     {
-      redirectTo: "peace://auth/reset-password",
+      redirectTo: "https://peace.praisetech.tech/auth/reset-password",
     },
   );
   return { error };
