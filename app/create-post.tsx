@@ -259,25 +259,18 @@ export default function CreatePostScreen() {
               ? "image/webp"
               : "image/jpeg";
 
-      // Read file into ArrayBuffer using XHR (Standard reliable RN method)
-      const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.onload = function () {
-          resolve(xhr.response);
-        };
-        xhr.onerror = function (e) {
-          console.error("XHR Error reading image:", e);
-          reject(new TypeError("Image read failed"));
-        };
-        xhr.responseType = "arraybuffer";
-        xhr.open("GET", imageUri, true);
-        xhr.send(null);
-      });
+      // Upload to Supabase Storage using FormData (Native standard)
+      const fileName = filePath.split('/').pop() || `${Date.now()}.jpg`;
+      const formData = new FormData();
+      formData.append('file', {
+        uri: imageUri,
+        name: fileName,
+        type: contentType,
+      } as any);
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("post-images")
-        .upload(filePath, arrayBuffer, {
+        .upload(filePath, formData, {
           contentType: contentType,
           upsert: false,
         });

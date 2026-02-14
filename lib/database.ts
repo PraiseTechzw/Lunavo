@@ -1696,36 +1696,30 @@ export async function uploadResourceFile(
   try {
     console.log("Starting robust upload for URI:", uri);
 
-    // Convert local URI to ArrayBuffer using XMLHttpRequest (most reliable in RN for local files)
-    const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        resolve(xhr.response);
-      };
-      xhr.onerror = function (e) {
-        console.error("XHR Error reading file:", e);
-        reject(new TypeError("File read failed via XHR"));
-      };
-      xhr.responseType = "arraybuffer";
-      xhr.open("GET", uri, true);
-      xhr.send(null);
-    });
-
     const fileExt = uri.split(".").pop()?.split("?")[0].toLowerCase() || "bin";
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
 
-    console.log(
-      "Uploading base64-converted buffer to path:",
-      filePath,
-      "Size:",
-      arrayBuffer.byteLength,
-    );
+    // Determine content type
+    let contentType = 'application/octet-stream';
+    if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
+    else if (fileExt === 'png') contentType = 'image/png';
+    else if (fileExt === 'gif') contentType = 'image/gif';
+    else if (fileExt === 'pdf') contentType = 'application/pdf';
+
+    console.log("Uploading via FormData to path:", filePath, "ContentType:", contentType);
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uri,
+      name: fileName,
+      type: contentType,
+    } as any);
 
     const { data, error } = await supabase.storage
       .from("system-resources")
-      .upload(filePath, arrayBuffer, {
-        contentType: "application/octet-stream", // Safer default
+      .upload(filePath, formData, {
+        contentType: contentType,
         upsert: false,
       });
 
