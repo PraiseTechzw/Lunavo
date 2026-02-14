@@ -12,7 +12,7 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { requestOtpResetCode } from "@/lib/auth";
+import { requestPasswordResetCode } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen() {
     if (!email.trim()) return;
     setLoading(true);
     try {
-      const { error } = await requestOtpResetCode(email.trim());
+      const { error } = await requestPasswordResetCode(email.trim());
       if (error) throw error;
       router.replace(
         `/auth/reset-password?email=${encodeURIComponent(email.trim())}`,

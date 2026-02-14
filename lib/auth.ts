@@ -339,13 +339,7 @@ export function onAuthStateChange(
  * Reset password
  */
 export async function resetPassword(email: string): Promise<{ error: any }> {
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.toLowerCase().trim(),
-    options: {
-      shouldCreateUser: false,
-    },
-  });
-  return { error };
+  return await requestPasswordResetCode(email);
 }
 
 /**

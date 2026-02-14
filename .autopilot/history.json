@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "f00cf70a443cf5986f340e75250c64d5a4f0ada6",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 573c8eb89dfc95467d1a4bb4b91089282d5388e5ebaf53cbe3247665f6951378",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/reset-password.tsx",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T10:38:37.695Z"
+    },
+    {
       "hash": "06aff3473e9a9d324b90b31d07b15cf76702c6ba",
       "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2f724d449d7f9ac7d8b333439cfc5cb717b94eb23c23f0ef0ab4926048076e65",
       "files": [

@@ -12,7 +12,7 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { verifyOtpAndUpdatePassword } from "@/lib/auth";
+import { verifyPasswordResetCode } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -46,13 +46,13 @@ export default function ResetPasswordScreen() {
       Alert.alert("Mismatch", "Passwords do not match.");
       return;
     }
-    if (!email || !code || code.length !== 6) {
-      Alert.alert("Invalid", "Enter the 6-digit code sent to your email.");
+    if (!email || !code || code.length !== 8) {
+      Alert.alert("Invalid", "Enter the 8-digit code sent to your email.");
       return;
     }
     setLoading(true);
     try {
-      const { error } = await verifyOtpAndUpdatePassword(
+      const { data, error } = await verifyPasswordResetCode(
         email,
         code.trim(),
         password,
@@ -69,11 +69,7 @@ export default function ResetPasswordScreen() {
       });
       const msg = String(e?.message || "Reset failed");
       const lower = msg.toLowerCase();
-      if (
-        lower.includes("otp") ||
-        lower.includes("token") ||
-        lower.includes("code")
-      ) {
+      if (lower.includes("invalid or expired code") || lower.includes("code")) {
         Alert.alert(
           "Invalid Code",
           "The code is incorrect or expired. Request a new code and try again.",
@@ -119,7 +115,7 @@ export default function ResetPasswordScreen() {
                 New Protocol
               </ThemedText>
               <ThemedText style={styles.subtitle}>
-                Enter the 6-digit code sent to {email || "your email"} and set a
+                Enter the 8-digit code sent to {email || "your email"} and set a
                 new password.
               </ThemedText>
             </View>
@@ -129,17 +125,17 @@ export default function ResetPasswordScreen() {
               style={[styles.card, { backgroundColor: colors.card }]}
             >
               <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>6-Digit Code</ThemedText>
+                <ThemedText style={styles.label}>8-Digit Code</ThemedText>
                 <View
                   style={[styles.inputWrapper, { borderColor: colors.border }]}
                 >
                   <Ionicons name="key-outline" size={20} color={colors.icon} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder="000000"
+                    placeholder="00000000"
                     placeholderTextColor={colors.icon}
                     keyboardType="number-pad"
-                    maxLength={6}
+                    maxLength={8}
                     value={code}
                     onChangeText={setCode}
                   />
