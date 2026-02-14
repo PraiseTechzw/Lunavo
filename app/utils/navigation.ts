@@ -297,9 +297,9 @@ export function getDefaultRoute(
     case "student":
       return "/(tabs)";
     case "peer-educator":
-      return "/peer-educator";
+      return "/(tabs)";
     case "peer-educator-executive":
-      return "/executive";
+      return "/(tabs)";
     case "moderator":
       return "/admin/moderation";
     case "counselor":
