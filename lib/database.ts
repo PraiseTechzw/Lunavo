@@ -1635,6 +1635,18 @@ export async function getResource(resourceId: string): Promise<any | null> {
   return data;
 }
 
+export async function getGalleryImages(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("resources")
+    .select("*")
+    .eq("category", "gallery")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
 export async function updateResource(
   resourceId: string,
   updates: Partial<CreateResourceData>,

@@ -5,7 +5,7 @@ import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Dimensions,
     FlatList,
@@ -16,10 +16,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getGalleryImages } from "@/lib/database";
+
 const { width } = Dimensions.get("window");
 const COLUMN_WIDTH = (width - Spacing.md * 3) / 2;
 
-const GALLERY_ITEMS = [
+const FALLBACK_ITEMS = [
     {
         id: "1",
         title: "Executive Team",
@@ -69,23 +71,48 @@ export default function GalleryScreen() {
     const colorScheme = useColorScheme() ?? "light";
     const colors = Colors[colorScheme];
 
+    const [items, setItems] = useState<any[]>(FALLBACK_ITEMS);
+    const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<any>(null);
-
-    const categories = ["All", "Team", "Events", "Club Life"];
     const [activeCategory, setActiveCategory] = useState("All");
 
-    const filteredItems = activeCategory === "All"
-        ? GALLERY_ITEMS
-        : GALLERY_ITEMS.filter(item => item.category === activeCategory);
+    const categories = ["All", "Team", "Events", "Club Life"];
 
-    const renderItem = ({ item }: { item: typeof GALLERY_ITEMS[0] }) => (
+    useEffect(() => {
+        const load = async () => {
+            try {
+                setLoading(true);
+                const dbItems = await getGalleryImages();
+                if (dbItems && dbItems.length > 0) {
+                    setItems(dbItems.map(i => ({
+                        id: i.id,
+                        title: i.title,
+                        category: i.tags && i.tags.length > 0 ? i.tags[0] : 'General',
+                        image: i.url || i.file_path,
+                        description: i.description
+                    })));
+                }
+            } catch (e) {
+                console.error("Gallery Load Error:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, []);
+
+    const filteredItems = activeCategory === "All"
+        ? items
+        : items.filter(item => item.category === activeCategory);
+
+    const renderItem = ({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.card}
             onPress={() => setSelectedImage(item)}
             activeOpacity={0.9}
         >
             <Image
-                source={item.image}
+                source={typeof item.image === 'string' ? { uri: item.image } : item.image}
                 style={styles.image}
                 contentFit="cover"
                 transition={300}
@@ -167,7 +194,7 @@ export default function GalleryScreen() {
                         {selectedImage && (
                             <View style={styles.modalContent}>
                                 <Image
-                                    source={selectedImage.image}
+                                    source={typeof selectedImage.image === 'string' ? { uri: selectedImage.image } : selectedImage.image}
                                     style={styles.modalImage}
                                     contentFit="contain"
                                 />

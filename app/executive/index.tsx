@@ -7,10 +7,9 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-  BorderRadius,
   Colors,
   PlatformStyles,
-  Spacing,
+  Spacing
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Resource, User } from "@/app/types";
@@ -96,33 +95,39 @@ export default function PEExecutiveDashboard() {
     );
   }
 
-  const StatCard = ({ title, value, icon, color, onPress }: any) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.statCard,
-        {
-          backgroundColor: colors.card,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-        },
-      ]}
-      onPress={() => {
-        Haptics.selectionAsync();
-        onPress && onPress();
-      }}
-    >
-      <LinearGradient
-        colors={[color + "25", color + "10"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.statIconContainer}
+  const StatCard = ({ title, value, icon, color, onPress, index }: any) => (
+    <Animated.View entering={FadeInDown.delay(100 + index * 100)}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.statCard,
+          {
+            backgroundColor: colors.card,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          },
+          PlatformStyles.premiumShadow,
+        ]}
+        onPress={() => {
+          Haptics.selectionAsync();
+          onPress && onPress();
+        }}
       >
-        <MaterialCommunityIcons name={icon} size={24} color={color} />
-      </LinearGradient>
-      <View>
-        <ThemedText style={styles.statValue}>{value}</ThemedText>
-        <ThemedText style={styles.statLabel}>{title}</ThemedText>
-      </View>
-    </Pressable>
+        <LinearGradient
+          colors={[color + "30", color + "10"]}
+          style={styles.statIconContainer}
+        >
+          <MaterialCommunityIcons name={icon} size={24} color={color} />
+        </LinearGradient>
+        <View style={styles.statInfo}>
+          <ThemedText style={styles.statValue}>{value}</ThemedText>
+          <ThemedText style={styles.statLabel}>{title}</ThemedText>
+        </View>
+        {title === "Active Sessions" && value > 0 && (
+          <View style={styles.liveIndicator}>
+            <View style={[styles.pulseCircle, { backgroundColor: color }]} />
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 
   return (
@@ -141,48 +146,45 @@ export default function PEExecutiveDashboard() {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Futuristic Header */}
+        <Animated.View entering={FadeInDown} style={styles.header}>
           <View>
-            <ThemedText style={styles.headerTitle}>
-              Executive Console
-            </ThemedText>
-            <ThemedText style={styles.headerSubtitle}>
-              Network Orchestration & Oversight
-            </ThemedText>
+            <ThemedText style={styles.headerSubtitle}>COMMAND CENTER</ThemedText>
+            <ThemedText style={styles.headerTitle}>Executive Console</ThemedText>
           </View>
-          <TouchableOpacity
-            style={[styles.iconButton, { backgroundColor: colors.surface }]}
-            onPress={() => router.replace("/peer-educator/dashboard")}
-          >
-            <MaterialCommunityIcons
-              name="chevron-down"
-              size={28}
-              color={colors.text}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.premiumIconButton, { backgroundColor: colors.surface }]}
+              onPress={() => router.replace("/peer-educator/dashboard")}
+            >
+              <MaterialCommunityIcons name="view-dashboard-outline" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.premiumIconButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push("/(tabs)")}
+            >
+              <MaterialCommunityIcons name="home-variant" size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Impact Overview Section */}
+        <View style={styles.sectionHeader}>
+          <ThemedText style={styles.sectionTitle}>Network Impact</ThemedText>
+          <ThemedText style={styles.liveTag}>LIVE UPDATES</ThemedText>
         </View>
 
-        {/* Network Stats Grid */}
-        <Animated.View
-          entering={FadeInDown.delay(100)}
-          style={styles.statsGrid}
-        >
+        <View style={styles.statsGrid}>
           <StatCard
-            title="Total PEs"
-            value={networkStats.totalPEs}
-            icon="account-group"
-            color="#3B82F6"
-            onPress={() => router.push("/executive/members")}
-          />
-          <StatCard
+            index={0}
             title="Active Sessions"
             value={networkStats.activeSessions}
             icon="record-circle-outline"
             color="#EF4444"
-            onPress={() => router.push("/(tabs)/chat")}
+            onPress={() => router.push("/peer-educator/ongoing-support")}
           />
           <StatCard
+            index={1}
             title="Total Impact"
             value={networkStats.totalSessions}
             icon="heart-pulse"
@@ -190,460 +192,388 @@ export default function PEExecutiveDashboard() {
             onPress={() => router.push("/executive/analytics")}
           />
           <StatCard
-            title="Total Hours"
-            value={networkStats.totalHours}
+            index={2}
+            title="Network Size"
+            value={networkStats.totalPEs}
+            icon="account-group"
+            color="#3B82F6"
+            onPress={() => router.push("/executive/members")}
+          />
+          <StatCard
+            index={3}
+            title="Service Hours"
+            value={Math.round(networkStats.totalHours)}
             icon="clock-check"
             color="#10B981"
             onPress={() => router.push("/executive/events")}
           />
-        </Animated.View>
+        </View>
 
         {/* Administration Actions */}
-        <ThemedText style={styles.sectionTitle}>Quick Management</ThemedText>
-        <View style={[styles.actionGrid, { marginBottom: Spacing.md }]}>
+        <ThemedText style={styles.sectionTitle}>Management Suite</ThemedText>
+        <View style={styles.actionGrid}>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: colors.card }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/executive/new-resource");
-            }}
+            activeOpacity={0.8}
+            style={[styles.mainActionCard, { backgroundColor: colors.card }]}
+            onPress={() => router.push("/executive/new-resource")}
           >
-            <LinearGradient
-              colors={["#4F46E5", "#7C3AED"]}
-              style={styles.actionGradient}
-            >
-              <MaterialCommunityIcons
-                name="plus-circle"
-                size={32}
-                color="#FFF"
-              />
+            <LinearGradient colors={["#6366F1", "#4F46E5"]} style={styles.actionIconBg}>
+              <MaterialCommunityIcons name="plus-box" size={32} color="#FFF" />
             </LinearGradient>
-            <ThemedText style={styles.actionText}>New Resource</ThemedText>
+            <View style={styles.actionMeta}>
+              <ThemedText style={styles.actionLabel}>Resources</ThemedText>
+              <ThemedText style={styles.actionDesc}>Publish library content</ThemedText>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: colors.card }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/executive/new-meeting");
-            }}
+            activeOpacity={0.8}
+            style={[styles.mainActionCard, { backgroundColor: colors.card }]}
+            onPress={() => router.push("/executive/new-meeting")}
           >
-            <LinearGradient
-              colors={["#F59E0B", "#D97706"]}
-              style={styles.actionGradient}
-            >
-              <MaterialCommunityIcons
-                name="calendar-plus"
-                size={32}
-                color="#FFF"
-              />
+            <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.actionIconBg}>
+              <MaterialCommunityIcons name="calendar-multiselect" size={32} color="#FFF" />
             </LinearGradient>
-            <ThemedText style={styles.actionText}>Schedule Meeting</ThemedText>
+            <View style={styles.actionMeta}>
+              <ThemedText style={styles.actionLabel}>Meetings</ThemedText>
+              <ThemedText style={styles.actionDesc}>Orchestrate PE team</ThemedText>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Secondary Actions Grid */}
-        <View style={styles.secondaryActionGrid}>
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/executive/members")}
-          >
-            <MaterialCommunityIcons
-              name="account-multiple-check"
-              size={24}
-              color={colors.primary}
-            />
-            <ThemedText style={styles.secondaryActionText}>Members</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/executive/events")}
-          >
-            <MaterialCommunityIcons
-              name="calendar-star"
-              size={24}
-              color="#10B981"
-            />
-            <ThemedText style={styles.secondaryActionText}>Events</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/executive/analytics")}
-          >
-            <MaterialCommunityIcons
-              name="chart-box"
-              size={24}
-              color="#3B82F6"
-            />
-            <ThemedText style={styles.secondaryActionText}>
-              Analytics
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/executive/announcements")}
-          >
-            <MaterialCommunityIcons name="bullhorn" size={24} color="#EC4899" />
-            <ThemedText style={styles.secondaryActionText}>News</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/gallery")}
-          >
-            <MaterialCommunityIcons name="image-multiple" size={24} color="#8B5CF6" />
-            <ThemedText style={styles.secondaryActionText}>Gallery</ThemedText>
-          </TouchableOpacity>
+        {/* Quick Nav Grid */}
+        <View style={styles.quickNavGrid}>
+          {[
+            { label: "Members", icon: "account-star", color: "#3B82F6", route: "/executive/members" },
+            { label: "Events", icon: "calendar-star", color: "#10B981", route: "/executive/events" },
+            { label: "Analytics", icon: "chart-arc", color: "#A855F7", route: "/executive/analytics" },
+            { label: "News", icon: "bullhorn-variant", color: "#EC4899", route: "/executive/announcements" },
+            { label: "Gallery", icon: "image-multiple", color: "#6366F1", route: "/gallery" },
+            { label: "Support", icon: "lifebuoy", color: "#F59E0B", route: "/peer-educator/queue" },
+          ].map((item, idx) => (
+            <TouchableOpacity
+              key={idx}
+              activeOpacity={0.7}
+              style={[styles.navChip, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push(item.route as any)}
+            >
+              <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color} />
+              <ThemedText style={styles.navChipLabel}>{item.label}</ThemedText>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Educator Tools */}
-        <ThemedText style={styles.sectionTitle}>Educator Tools</ThemedText>
-        <View style={styles.secondaryActionGrid}>
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/peer-educator/dashboard")}
-          >
-            <MaterialCommunityIcons
-              name="view-dashboard-outline"
-              size={24}
-              color={colors.primary}
-            />
-            <ThemedText style={styles.secondaryActionText}>
-              Dashboard
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/peer-educator/queue")}
-          >
-            <MaterialCommunityIcons
-              name="account-group-outline"
-              size={24}
-              color="#6366F1"
-            />
-            <ThemedText style={styles.secondaryActionText}>
-              Support Queue
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/meetings")}
-          >
-            <MaterialCommunityIcons
-              name="calendar-clock"
-              size={24}
-              color="#F59E0B"
-            />
-            <ThemedText style={styles.secondaryActionText}>Meetings</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionCard,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => router.push("/(tabs)/forum")}
-          >
-            <MaterialCommunityIcons
-              name="message-text-outline"
-              size={24}
-              color="#10B981"
-            />
-            <ThemedText style={styles.secondaryActionText}>Forum</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Team Performance Table Section */}
+        {/* Team Activity Section */}
         <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionTitle}>Team Overview</ThemedText>
-          <TouchableOpacity>
-            <ThemedText style={{ color: colors.primary }}>View All</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Force Overview</ThemedText>
+          <TouchableOpacity onPress={() => router.push("/executive/members")}>
+            <ThemedText style={{ color: colors.primary, fontWeight: "700" }}>Manage Team</ThemedText>
           </TouchableOpacity>
         </View>
-        <View style={[styles.teamContainer, { backgroundColor: colors.card }]}>
-          {peTeam.slice(0, 5).map((pe, index) => (
+
+        <View style={[styles.teamGlass, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {peTeam.length === 0 ? (
+            <View style={styles.emptyTeam}>
+              <ThemedText style={{ opacity: 0.5 }}>No educators found in network</ThemedText>
+            </View>
+          ) : peTeam.slice(0, 4).map((pe, index) => (
             <TouchableOpacity
               key={pe.id}
               style={[
-                styles.peRow,
-                index !== peTeam.length - 1 && styles.borderBottom,
+                styles.peListItem,
+                index !== peTeam.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border + "50" },
               ]}
+              onPress={() => router.push(`/executive/member/${pe.id}` as any)}
             >
-              <View
-                style={[
-                  styles.peAvatar,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <ThemedText
-                  style={{ color: colors.primary, fontWeight: "bold" }}
-                >
+              <View style={[styles.peAvatarContainer, { backgroundColor: colors.primary + "10" }]}>
+                <ThemedText style={[styles.peInitial, { color: colors.primary }]}>
                   {pe.pseudonym?.charAt(0)}
                 </ThemedText>
+                <View style={styles.onlineDot} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={styles.peMeta}>
                 <ThemedText style={styles.peName}>{pe.pseudonym}</ThemedText>
-                <ThemedText style={styles.peRole}>
-                  {pe.role === "peer-educator-executive"
-                    ? "Executive"
-                    : "Educator"}
+                <ThemedText style={styles.peType}>
+                  {pe.role === "peer-educator-executive" ? "Executive Leader" : "Peer Educator"}
                 </ThemedText>
               </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.icon}
-              />
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.icon} />
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Global Resources Preview */}
-        <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionTitle}>System Resources</ThemedText>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/resources")}>
-            <ThemedText style={{ color: colors.primary }}>Manage</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.resourcesScroll}
-        >
-          {globalResources.map((res) => (
-            <TouchableOpacity
-              key={res.id}
-              style={[styles.resourceCard, { backgroundColor: colors.card }]}
-            >
-              <View
-                style={[
-                  styles.resourceTypeIcon,
-                  { backgroundColor: colors.primary + "10" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={
-                    res.resourceType === "video"
-                      ? "play-circle"
-                      : res.resourceType === "article"
-                        ? "file-document"
-                        : "link-variant"
-                  }
-                  size={24}
-                  color={colors.primary}
-                />
-              </View>
-              <ThemedText numberOfLines={1} style={styles.resourceTitle}>
-                {res.title}
-              </ThemedText>
-              <ThemedText style={styles.resourceMeta}>
-                {res.category}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <View style={{ height: 40 }} />
+        {/* Footer Space */}
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Role Navigation Bar (Floating Command Bar) */}
+      <View style={styles.commandBarContainer}>
+        <LinearGradient
+          colors={colorScheme === 'dark' ? ['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.95)'] : ['rgba(255, 255, 255, 0.95)', 'rgba(248, 250, 252, 0.95)']}
+          style={[styles.commandBar, PlatformStyles.premiumShadow]}
+        >
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.commandItem}>
+            <MaterialCommunityIcons name="account" size={22} color={colors.icon} />
+            <ThemedText style={styles.commandLabel}>Student</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/peer-educator/dashboard')} style={styles.commandItem}>
+            <MaterialCommunityIcons name="view-dashboard" size={22} color={colors.icon} />
+            <ThemedText style={styles.commandLabel}>Educator</ThemedText>
+          </TouchableOpacity>
+          <View style={styles.commandItemActive}>
+            <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.activeGradient}>
+              <MaterialCommunityIcons name="shield-crown" size={24} color="#FFF" />
+            </LinearGradient>
+            <ThemedText style={[styles.commandLabel, { color: colors.primary, fontWeight: '800' }]}>Executive</ThemedText>
+          </View>
+        </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.sm,
+  },
+  headerSubtitle: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 2,
+    opacity: 0.5,
+    color: Colors.light.primary,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    opacity: 0.6,
-    fontSize: 14,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    ...PlatformStyles.shadow,
-  },
-  statsGrid: {
+  headerActions: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: Spacing.sm,
-    marginBottom: Spacing.xl,
   },
-  statCard: {
-    width: (width - Spacing.md * 2 - Spacing.sm) / 2,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    ...PlatformStyles.shadow,
-  },
-  statIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  premiumIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  statLabel: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: Spacing.md,
+    ...PlatformStyles.shadow,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: -0.2,
+  },
+  liveTag: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#EF4444",
+    backgroundColor: "#EF444415",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  statCard: {
+    width: (width - Spacing.lg * 2 - Spacing.md) / 2,
+    padding: Spacing.md,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    height: 90,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statInfo: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  statLabel: {
+    fontSize: 11,
+    opacity: 0.5,
+    fontWeight: "700",
+  },
+  liveIndicator: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+  },
+  pulseCircle: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   actionGrid: {
-    flexDirection: "row",
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.sm,
   },
-  actionCard: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
+  mainActionCard: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    ...PlatformStyles.shadow,
+    padding: Spacing.md,
+    borderRadius: 24,
+    gap: Spacing.lg,
+    ...PlatformStyles.premiumShadow,
   },
-  actionGradient: {
-    width: 56,
-    height: 56,
+  actionIconBg: {
+    width: 64,
+    height: 64,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.sm,
   },
-  actionText: {
+  actionMeta: {
+    flex: 1,
+  },
+  actionLabel: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  actionDesc: {
     fontSize: 13,
-    fontWeight: "600",
+    opacity: 0.5,
+    marginTop: 2,
   },
-  secondaryActionGrid: {
+  quickNavGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  secondaryActionCard: {
-    flex: 1,
-    minWidth: (width - Spacing.md * 2 - Spacing.sm * 3) / 4,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+  navChip: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    ...PlatformStyles.shadow,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1,
+    minWidth: (width - Spacing.lg * 2 - Spacing.sm * 2) / 3,
   },
-  secondaryActionText: {
-    fontSize: 11,
-    fontWeight: "700",
-    opacity: 0.8,
+  navChipLabel: {
+    fontSize: 12,
+    fontWeight: "800",
   },
-  teamContainer: {
-    borderRadius: BorderRadius.xl,
+  teamGlass: {
+    borderRadius: 28,
+    borderWidth: 1,
     overflow: "hidden",
-    ...PlatformStyles.shadow,
+    marginTop: Spacing.sm,
   },
-  peRow: {
+  peListItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  borderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  peAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  peAvatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+  },
+  peInitial: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  peMeta: {
+    flex: 1,
   },
   peName: {
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
   },
-  peRole: {
+  peType: {
     fontSize: 12,
     opacity: 0.5,
+    marginTop: 1,
   },
-  resourcesScroll: {
-    gap: Spacing.md,
-    paddingRight: Spacing.xl,
+  emptyTeam: {
+    padding: 40,
+    alignItems: 'center',
   },
-  resourceCard: {
-    width: 160,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    ...PlatformStyles.shadow,
+  commandBarContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    zIndex: 100,
   },
-  resourceTypeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
+  commandBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  resourceTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
+  commandItem: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 4,
   },
-  resourceMeta: {
-    fontSize: 11,
-    opacity: 0.5,
-    textTransform: "capitalize",
+  commandItemActive: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  activeGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -20,
+    elevation: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  commandLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });
