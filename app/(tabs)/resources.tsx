@@ -2,6 +2,7 @@
  * Resource Library Screen
  */
 
+import { Skeleton } from "@/app/components/loading-skeleton";
 import { FAB as FABButton } from "@/app/components/navigation/fab-button";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
@@ -21,7 +22,6 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
-  Switch,
   TextInput,
   TouchableOpacity,
   View,
@@ -44,7 +44,49 @@ const categories = [
   "PDFs",
 ];
 
-// Fresh build: remove legacy sample sections; keep data driven content only
+const copingStrategies: any[] = [
+  {
+    id: "1",
+    title: "Mindfulness Exercises",
+    resourceType: "article",
+    category: "mental-health",
+    iconName: "body-outline",
+    color: "#90EE90",
+  },
+  {
+    id: "2",
+    title: "Breathing Techniques",
+    resourceType: "article",
+    category: "mental-health",
+    iconName: "leaf-outline",
+    color: "#DDA0DD",
+  },
+  {
+    id: "3",
+    title: "Stress Management",
+    resourceType: "video",
+    category: "mental-health",
+    iconName: "medical-outline",
+    color: "#87CEEB",
+  },
+];
+
+const academicResources: any[] = [
+  {
+    id: "1",
+    title: "Effective Study Habits",
+    resourceType: "article",
+    category: "academic",
+    iconName: "book-outline",
+  },
+  {
+    id: "2",
+    title: "Time Management",
+    resourceType: "video",
+    category: "academic",
+    iconName: "time",
+  },
+];
 
 export default function ResourcesScreen() {
   const router = useRouter();
@@ -448,34 +490,35 @@ export default function ResourcesScreen() {
               />
             </View>
 
-            <View style={[styles.favoritesRow, { borderColor: colors.border }]}>
-              <View style={styles.row}>
-                <MaterialIcons
-                  name="favorite"
-                  size={18}
-                  color={showFavoritesOnly ? colors.primary : colors.icon}
-                />
-                <ThemedText
-                  type="body"
-                  style={{
-                    color: colors.text,
-                    marginLeft: Spacing.xs,
-                    fontWeight: "600",
-                  }}
-                >
-                  Show Favorites
-                </ThemedText>
-              </View>
-              <Switch
-                value={showFavoritesOnly}
-                onValueChange={setShowFavoritesOnly}
-                trackColor={{
-                  false: colors.surface,
-                  true: colors.primary + "66",
-                }}
-                thumbColor={showFavoritesOnly ? colors.primary : colors.icon}
+            <TouchableOpacity
+              style={[
+                styles.favoritesToggle,
+                {
+                  backgroundColor: showFavoritesOnly
+                    ? colors.primary
+                    : colors.surface,
+                },
+                createShadow(1, "#000", 0.05),
+              ]}
+              onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons
+                name={showFavoritesOnly ? "favorite" : "favorite-border"}
+                size={20}
+                color={showFavoritesOnly ? "#FFFFFF" : colors.text}
               />
-            </View>
+              <ThemedText
+                type="body"
+                style={{
+                  color: showFavoritesOnly ? "#FFFFFF" : colors.text,
+                  marginLeft: Spacing.sm,
+                  fontWeight: "600",
+                }}
+              >
+                {showFavoritesOnly ? "Show All" : "Show Favorites"}
+              </ThemedText>
+            </TouchableOpacity>
 
             {/* Category Filters */}
             <View style={styles.filtersContainer}>
@@ -493,6 +536,9 @@ export default function ResourcesScreen() {
                             : colors.surface,
                         borderColor: colors.border,
                       },
+                      selectedCategory === item
+                        ? createShadow(2, colors.primary, 0.25)
+                        : {},
                     ]}
                     onPress={() => setSelectedCategory(item)}
                     activeOpacity={0.7}
@@ -524,8 +570,95 @@ export default function ResourcesScreen() {
                 {filteredResources.length})
               </ThemedText>
               {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ThemedText>Loading resources...</ThemedText>
+                <View>
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.resourceCard,
+                        { backgroundColor: colors.card },
+                        createShadow(2, "#000", 0.08),
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={120}
+                        borderRadius={BorderRadius.md}
+                      />
+                      <View style={styles.resourceContent}>
+                        <Skeleton width="80%" height={16} />
+                        <Skeleton
+                          width="50%"
+                          height={12}
+                          style={{ marginTop: Spacing.xs }}
+                        />
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.resourceCard,
+                        { backgroundColor: colors.card },
+                        createShadow(2, "#000", 0.08),
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={120}
+                        borderRadius={BorderRadius.md}
+                      />
+                      <View style={styles.resourceContent}>
+                        <Skeleton width="75%" height={16} />
+                        <Skeleton
+                          width="60%"
+                          height={12}
+                          style={{ marginTop: Spacing.xs }}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.resourceCard,
+                        { backgroundColor: colors.card },
+                        createShadow(2, "#000", 0.08),
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={120}
+                        borderRadius={BorderRadius.md}
+                      />
+                      <View style={styles.resourceContent}>
+                        <Skeleton width="85%" height={16} />
+                        <Skeleton
+                          width="40%"
+                          height={12}
+                          style={{ marginTop: Spacing.xs }}
+                        />
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.resourceCard,
+                        { backgroundColor: colors.card },
+                        createShadow(2, "#000", 0.08),
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={120}
+                        borderRadius={BorderRadius.md}
+                      />
+                      <View style={styles.resourceContent}>
+                        <Skeleton width="70%" height={16} />
+                        <Skeleton
+                          width="55%"
+                          height={12}
+                          style={{ marginTop: Spacing.xs }}
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </View>
               ) : filteredResources.length > 0 ? (
                 <FlatList
@@ -559,8 +692,63 @@ export default function ResourcesScreen() {
                 Gallery ({getGalleryItems().length})
               </ThemedText>
               {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ThemedText>Loading gallery...</ThemedText>
+                <View>
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.galleryItem,
+                        createShadow(2, "#000", 0.08),
+                        { width: THUMB_SIZE, height: THUMB_SIZE },
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={THUMB_SIZE}
+                        borderRadius={BorderRadius.md}
+                      />
+                    </View>
+                    <View
+                      style={[
+                        styles.galleryItem,
+                        createShadow(2, "#000", 0.08),
+                        { width: THUMB_SIZE, height: THUMB_SIZE },
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={THUMB_SIZE}
+                        borderRadius={BorderRadius.md}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.galleryItem,
+                        createShadow(2, "#000", 0.08),
+                        { width: THUMB_SIZE, height: THUMB_SIZE },
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={THUMB_SIZE}
+                        borderRadius={BorderRadius.md}
+                      />
+                    </View>
+                    <View
+                      style={[
+                        styles.galleryItem,
+                        createShadow(2, "#000", 0.08),
+                        { width: THUMB_SIZE, height: THUMB_SIZE },
+                      ]}
+                    >
+                      <Skeleton
+                        width="100%"
+                        height={THUMB_SIZE}
+                        borderRadius={BorderRadius.md}
+                      />
+                    </View>
+                  </View>
                 </View>
               ) : getGalleryItems().length > 0 ? (
                 <FlatList
@@ -591,7 +779,66 @@ export default function ResourcesScreen() {
             </View>
           )}
 
-          {/* Fresh build: unified content only; removed sample sections */}
+          {/* Coping Strategies */}
+          <View style={styles.section}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Coping Strategies
+            </ThemedText>
+            {copingStrategies.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.copingCard,
+                  { backgroundColor: colors.card },
+                  createShadow(1, "#000", 0.05),
+                ]}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.copingIcon,
+                    { backgroundColor: item.color + "30" },
+                  ]}
+                >
+                  <Ionicons
+                    name={item.iconName as any}
+                    size={28}
+                    color={item.color}
+                  />
+                </View>
+                <View style={styles.copingContent}>
+                  <ThemedText type="body" style={styles.copingTitle}>
+                    {item.title}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.copingMeta}>
+                    {item.duration || item.resourceType}
+                  </ThemedText>
+                </View>
+                <TouchableOpacity>
+                  <Ionicons
+                    name="bookmark-outline"
+                    size={20}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Academic Support */}
+          <View style={styles.section}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Academic Support
+            </ThemedText>
+            <FlatList
+              horizontal
+              data={academicResources as any}
+              renderItem={({ item }) => renderResourceCard({ item, index: 0 })}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
           <View style={{ height: 140 }} />
         </ScrollView>
       </ThemedView>
@@ -676,6 +923,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     letterSpacing: 0.2,
   },
+  horizontalList: {
+    gap: Spacing.md,
+  },
   section: {
     marginBottom: Spacing.xl,
   },
@@ -725,6 +975,31 @@ const styles = StyleSheet.create({
   resourceContent: {
     padding: Spacing.sm,
     flex: 1,
+  },
+  copingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  copingIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  copingContent: {
+    flex: 1,
+  },
+  copingTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  copingMeta: {
+    opacity: 0.7,
   },
   favoritesToggle: {
     flexDirection: "row",
