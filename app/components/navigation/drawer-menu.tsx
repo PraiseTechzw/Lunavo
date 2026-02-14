@@ -54,6 +54,9 @@ const ROLE_SPECIFIC_ITEMS: Record<string, DrawerItem[]> = {
     { id: 'dashboard', label: 'Executive Dashboard', icon: 'view-dashboard-variant-outline', route: '/executive', section: 'role' },
     { id: 'meetings', label: 'Manage Meetings', icon: 'calendar-edit', route: '/executive/events', section: 'role' },
     { id: 'members', label: 'Manage Members', icon: 'account-multiple-outline', route: '/executive/members', section: 'role' },
+    { id: 'edu-dashboard', label: 'Educator Dashboard', icon: 'view-dashboard-outline', route: '/peer-educator/dashboard', section: 'role' },
+    { id: 'edu-queue', label: 'Support Queue', icon: 'account-group-outline', route: '/peer-educator/queue', section: 'role' },
+    { id: 'edu-meetings', label: 'PE Meetings', icon: 'calendar-clock', route: '/meetings', section: 'role' },
   ],
   moderator: [
     { id: 'moderation', label: 'Moderation Queue', icon: 'shield-alert-outline', route: '/admin/moderation', section: 'role' },

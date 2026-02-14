@@ -86,7 +86,7 @@ export default function SupportQueueScreen() {
 
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             // Navigate to chat session
-                            router.push(`/peer-educator/session/${request.id}` as any);
+                            router.push(`/chat/${request.id}` as any);
                         } catch (e) {
                             console.error('Failed to accept session:', e);
                             Alert.alert('Error', 'Failed to accept session. Please try again.');

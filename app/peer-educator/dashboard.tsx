@@ -261,6 +261,9 @@ export default function PeerEducatorDashboard() {
               <MaterialCommunityIcons name="message-text" size={20} color={colors.primary} />
               <ThemedText style={styles.sectionTitle}>Ongoing Support</ThemedText>
             </View>
+            <TouchableOpacity onPress={() => router.push('/peer-educator/ongoing-support')}>
+              <ThemedText style={styles.viewAll}>View All</ThemedText>
+            </TouchableOpacity>
           </View>
 
           {activeSessions.length === 0 ? (
@@ -272,7 +275,7 @@ export default function PeerEducatorDashboard() {
               <TouchableOpacity
                 key={s.id}
                 style={[styles.premiumDataCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push(`/peer-educator/session/${s.id}` as any)}
+                onPress={() => router.push(`/chat/${s.id}`)}
               >
                 <View style={[styles.priorityIndicator, { backgroundColor: colors.primary }]} />
                 <View style={styles.actContent}>

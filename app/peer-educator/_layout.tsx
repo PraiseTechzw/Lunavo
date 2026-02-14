@@ -149,7 +149,6 @@ export default function PeerEducatorLayout() {
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="club-info" options={{ href: null }} />
       <Tabs.Screen name="orientation" options={{ href: null }} />
-      <Tabs.Screen name="session/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

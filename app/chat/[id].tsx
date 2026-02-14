@@ -1,47 +1,64 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { SupportMessage } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
-    getCurrentUser,
-    getSupportMessages,
-    sendSupportMessage,
+  getCurrentUser,
+  getSupportMessages,
+  getUser,
+  sendSupportMessage,
 } from "@/lib/database";
 import {
-    sendReaction,
-    sendTyping,
-    subscribeToMessages,
-    subscribeToReactions,
-    subscribeToTyping,
-    unsubscribe,
+  sendReaction,
+  sendTyping,
+  subscribeToMessages,
+  subscribeToReactions,
+  subscribeToTyping,
+  unsubscribe,
 } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { SupportSession } from "@/app/types";
+import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
+  const bubbleMaxWidth = Math.min(
+    Math.round(Dimensions.get("window").width * 0.78),
+    420,
+  );
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,14 +69,30 @@ export default function ChatDetailScreen() {
   const [supporterTyping, setSupporterTyping] = useState(false);
   const typingTimeoutRef = useRef<any>(null);
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
+  const [session, setSession] = useState<SupportSession | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [educator, setEducator] = useState<any | null>(null);
+  const insets = useSafeAreaInsets();
+  const [kbHeight, setKbHeight] = useState(0);
+  const [kbVisible, setKbVisible] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
         const user = await getCurrentUser();
         setUserId(user?.id || null);
+        setRole(user?.role || null);
         const initial = await getSupportMessages(id as string);
         setMessages(initial);
+        const all = await getSupportSessions();
+        const meta = (all || []).find((s) => s.id === (id as string)) || null;
+        setSession(meta);
+        if (meta?.educator_id) {
+          const edu = await getUser(meta.educator_id);
+          setEducator(edu || null);
+        } else {
+          setEducator(null);
+        }
       } catch (error) {
         console.error("Error loading messages:", error);
       } finally {
@@ -98,6 +131,22 @@ export default function ChatDetailScreen() {
     };
   }, [id]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKbHeight(e.endCoordinates?.height || 0);
+      setKbVisible(true);
+      scrollToEnd();
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKbHeight(0);
+      setKbVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const scrollToEnd = () => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -130,7 +179,6 @@ export default function ChatDetailScreen() {
       );
       setInput("");
       scrollToEnd();
-      // Preview update removed to avoid RLS violations; list derives preview from last message
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -152,15 +200,14 @@ export default function ChatDetailScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.6,
-      base64: false,
+      base64: true,
     });
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
     const uri = asset.uri;
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = asset.base64 || "";
+      if (!base64) return;
       const mime =
         asset.type === "image" ? asset.mimeType || "image/jpeg" : "image/jpeg";
       const dataUri = `data:${mime};base64,${base64}`;
@@ -193,6 +240,35 @@ export default function ChatDetailScreen() {
     const d = new Date(iso);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
+  const priorityColor = (p?: string) =>
+    p === "urgent" ? "#EF4444" : "#6366F1";
+  const canUseSupportTools =
+    role === "peer-educator" ||
+    role === "peer-educator-executive" ||
+    role === "counselor" ||
+    role === "life-coach" ||
+    role === "admin";
+  const handleResolve = async () => {
+    try {
+      if (!id) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await updateSupportSession(id as string, {
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+      });
+      router.back();
+    } catch (e) {
+      console.error("Error resolving session:", e);
+    }
+  };
+  const handleScheduleMeeting = () => {
+    Haptics.selectionAsync();
+    if (role === "peer-educator-executive" || role === "admin") {
+      router.push("/executive/new-meeting" as any);
+    } else {
+      router.push("/peer-educator/meetings" as any);
+    }
+  };
 
   const renderItem = ({
     item,
@@ -202,10 +278,22 @@ export default function ChatDetailScreen() {
     index: number;
   }) => {
     const isMine = item.sender_id === userId;
+    const showIncomingLabel = !!item.sender_id && item.sender_id !== userId;
+    const supporterLabel =
+      educator?.role === "counselor"
+        ? "Counselor"
+        : educator?.role === "peer-educator" ||
+            educator?.role === "peer-educator-executive"
+          ? "Peer Educator"
+          : educator?.role === "life-coach"
+            ? "Life Coach"
+            : "Supporter";
     const showDateDivider =
       index === 0 ||
       new Date(messages[index - 1].created_at).toDateString() !==
         new Date(item.created_at).toDateString();
+    const isDelivered = !String(item.id).startsWith("temp-");
+    const isRead = !!item.is_read;
     return (
       <View>
         {showDateDivider && (
@@ -218,9 +306,9 @@ export default function ChatDetailScreen() {
         <View
           style={[styles.messageRow, isMine ? styles.mineRow : styles.theirRow]}
         >
-          {!isMine && (
+          {!isMine && showIncomingLabel && (
             <View style={styles.labelWrap}>
-              <ThemedText style={styles.labelText}>Supporter</ThemedText>
+              <ThemedText style={styles.labelText}>{supporterLabel}</ThemedText>
             </View>
           )}
           <TouchableOpacity
@@ -231,34 +319,87 @@ export default function ChatDetailScreen() {
               }
             }}
           >
-            <View
-              style={[
-                styles.bubble,
-                {
-                  backgroundColor: isMine ? colors.primary : colors.card,
-                  borderColor: isMine ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              {item.type === "image" ? (
-                <Image
-                  source={{ uri: item.content }}
-                  style={{ width: 220, height: 160, borderRadius: 12 }}
-                  contentFit="cover"
-                />
-              ) : (
-                <ThemedText style={{ color: isMine ? "#FFF" : colors.text }}>
-                  {item.content}
-                </ThemedText>
-              )}
-              {reactions[item.id]?.length ? (
-                <View style={styles.reactionBadge}>
-                  <ThemedText style={{ color: isMine ? "#FFF" : colors.text }}>
-                    {reactions[item.id].join(" ")}
+            {isMine ? (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.bubble,
+                  styles.mineBubble,
+                  { maxWidth: bubbleMaxWidth },
+                ]}
+              >
+                {item.type === "image" ? (
+                  <Image
+                    source={{ uri: item.content }}
+                    style={{ width: 220, height: 160, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <ThemedText style={{ color: "#FFF" }}>
+                    {item.content}
                   </ThemedText>
-                </View>
-              ) : null}
-            </View>
+                )}
+                {isMine && (
+                  <View style={styles.ticks}>
+                    {isRead ? (
+                      <Ionicons
+                        name="checkmark-done"
+                        size={14}
+                        color="#E0F2F1"
+                      />
+                    ) : isDelivered ? (
+                      <Ionicons name="checkmark" size={14} color="#E0F2F1" />
+                    ) : (
+                      <ActivityIndicator size="small" color="#E0F2F1" />
+                    )}
+                  </View>
+                )}
+                {reactions[item.id]?.length ? (
+                  <View style={styles.reactionBadge}>
+                    <ThemedText style={{ color: "#FFF" }}>
+                      {reactions[item.id].join(" ")}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </LinearGradient>
+            ) : (
+              <View
+                style={[
+                  {
+                    maxWidth: bubbleMaxWidth,
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: Spacing.sm,
+                    borderRadius: BorderRadius.lg,
+                    borderWidth: 1,
+                    marginHorizontal: Spacing.sm,
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                  PlatformStyles.shadow,
+                ]}
+              >
+                {item.type === "image" ? (
+                  <Image
+                    source={{ uri: item.content }}
+                    style={{ width: 220, height: 160, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <ThemedText style={{ color: colors.text }}>
+                    {item.content}
+                  </ThemedText>
+                )}
+                {reactions[item.id]?.length ? (
+                  <View style={styles.reactionBadge}>
+                    <ThemedText style={{ color: colors.text }}>
+                      {reactions[item.id].join(" ")}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </TouchableOpacity>
           {isMine && (
             <View style={styles.labelWrap}>
@@ -280,20 +421,110 @@ export default function ChatDetailScreen() {
     );
   };
 
+  const last = messages[messages.length - 1];
+  const isOnline =
+    !!last && Date.now() - new Date(last.created_at).getTime() < 2 * 60 * 1000;
+  const counterpartName =
+    role === "student"
+      ? educator?.pseudonym || "Supporter"
+      : session?.student_pseudonym || "Anonymous Chat";
+  const secondaryLabel =
+    (session?.category ? String(session.category).toUpperCase() : "PERSONAL") +
+    ` • ${messages.length} MSGS`;
+
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={getCursorStyle()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Anonymous Chat
-          </ThemedText>
+        <View
+          style={[
+            styles.headerBar,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={getCursorStyle()}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <View
+              style={[styles.headerAvatar, { backgroundColor: colors.primary }]}
+            >
+              <Ionicons name="person-outline" size={18} color="#FFF" />
+            </View>
+            <View style={styles.headerInfo}>
+              <ThemedText style={styles.headerTitle}>
+                {counterpartName}
+              </ThemedText>
+              <ThemedText type="small" style={{ opacity: 0.6 }}>
+                {secondaryLabel}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: isOnline ? "#10B981" : colors.icon },
+              ]}
+            />
+            <ThemedText type="small" style={{ opacity: 0.6 }}>
+              {isOnline ? "Online" : "Offline"}
+            </ThemedText>
+            {session?.priority && (
+              <View
+                style={[
+                  styles.priorityChip,
+                  { borderColor: priorityColor(session.priority) },
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: priorityColor(session.priority),
+                    fontWeight: "700",
+                  }}
+                >
+                  {String(session.priority).toUpperCase()}
+                </ThemedText>
+              </View>
+            )}
+          </View>
         </View>
+
+        {canUseSupportTools && (
+          <View style={[styles.toolsRow, { backgroundColor: colors.surface }]}>
+            <TouchableOpacity
+              style={[styles.toolChip, { borderColor: colors.border }]}
+              onPress={() => router.push("/(tabs)/resources" as any)}
+            >
+              <Ionicons name="book" size={16} color={colors.primary} />
+              <ThemedText style={styles.toolChipText}>Resources</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolChip, { borderColor: colors.border }]}
+              onPress={() => router.push("/urgent-support" as any)}
+            >
+              <Ionicons name="shield-checkmark" size={16} color="#EF4444" />
+              <ThemedText style={styles.toolChipText}>Urgent</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolChip, { borderColor: colors.border }]}
+              onPress={handleScheduleMeeting}
+            >
+              <Ionicons name="calendar" size={16} color="#F59E0B" />
+              <ThemedText style={styles.toolChipText}>Meeting</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolChip, { borderColor: colors.border }]}
+              onPress={handleResolve}
+            >
+              <Ionicons name="checkmark-done" size={16} color="#10B981" />
+              <ThemedText style={styles.toolChipText}>Resolve</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.loadingBox}>
@@ -301,23 +532,33 @@ export default function ChatDetailScreen() {
           </View>
         ) : (
           <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
-            keyboardVerticalOffset={80}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom : 0}
           >
             <FlatList
               ref={flatListRef}
               data={messages}
               renderItem={renderItem}
               keyExtractor={(m) => m.id}
-              contentContainerStyle={styles.messagesList}
+              contentContainerStyle={[
+                styles.messagesList,
+                { paddingBottom: 120 },
+              ]}
               onContentSizeChange={scrollToEnd}
+              keyboardShouldPersistTaps="handled"
             />
 
             <View
               style={[
                 styles.inputRow,
                 { backgroundColor: colors.surface, borderColor: colors.border },
+                {
+                  marginBottom:
+                    Platform.OS === "android" && kbVisible
+                      ? Math.max(kbHeight - insets.bottom, 0)
+                      : 0,
+                },
               ]}
             >
               <TouchableOpacity
@@ -339,6 +580,11 @@ export default function ChatDetailScreen() {
                 placeholderTextColor={colors.icon}
                 value={input}
                 onChangeText={handleInputChange}
+                onFocus={scrollToEnd}
+                returnKeyType="send"
+                onSubmitEditing={handleSend}
+                blurOnSubmit={false}
+                underlineColorAndroid="transparent"
               />
               <TouchableOpacity
                 style={[styles.sendBtn, { backgroundColor: colors.primary }]}
@@ -378,20 +624,82 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  headerTitle: {
+    fontWeight: "700",
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontWeight: "900" },
-  labelWrap: {
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+  headerInfo: {
+    marginLeft: Spacing.sm,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  priorityChip: {
+    borderWidth: 1,
+    borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginHorizontal: 6,
   },
-  labelText: {
-    fontSize: 10,
-    opacity: 0.6,
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginLeft: Spacing.md,
+  },
+  toolsRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  toolChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginRight: Spacing.sm,
+    borderWidth: 2,
+  },
+  toolChipText: {
+    fontWeight: "700",
+    fontSize: 12,
   },
   loadingBox: {
     flex: 1,
@@ -400,27 +708,28 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
+    paddingTop: 4,
+  },
+  dateDivider: {
+    alignSelf: "center",
+    marginVertical: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "#00000008",
+    ...PlatformStyles.shadow,
   },
   messageRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginBottom: Spacing.sm,
+    marginVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   mineRow: {
-    justifyContent: "flex-end",
+    alignItems: "flex-end",
   },
   theirRow: {
-    justifyContent: "flex-start",
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    ...PlatformStyles.premiumShadow,
+    alignItems: "flex-start",
   },
   bubble: {
     maxWidth: "70%",
@@ -430,45 +739,65 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginHorizontal: Spacing.sm,
   },
+  mineBubble: {
+    borderWidth: 0,
+    ...PlatformStyles.premiumShadow,
+  },
+  theirBubble: {
+    backgroundColor: "#00000008",
+    borderWidth: 0,
+    ...PlatformStyles.shadow,
+  },
+  ticks: {
+    position: "absolute",
+    right: 8,
+    bottom: 6,
+    flexDirection: "row",
+    gap: 4,
+  },
   reactionBadge: {
     position: "absolute",
-    bottom: -10,
-    right: -10,
+    left: 8,
+    bottom: -18,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  labelWrap: {
+    display: "none",
+  },
+  labelText: {
+    fontSize: 0,
   },
   timeRow: {
-    paddingHorizontal: Spacing.lg,
     marginTop: 2,
-  },
-  dateDivider: {
-    alignItems: "center",
-    marginVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    padding: Spacing.md,
     borderTopWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   attachBtn: {
     width: 36,
     height: 36,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
   input: {
     flex: 1,
-    height: 44,
-    borderRadius: BorderRadius.lg,
+    minHeight: 40,
   },
   sendBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+    height: 36,
+    width: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

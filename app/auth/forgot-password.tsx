@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen() {
       const { error } = await resetPassword(email.trim());
       if (error) throw error;
       router.replace(
-        `/auth/reset-password?email=${encodeURIComponent(email.trim())}`,
+        `/auth/reset-sent?email=${encodeURIComponent(email.trim())}`,
       );
     } catch (e: any) {
       const msg = String(e?.message || "Request failed");
