@@ -1,6 +1,17 @@
 {
   "commits": [
     {
+      "hash": "7aa517974e2ba3d2d60fdfb85dd62035fd7aaec0",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 02364fd6f8b5f827082f208adb6714c55d3b08f140d7b57c514979500fc06186",
+      "files": [
+        "autopilot/history.json",
+        "app/peer-educator/dashboard.tsx",
+        "app/utils/navigation.ts",
+        "app/peer-educator/ongoing-support.tsx"
+      ],
+      "timestamp": "2026-02-14T13:59:06.704Z"
+    },
+    {
       "hash": "d6b7ad4783728016a77ec098103b0f22b1c448a5",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 75c70cce509b97e933507ba33b2ce0fa2b4e444cc7db965fa5a543dd311c4493",
       "files": [

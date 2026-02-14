@@ -1,41 +1,49 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { SupportMessage } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
-    getCurrentUser,
-    getSupportMessages,
-    sendSupportMessage,
+  getCurrentUser,
+  getSupportMessages,
+  sendSupportMessage,
 } from "@/lib/database";
 import {
-    sendReaction,
-    sendTyping,
-    subscribeToMessages,
-    subscribeToReactions,
-    subscribeToTyping,
-    unsubscribe,
+  sendReaction,
+  sendTyping,
+  subscribeToMessages,
+  subscribeToReactions,
+  subscribeToTyping,
+  unsubscribe,
 } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { SupportSession } from "@/app/types";
+import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,14 +60,20 @@ export default function ChatDetailScreen() {
   const [supporterTyping, setSupporterTyping] = useState(false);
   const typingTimeoutRef = useRef<any>(null);
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
+  const [session, setSession] = useState<SupportSession | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
       try {
         const user = await getCurrentUser();
         setUserId(user?.id || null);
+        setRole(user?.role || null);
         const initial = await getSupportMessages(id as string);
         setMessages(initial);
+        const all = await getSupportSessions();
+        const meta = (all || []).find((s) => s.id === (id as string)) || null;
+        setSession(meta);
       } catch (error) {
         console.error("Error loading messages:", error);
       } finally {
@@ -130,7 +144,6 @@ export default function ChatDetailScreen() {
       );
       setInput("");
       scrollToEnd();
-      // Preview update removed to avoid RLS violations; list derives preview from last message
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -192,6 +205,35 @@ export default function ChatDetailScreen() {
   const formatStamp = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  const priorityColor = (p?: string) =>
+    p === "urgent" ? "#EF4444" : "#6366F1";
+  const canUseSupportTools =
+    role === "peer-educator" ||
+    role === "peer-educator-executive" ||
+    role === "counselor" ||
+    role === "life-coach" ||
+    role === "admin";
+  const handleResolve = async () => {
+    try {
+      if (!id) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await updateSupportSession(id as string, {
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+      });
+      router.back();
+    } catch (e) {
+      console.error("Error resolving session:", e);
+    }
+  };
+  const handleScheduleMeeting = () => {
+    Haptics.selectionAsync();
+    if (role === "peer-educator-executive" || role === "admin") {
+      router.push("/executive/new-meeting" as any);
+    } else {
+      router.push("/peer-educator/meetings" as any);
+    }
   };
 
   const renderItem = ({
@@ -283,17 +325,85 @@ export default function ChatDetailScreen() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={[
+            (session && priorityColor(session.priority)) + "25",
+            colors.card,
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { backgroundColor: colors.background }]}
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             style={getCursorStyle()}
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Anonymous Chat
-          </ThemedText>
-        </View>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <ThemedText type="h2" style={styles.headerTitle}>
+              {session?.student_pseudonym || "Anonymous Chat"}
+            </ThemedText>
+            {session?.category ? (
+              <ThemedText type="small" style={{ opacity: 0.6 }}>
+                {session.category}
+              </ThemedText>
+            ) : null}
+          </View>
+          {session?.priority && (
+            <View
+              style={[
+                styles.priorityBadge,
+                { backgroundColor: priorityColor(session.priority) + "20" },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={{
+                  color: priorityColor(session.priority),
+                  fontWeight: "700",
+                }}
+              >
+                {session.priority}
+              </ThemedText>
+            </View>
+          )}
+        </LinearGradient>
+
+        {canUseSupportTools && (
+          <View
+            style={[
+              styles.toolsRow,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.toolBtn}
+              onPress={() => router.push("/resource" as any)}
+            >
+              <Ionicons name="book" size={18} color={colors.primary} />
+              <ThemedText style={styles.toolText}>Resources</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.toolBtn}
+              onPress={() => router.push("/urgent-support" as any)}
+            >
+              <Ionicons name="shield-checkmark" size={18} color="#EF4444" />
+              <ThemedText style={styles.toolText}>Urgent</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.toolBtn}
+              onPress={handleScheduleMeeting}
+            >
+              <Ionicons name="calendar" size={18} color="#F59E0B" />
+              <ThemedText style={styles.toolText}>Meeting</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolBtn} onPress={handleResolve}>
+              <Ionicons name="checkmark-done" size={18} color="#10B981" />
+              <ThemedText style={styles.toolText}>Resolve</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.loadingBox}>
@@ -383,6 +493,32 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: { fontWeight: "900" },
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  toolsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  toolBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.lg,
+  },
+  toolText: {
+    fontWeight: "700",
+    fontSize: 12,
+  },
   labelWrap: {
     paddingHorizontal: 8,
     paddingVertical: 4,
