@@ -101,6 +101,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+      name="assistant"
+      options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "robot" : "robot-outline"} // Assistant icon
+                size={26}
+                color={color}
+              />
+              {focused && (
+                <View style={[styles.activeDot, { backgroundColor: color }]} />
+              )}
+            </View>
+          ),
+          ...(shouldShowTab("assistant") ? {} : { href: null }),
+      }}
       />
       <Tabs.Screen
         name="forum"

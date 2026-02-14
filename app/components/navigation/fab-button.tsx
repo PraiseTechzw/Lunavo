@@ -13,13 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FABProps {
   icon: keyof typeof MaterialIcons.glyphMap;
-  label: string;
   onPress: () => void;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   color?: string;
 }
 
-export function FAB({ icon, label, onPress, position = 'bottom-right', color }: FABProps) {
+export function FAB({ icon, onPress, position = 'bottom-right', color }: FABProps) {
   // Export as both named and default for flexibility
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -51,11 +50,6 @@ export function FAB({ icon, label, onPress, position = 'bottom-right', color }: 
       activeOpacity={0.8}
     >
       <MaterialIcons name={icon} size={28} color="#FFFFFF" />
-      <View style={styles.labelContainer}>
-        <ThemedText type="small" style={styles.label}>
-          {label}
-        </ThemedText>
-      </View>
     </TouchableOpacity>
   );
 }

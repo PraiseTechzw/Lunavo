@@ -11,6 +11,7 @@ import { createInputStyle, createShadow } from "@/app/utils/platform-styles";
 import { getCurrentUser, getResources } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -235,11 +236,10 @@ export default function ResourcesScreen() {
       activeOpacity={0.8}
       onPress={() => router.push(`/resource/${item.id}`)}
     >
-      {item.type === "image" ? (
-        <View style={styles.galleryImage} />
-      ) : (
-        <View style={[styles.galleryImage, { alignItems: "center", justifyContent: "center" }]}>
-          <MaterialIcons name="play-circle-outline" size={36} color={colors.icon} />
+      <Image source={{ uri: item.url }} style={styles.galleryImage} contentFit="cover" transition={200} />
+      {item.type === "video" && (
+        <View style={styles.galleryOverlay}>
+          <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
         </View>
       )}
     </TouchableOpacity>
@@ -295,6 +295,17 @@ export default function ResourcesScreen() {
           <ThemedText type="small" style={styles.resourceMeta}>
             {item.category} • {item.resourceType}
           </ThemedText>
+          {Array.isArray((item as any).tags) && (item as any).tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {(item as any).tags.slice(0, 3).map((tag: string) => (
+                <View key={tag} style={[styles.tagChip, { backgroundColor: colors.surface }]}>
+                  <ThemedText type="small" style={{ color: colors.text, fontSize: 10 }}>
+                    {tag}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
         <TouchableOpacity
           style={styles.bookmarkButton}
@@ -643,6 +654,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
+    borderWidth: 1,
   },
   section: {
     marginBottom: Spacing.xl,
@@ -655,10 +667,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   resourceCard: {
-    width: 200,
+    flex: 1,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
     marginRight: Spacing.md,
+    marginBottom: Spacing.md,
   },
   resourceImage: {
     width: "100%",
@@ -676,6 +689,17 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     paddingHorizontal: Spacing.sm,
     marginBottom: Spacing.sm,
+  },
+  tagsRow: {
+    flexDirection: "row",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+  },
+  tagChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
   bookmarkButton: {
     position: "absolute",
@@ -742,6 +766,11 @@ const styles = StyleSheet.create({
   galleryImage: {
     width: "100%",
     height: "100%",
+  },
+  galleryOverlay: {
+    position: "absolute",
+    right: Spacing.sm,
+    bottom: Spacing.sm,
   },
   emptyContainer: {
     flex: 1,
