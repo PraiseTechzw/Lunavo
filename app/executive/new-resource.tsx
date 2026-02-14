@@ -76,6 +76,7 @@ export default function NewResourceScreen() {
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const [form, setForm] = useState({
         title: '',
@@ -200,10 +201,7 @@ export default function NewResourceScreen() {
             });
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Published!', isGallery ? 'Your photo is now in the gallery.' : 'Your resource is now live.', [
-                { text: 'View', onPress: () => router.push(isGallery ? '/gallery' : '/(tabs)/resources') },
-                { text: 'Done', onPress: () => router.back() }
-            ]);
+            setShowSuccess(true);
         } catch (e) {
             console.error('Failed to create resource:', e);
             Alert.alert('Error', 'Could not post resource. Please check your connection.');
