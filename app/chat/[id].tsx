@@ -12,8 +12,8 @@ import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
   getCurrentUser,
   getSupportMessages,
-  sendSupportMessage,
   getUser,
+  sendSupportMessage,
 } from "@/lib/database";
 import {
   sendReaction,
@@ -36,13 +36,12 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SupportSession } from "@/app/types";
 import { getSupportSessions, updateSupportSession } from "@/lib/database";
@@ -69,6 +68,7 @@ export default function ChatDetailScreen() {
   const [session, setSession] = useState<SupportSession | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [educator, setEducator] = useState<any | null>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const init = async () => {
@@ -260,11 +260,12 @@ export default function ChatDetailScreen() {
     const supporterLabel =
       educator?.role === "counselor"
         ? "Counselor"
-        : educator?.role === "peer-educator" || educator?.role === "peer-educator-executive"
-        ? "Peer Educator"
-        : educator?.role === "life-coach"
-        ? "Life Coach"
-        : "Supporter";
+        : educator?.role === "peer-educator" ||
+            educator?.role === "peer-educator-executive"
+          ? "Peer Educator"
+          : educator?.role === "life-coach"
+            ? "Life Coach"
+            : "Supporter";
     const showDateDivider =
       index === 0 ||
       new Date(messages[index - 1].created_at).toDateString() !==
@@ -419,19 +420,21 @@ export default function ChatDetailScreen() {
           ]}
         >
           <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={getCursorStyle()}
+            >
               <Ionicons name="chevron-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <View
-              style={[
-                styles.headerAvatar,
-                { backgroundColor: colors.primary },
-              ]}
+              style={[styles.headerAvatar, { backgroundColor: colors.primary }]}
             >
               <Ionicons name="person-outline" size={18} color="#FFF" />
             </View>
             <View style={styles.headerInfo}>
-              <ThemedText style={styles.headerTitle}>{counterpartName}</ThemedText>
+              <ThemedText style={styles.headerTitle}>
+                {counterpartName}
+              </ThemedText>
               <ThemedText type="small" style={{ opacity: 0.6 }}>
                 {secondaryLabel}
               </ThemedText>
@@ -507,9 +510,9 @@ export default function ChatDetailScreen() {
           </View>
         ) : (
           <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
-            keyboardVerticalOffset={80}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom : 0}
           >
             <FlatList
               ref={flatListRef}
@@ -518,6 +521,7 @@ export default function ChatDetailScreen() {
               keyExtractor={(m) => m.id}
               contentContainerStyle={styles.messagesList}
               onContentSizeChange={scrollToEnd}
+              keyboardShouldPersistTaps="handled"
             />
 
             <View
@@ -545,6 +549,11 @@ export default function ChatDetailScreen() {
                 placeholderTextColor={colors.icon}
                 value={input}
                 onChangeText={handleInputChange}
+                onFocus={scrollToEnd}
+                returnKeyType="send"
+                onSubmitEditing={handleSend}
+                blurOnSubmit={false}
+                underlineColorAndroid="transparent"
               />
               <TouchableOpacity
                 style={[styles.sendBtn, { backgroundColor: colors.primary }]}
@@ -593,6 +602,46 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
   },
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+  headerInfo: {
+    marginLeft: Spacing.sm,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  priorityChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   priorityBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -615,7 +664,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     marginRight: Spacing.sm,
-    borderWidth: 1,
+    borderWidth: 2,
   },
   toolChipText: {
     fontWeight: "700",
