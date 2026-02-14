@@ -5,27 +5,26 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-    ActivityLog,
-    Announcement,
-    Category,
-    CheckIn,
-    Escalation,
-    EscalationLevel,
-    Meeting,
-    MeetingAttendance,
-    MeetingType,
-    Notification,
-    NotificationType,
-    Post,
-    PostCategory,
-    PostStatus,
-    Reply,
-    Report,
-    SupportMessage,
-    SupportSession,
-    User,
+  ActivityLog,
+  Announcement,
+  Category,
+  CheckIn,
+  Escalation,
+  EscalationLevel,
+  Meeting,
+  MeetingAttendance,
+  MeetingType,
+  Notification,
+  NotificationType,
+  Post,
+  PostCategory,
+  PostStatus,
+  Reply,
+  Report,
+  SupportMessage,
+  SupportSession,
+  User,
 } from "@/app/types";
-import * as ExpoFileSystem from "expo-file-system/legacy";
 import { checkAllBadges } from "./gamification";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";
@@ -140,14 +139,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-    | "student"
-    | "peer-educator"
-    | "peer-educator-executive"
-    | "moderator"
-    | "counselor"
-    | "life-coach"
-    | "student-affairs"
-    | "admin";
+  | "student"
+  | "peer-educator"
+  | "peer-educator-executive"
+  | "moderator"
+  | "counselor"
+  | "life-coach"
+  | "student-affairs"
+  | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -1697,17 +1696,20 @@ export async function uploadResourceFile(
   try {
     console.log("Starting robust upload for URI:", uri);
 
-    // Using expo-file-system to read file as base64 is the most stable method on Android
-    const base64 = await ExpoFileSystem.readAsStringAsync(uri, {
-      encoding: "base64" as any,
+    // Convert local URI to ArrayBuffer using XMLHttpRequest (most reliable in RN for local files)
+    const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.error("XHR Error reading file:", e);
+        reject(new TypeError("File read failed via XHR"));
+      };
+      xhr.responseType = "arraybuffer";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
     });
-
-    // Convert base64 to ArrayBuffer using the fetch(data:) trick (most reliable in RN)
-    // This creates an internal Blob from the base64 string and then we grab its data
-    const response = await fetch(
-      `data:application/octet-stream;base64,${base64}`,
-    );
-    const arrayBuffer = await response.arrayBuffer();
 
     const fileExt = uri.split(".").pop()?.split("?")[0].toLowerCase() || "bin";
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
@@ -1827,13 +1829,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-          id: ub.badges.id,
-          name: ub.badges.name,
-          description: ub.badges.description,
-          icon: ub.badges.icon,
-          color: ub.badges.color,
-          category: ub.badges.category,
-        }
+        id: ub.badges.id,
+        name: ub.badges.name,
+        description: ub.badges.description,
+        icon: ub.badges.icon,
+        color: ub.badges.color,
+        category: ub.badges.category,
+      }
       : null,
   }));
 }

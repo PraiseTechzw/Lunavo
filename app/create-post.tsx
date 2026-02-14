@@ -33,7 +33,6 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useHeaderHeight } from "@react-navigation/elements";
-import * as ExpoFileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -260,11 +259,20 @@ export default function CreatePostScreen() {
               ? "image/webp"
               : "image/jpeg";
 
-      const base64 = await ExpoFileSystem.readAsStringAsync(imageUri, {
-        encoding: "base64" as any,
+      // Read file into ArrayBuffer using XHR (Standard reliable RN method)
+      const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+          resolve(xhr.response);
+        };
+        xhr.onerror = function (e) {
+          console.error("XHR Error reading image:", e);
+          reject(new TypeError("Image read failed"));
+        };
+        xhr.responseType = "arraybuffer";
+        xhr.open("GET", imageUri, true);
+        xhr.send(null);
       });
-      const response = await fetch(`data:${contentType};base64,${base64}`);
-      const arrayBuffer = await response.arrayBuffer();
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
