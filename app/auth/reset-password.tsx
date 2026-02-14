@@ -12,7 +12,7 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { verifyPasswordResetCode } from "@/lib/auth";
+import { updatePassword } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -38,7 +38,6 @@ export default function ResetPasswordScreen() {
   const email = typeof params.email === "string" ? params.email : "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
@@ -46,17 +45,9 @@ export default function ResetPasswordScreen() {
       Alert.alert("Mismatch", "Passwords do not match.");
       return;
     }
-    if (!email || !code || code.length !== 8) {
-      Alert.alert("Invalid", "Enter the 8-digit code sent to your email.");
-      return;
-    }
     setLoading(true);
     try {
-      const { data, error } = await verifyPasswordResetCode(
-        email,
-        code.trim(),
-        password,
-      );
+      const { error } = await updatePassword(password);
       if (error) throw error;
       Alert.alert("Success", "Password restored. Access re-established.", [
         { text: "Login", onPress: () => router.replace("/auth/login") },
@@ -69,10 +60,10 @@ export default function ResetPasswordScreen() {
       });
       const msg = String(e?.message || "Reset failed");
       const lower = msg.toLowerCase();
-      if (lower.includes("invalid or expired code") || lower.includes("code")) {
+      if (lower.includes("not authenticated") || lower.includes("session")) {
         Alert.alert(
-          "Invalid Code",
-          "The code is incorrect or expired. Request a new code and try again.",
+          "Open Recovery Link",
+          "Open the password recovery link from your email to continue.",
         );
       } else if (lower.includes("not found") || lower.includes("user")) {
         Alert.alert(
@@ -115,8 +106,7 @@ export default function ResetPasswordScreen() {
                 New Protocol
               </ThemedText>
               <ThemedText style={styles.subtitle}>
-                Enter the 8-digit code sent to {email || "your email"} and set a
-                new password.
+                Open the link from your email, then set a new password.
               </ThemedText>
             </View>
 
@@ -124,23 +114,6 @@ export default function ResetPasswordScreen() {
               entering={FadeInDown}
               style={[styles.card, { backgroundColor: colors.card }]}
             >
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>8-Digit Code</ThemedText>
-                <View
-                  style={[styles.inputWrapper, { borderColor: colors.border }]}
-                >
-                  <Ionicons name="key-outline" size={20} color={colors.icon} />
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="00000000"
-                    placeholderTextColor={colors.icon}
-                    keyboardType="number-pad"
-                    maxLength={8}
-                    value={code}
-                    onChangeText={setCode}
-                  />
-                </View>
-              </View>
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>
                   New Access Key (Password)

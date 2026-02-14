@@ -339,7 +339,13 @@ export function onAuthStateChange(
  * Reset password
  */
 export async function resetPassword(email: string): Promise<{ error: any }> {
-  return await requestPasswordResetCode(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email.toLowerCase().trim(),
+    {
+      redirectTo: "peace://auth/reset-password",
+    },
+  );
+  return { error };
 }
 
 /**
