@@ -458,8 +458,11 @@ export default function ChatDetailScreen() {
           >
             <TouchableOpacity
               style={styles.toolChip}
-              onPress={() => router.push("/resource" as any)}
+              onPress={() => router.push("/(tabs)/resources" as any)}
             >
+              <Ionicons name="book" size={16} color={colors.primary} />
+              <ThemedText style={styles.toolChipText}>Resources</ThemedText>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.toolChip}
               onPress={() => router.push("/urgent-support" as any)}
