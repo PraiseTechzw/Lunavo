@@ -244,6 +244,12 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontWeight: "800",
     },
+    addButton: {
+        width: 40,
+        height: 40,
+        justifyContent: "center",
+        alignItems: "flex-end",
+    },
     filterContainer: {
         marginBottom: Spacing.md,
     },
