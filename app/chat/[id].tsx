@@ -34,6 +34,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -41,7 +42,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { SupportSession } from "@/app/types";
 import { getSupportSessions, updateSupportSession } from "@/lib/database";
@@ -69,6 +73,8 @@ export default function ChatDetailScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [educator, setEducator] = useState<any | null>(null);
   const insets = useSafeAreaInsets();
+  const [kbHeight, setKbHeight] = useState(0);
+  const [kbVisible, setKbVisible] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -124,6 +130,22 @@ export default function ChatDetailScreen() {
       unsubscribe(reactionsChannel);
     };
   }, [id]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKbHeight(e.endCoordinates?.height || 0);
+      setKbVisible(true);
+      scrollToEnd();
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKbHeight(0);
+      setKbVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const scrollToEnd = () => {
     setTimeout(() => {
@@ -411,7 +433,7 @@ export default function ChatDetailScreen() {
     ` • ${messages.length} MSGS`;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <View
           style={[
@@ -519,7 +541,10 @@ export default function ChatDetailScreen() {
               data={messages}
               renderItem={renderItem}
               keyExtractor={(m) => m.id}
-              contentContainerStyle={styles.messagesList}
+              contentContainerStyle={[
+                styles.messagesList,
+                { paddingBottom: 120 },
+              ]}
               onContentSizeChange={scrollToEnd}
               keyboardShouldPersistTaps="handled"
             />
@@ -528,6 +553,12 @@ export default function ChatDetailScreen() {
               style={[
                 styles.inputRow,
                 { backgroundColor: colors.surface, borderColor: colors.border },
+                {
+                  marginBottom:
+                    Platform.OS === "android" && kbVisible
+                      ? Math.max(kbHeight - insets.bottom, 0)
+                      : 0,
+                },
               ]}
             >
               <TouchableOpacity

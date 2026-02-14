@@ -8,7 +8,7 @@ import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Resource } from "@/app/types";
 import { createInputStyle, createShadow } from "@/app/utils/platform-styles";
-import { getResources } from "@/lib/database";
+import { getCurrentUser, getResources } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -22,6 +22,8 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FAB as FABButton } from "@/app/components/navigation/fab-button";
+import { UserRole } from "@/app/types";
 
 const FAVORITES_KEY = "resource_favorites";
 
@@ -94,10 +96,12 @@ export default function ResourcesScreen() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     loadResources();
     loadFavorites();
+    loadUserRole();
   }, []);
 
   const filterResources = useCallback(() => {
@@ -160,6 +164,17 @@ export default function ResourcesScreen() {
       console.error("Error loading resources:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserRole = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        setUserRole(user.role as UserRole);
+      }
+    } catch (error) {
+      console.error("Error loading user role:", error);
     }
   };
 
@@ -460,6 +475,15 @@ export default function ResourcesScreen() {
           </View>
         </ScrollView>
       </ThemedView>
+      {userRole === "peer-educator-executive" || userRole === "admin" ? (
+        <FABButton
+          icon="cloud-upload"
+          label="Suggest Resource"
+          onPress={() => router.push("/executive/new-resource")}
+          position="bottom-right"
+          color={colors.primary}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

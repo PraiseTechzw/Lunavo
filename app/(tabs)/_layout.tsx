@@ -160,6 +160,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="gallery"
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeTabContainer : null}>
+              <MaterialCommunityIcons
+                name={focused ? "image-multiple" : "image-multiple-outline"}
+                size={26}
+                color={color}
+              />
+              {focused && <View style={[styles.activeDot, { backgroundColor: color }]} />}
+            </View>
+          ),
+          title: "Gallery",
+        }}
+        listeners={{
+          tabPress: () => Haptics.selectionAsync(),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ color, focused }) => (
