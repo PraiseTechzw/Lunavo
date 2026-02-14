@@ -26,6 +26,24 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.peaceclub.app",
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "peace",
+            "host": "auth",
+            "pathPrefix": "/reset-password"
+          }
+        },
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "peace"
+          }
+        }
+      ],
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
