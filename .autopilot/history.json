@@ -1,6 +1,18 @@
 {
   "commits": [
     {
+      "hash": "caa8f4ddb72c9c54285cce3145ac3e42b233c379",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c0363d7f933a2d78f40b2b4e0562f633181f9cc505c229e56f83afc8ddc579a9",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx",
+        "app/executive/new-resource.tsx",
+        "app/gallery.tsx",
+        "supabase/migrations/030_fix_gamification_rls.sql"
+      ],
+      "timestamp": "2026-02-14T18:12:33.439Z"
+    },
+    {
       "hash": "28c487bce6d358869d401780b16ca4107282b42c",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ef1226dbef157bba0c8d3a47399e7b2a7239d438ecdea21358bffa57ae8f666f",
       "files": [

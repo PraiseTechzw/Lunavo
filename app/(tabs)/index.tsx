@@ -171,7 +171,7 @@ export default function HomeScreen() {
             setDrawerVisible(true);
           }}
           rightAction={{
-            icon: "notifications-outline",
+            icon: "notifications",
             onPress: () => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/notifications");
@@ -492,7 +492,7 @@ export default function HomeScreen() {
           {/* Welcome Dashboard Card - Premium Redesign */}
           <Animated.View entering={FadeInDown.duration(800)}>
             <LinearGradient
-              colors={colorScheme === 'dark' ? ["#4F46E5", "#7C3AED", "#DB2777"] : ["#6366F1", "#8B5CF6", "#EC4899"]}
+              colors={["#4F46E5", "#7C3AED", "#DB2777"]} // Indigo -> Purple -> Pink
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[styles.heroCard, PlatformStyles.premiumShadow]}
@@ -500,45 +500,31 @@ export default function HomeScreen() {
               {/* Unique 'Crafted' Background */}
               <View style={styles.patternCircle1} />
               <View style={styles.patternCircle2} />
-              <Animated.View
-                entering={FadeInRight.delay(500).duration(1000)}
-                style={styles.bgIconContainer}
-              >
-                <MaterialCommunityIcons
-                  name="meditation"
-                  size={160}
-                  color="rgba(255,255,255,0.12)"
-                />
-              </Animated.View>
+              <MaterialCommunityIcons
+                name="meditation"
+                size={140}
+                color="rgba(255,255,255,0.08)"
+                style={styles.bgIcon}
+              />
 
               <View style={styles.heroContent}>
-                <View style={styles.heroHeader}>
-                  <View style={styles.badgeContainer}>
-                    <MaterialCommunityIcons
-                      name="star-four-points"
-                      size={14}
-                      color="#FFF"
-                    />
-                    <ThemedText style={styles.badgeText}>
-                      GOAL: WELLNESS
-                    </ThemedText>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => router.push('/check-in')}
-                    style={styles.heroActionBtn}
-                  >
-                    <MaterialCommunityIcons name="calendar-check" size={20} color="#FFF" />
-                  </TouchableOpacity>
+                <View style={styles.badgeContainer}>
+                  <MaterialCommunityIcons
+                    name="target-variant"
+                    size={16}
+                    color="#FFF"
+                  />
+                  <ThemedText style={styles.badgeText}>
+                    Daily Mission
+                  </ThemedText>
                 </View>
 
-                <View>
-                  <ThemedText type="h1" style={styles.heroTitle}>
-                    Stay Mindful
-                  </ThemedText>
-                  <ThemedText style={styles.heroSubtitle}>
-                    {currentQuote}
-                  </ThemedText>
-                </View>
+                <ThemedText type="h1" style={styles.heroTitle}>
+                  Mission: Wellness
+                </ThemedText>
+                <ThemedText style={styles.heroSubtitle}>
+                  &quot;{currentQuote}&quot;
+                </ThemedText>
 
                 <View style={styles.glassStatsContainer}>
                   <View style={styles.heroStat}>
@@ -555,19 +541,8 @@ export default function HomeScreen() {
                       {postCount}
                     </ThemedText>
                     <ThemedText style={styles.statLabel}>
-                      Insights 🌍
+                      Community 🌍
                     </ThemedText>
-                  </View>
-
-                  {/* Streak Progress visual */}
-                  <View style={styles.streakProgressContainer}>
-                    <View style={styles.streakTrack}>
-                      <Animated.View
-                        entering={FadeInRight.delay(800).duration(1200)}
-                        style={[styles.streakFill, { width: `${Math.min((checkInStreak / 7) * 100, 100)}%` }]}
-                      />
-                    </View>
-                    <ThemedText style={styles.streakSubText}>Next: Weekly Warrior</ThemedText>
                   </View>
                 </View>
               </View>
@@ -700,14 +675,14 @@ export default function HomeScreen() {
                     },
                     selectedMood === mood.id && {
                       borderColor: mood.color,
-                      backgroundColor: mood.color + "15",
+                      backgroundColor: mood.color + "10",
                       borderWidth: 2,
                     },
                   ]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setSelectedMood(mood.id);
-                    router.push({ pathname: '/check-in', params: { mood: mood.id } });
+                    router.push("/check-in");
                   }}
                   activeOpacity={0.7}
                 >
@@ -956,12 +931,32 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
     overflow: "hidden",
-    minHeight: 220, // Taller
+    minHeight: 240,
+    elevation: 10,
   },
   heroContent: {
     flex: 1,
     zIndex: 2,
-    justifyContent: "space-between",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  heroName: {
+    color: "#FFF",
+    fontSize: 36,
+    fontWeight: "900",
+    letterSpacing: -1,
+    marginBottom: Spacing.sm,
+  },
+  heroQuote: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    fontStyle: "italic",
+    marginBottom: Spacing.xl,
+    lineHeight: 20,
   },
   // Decorative Patterns
   patternCircle1: {
@@ -971,7 +966,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   patternCircle2: {
     position: "absolute",
@@ -980,119 +975,91 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   bgIcon: {
     position: "absolute",
-    right: -20,
-    bottom: -20,
+    right: -30,
+    bottom: -30,
     zIndex: 1,
-    transform: [{ rotate: "-15deg" }],
+    opacity: 0.5,
   },
   badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
     alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   badgeText: {
     color: "#FFF",
-    fontWeight: "700",
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    color: "#FFF",
-    fontSize: 32,
-    marginBottom: Spacing.xs,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 15,
-    fontStyle: "italic",
-    marginBottom: 20,
-    lineHeight: 22,
-    opacity: 0.85,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  heroActionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  bgIconContainer: {
-    position: 'absolute',
-    right: -30,
-    bottom: -30,
-    transform: [{ rotate: '-10deg' }],
-  },
-  streakProgressContainer: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  streakTrack: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  streakFill: {
-    height: '100%',
-    backgroundColor: '#FFF',
-    borderRadius: 3,
-  },
-  streakSubText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "800",
+    fontSize: 10,
+    letterSpacing: 1,
   },
   glassStatsContainer: {
     flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.15)",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    borderRadius: 20,
+    padding: 20,
     alignItems: "center",
-    gap: 16,
+    justifyContent: 'space-around',
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
   heroStat: {
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   statNumber: {
     color: "#FFF",
-    fontSize: 24,
-    fontWeight: "800",
+    fontSize: 28,
+    fontWeight: "900",
   },
   statLabel: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 10,
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  annCard: {
+    width: 300,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xxl,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    gap: Spacing.xs,
+  },
+  annTypeBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  annTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  annDesc: {
+    fontSize: 13,
+    opacity: 0.7,
+    lineHeight: 18,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 4,
   },
   quickActions: {
     flexDirection: "row",
@@ -1178,11 +1145,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.sm,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    // Add shine effect logic in future or via view styles
   },
   actionDesc: {
     color: "#64748B",
