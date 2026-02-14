@@ -7,30 +7,30 @@ import { DrawerMenu } from "@/app/components/navigation/drawer-menu";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Announcement, UserRole } from "@/app/types";
 import { getCheckInStreak, getPosts, getPseudonym } from "@/app/utils/storage";
 import { getAnnouncements, getCurrentUser } from "@/lib/database";
 import {
-    Ionicons,
-    MaterialCommunityIcons,
-    MaterialIcons,
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons,
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -278,216 +278,216 @@ export default function HomeScreen() {
           {announcements.filter(
             (a) => a.type === "spotlight" && a.priority !== "critical",
           ).length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 20 }}
-            >
-              {announcements
-                .filter(
-                  (a) => a.type === "spotlight" && a.priority !== "critical",
-                )
-                .map((spotlight, index) => (
-                  <TouchableOpacity
-                    key={spotlight.id}
-                    style={[
-                      styles.spotlightCard,
-                      { backgroundColor: colors.card, marginRight: 16 },
-                      PlatformStyles.premiumShadow,
-                    ]}
-                    activeOpacity={0.9}
-                  >
-                    {spotlight.imageUrl ? (
-                      <View
-                        style={{
-                          height: 120,
-                          backgroundColor: "#EEE",
-                          borderRadius: 16,
-                          marginBottom: 12,
-                          overflow: "hidden",
-                        }}
-                      >
-                        {/* Image would go here, using a placeholder for now if no Image component */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 20 }}
+              >
+                {announcements
+                  .filter(
+                    (a) => a.type === "spotlight" && a.priority !== "critical",
+                  )
+                  .map((spotlight, index) => (
+                    <TouchableOpacity
+                      key={spotlight.id}
+                      style={[
+                        styles.spotlightCard,
+                        { backgroundColor: colors.card, marginRight: 16 },
+                        PlatformStyles.premiumShadow,
+                      ]}
+                      activeOpacity={0.9}
+                    >
+                      {spotlight.imageUrl ? (
                         <View
                           style={{
-                            flex: 1,
-                            justifyContent: "center",
-                            alignItems: "center",
-                            backgroundColor: colors.primary,
+                            height: 120,
+                            backgroundColor: "#EEE",
+                            borderRadius: 16,
+                            marginBottom: 12,
+                            overflow: "hidden",
                           }}
                         >
-                          <MaterialIcons name="image" size={40} color="#FFF" />
-                        </View>
-                      </View>
-                    ) : (
-                      <LinearGradient
-                        colors={[colors.primary, "#4338CA"]}
-                        style={{
-                          height: 80,
-                          borderRadius: 16,
-                          marginBottom: 12,
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <MaterialCommunityIcons
-                          name="bullhorn"
-                          size={32}
-                          color="#FFF"
-                        />
-                      </LinearGradient>
-                    )}
-                    <View style={{ paddingHorizontal: 4 }}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginBottom: 4,
-                        }}
-                      >
-                        <ThemedText
-                          style={{
-                            color: colors.primary,
-                            fontSize: 10,
-                            fontWeight: "700",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {spotlight.type}
-                        </ThemedText>
-                        {spotlight.priority === "high" && (
+                          {/* Image would go here, using a placeholder for now if no Image component */}
                           <View
                             style={{
-                              backgroundColor: colors.warning + "20",
-                              paddingHorizontal: 6,
-                              borderRadius: 4,
+                              flex: 1,
+                              justifyContent: "center",
+                              alignItems: "center",
+                              backgroundColor: colors.primary,
                             }}
                           >
-                            <ThemedText
+                            <MaterialIcons name="image" size={40} color="#FFF" />
+                          </View>
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={[colors.primary, "#4338CA"]}
+                          style={{
+                            height: 80,
+                            borderRadius: 16,
+                            marginBottom: 12,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name="bullhorn"
+                            size={32}
+                            color="#FFF"
+                          />
+                        </LinearGradient>
+                      )}
+                      <View style={{ paddingHorizontal: 4 }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            marginBottom: 4,
+                          }}
+                        >
+                          <ThemedText
+                            style={{
+                              color: colors.primary,
+                              fontSize: 10,
+                              fontWeight: "700",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {spotlight.type}
+                          </ThemedText>
+                          {spotlight.priority === "high" && (
+                            <View
                               style={{
-                                color: colors.warning,
-                                fontSize: 10,
-                                fontWeight: "700",
+                                backgroundColor: colors.warning + "20",
+                                paddingHorizontal: 6,
+                                borderRadius: 4,
                               }}
                             >
-                              HIGH
-                            </ThemedText>
-                          </View>
-                        )}
+                              <ThemedText
+                                style={{
+                                  color: colors.warning,
+                                  fontSize: 10,
+                                  fontWeight: "700",
+                                }}
+                              >
+                                HIGH
+                              </ThemedText>
+                            </View>
+                          )}
+                        </View>
+                        <ThemedText
+                          style={{
+                            fontWeight: "700",
+                            fontSize: 16,
+                            marginBottom: 4,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {spotlight.title}
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 12, color: colors.icon }}
+                          numberOfLines={2}
+                        >
+                          {spotlight.content}
+                        </ThemedText>
                       </View>
-                      <ThemedText
-                        style={{
-                          fontWeight: "700",
-                          fontSize: 16,
-                          marginBottom: 4,
-                        }}
-                        numberOfLines={1}
-                      >
-                        {spotlight.title}
-                      </ThemedText>
-                      <ThemedText
-                        style={{ fontSize: 12, color: colors.icon }}
-                        numberOfLines={2}
-                      >
-                        {spotlight.content}
-                      </ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          )}
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+            )}
 
           {/* Updates & Events Marquee (if any general ones exist) */}
           {announcements.some(
             (a) => a.type === "general" || a.type === "event",
           ) && (
-            <View style={{ marginBottom: 20 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 12,
-                  paddingHorizontal: 4,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="newspaper-variant-outline"
-                  size={20}
-                  color={colors.text}
-                  style={{ marginRight: 8 }}
-                />
-                <ThemedText
-                  type="body"
-                  style={{ fontWeight: "600", fontSize: 16 }}
+              <View style={{ marginBottom: 20 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 12,
+                    paddingHorizontal: 4,
+                  }}
                 >
-                  Latest Updates
-                </ThemedText>
-              </View>
-              {announcements
-                .filter(
-                  (a) =>
-                    (a.type === "general" || a.type === "event") &&
-                    a.priority !== "critical",
-                )
-                .slice(0, 3)
-                .map((news) => (
-                  <View
-                    key={news.id}
-                    style={{
-                      backgroundColor: colors.card,
-                      padding: 16,
-                      borderRadius: 16,
-                      marginBottom: 10,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      borderWidth: 1,
-                      borderColor: "rgba(0,0,0,0.03)",
-                    }}
+                  <MaterialCommunityIcons
+                    name="newspaper-variant-outline"
+                    size={20}
+                    color={colors.text}
+                    style={{ marginRight: 8 }}
+                  />
+                  <ThemedText
+                    type="body"
+                    style={{ fontWeight: "600", fontSize: 16 }}
                   >
+                    Latest Updates
+                  </ThemedText>
+                </View>
+                {announcements
+                  .filter(
+                    (a) =>
+                      (a.type === "general" || a.type === "event") &&
+                      a.priority !== "critical",
+                  )
+                  .slice(0, 3)
+                  .map((news) => (
                     <View
+                      key={news.id}
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor:
-                          news.type === "event" ? "#ECFDF5" : "#EFF6FF",
-                        justifyContent: "center",
+                        backgroundColor: colors.card,
+                        padding: 16,
+                        borderRadius: 16,
+                        marginBottom: 10,
+                        flexDirection: "row",
                         alignItems: "center",
-                        marginRight: 12,
+                        borderWidth: 1,
+                        borderColor: "rgba(0,0,0,0.03)",
                       }}
                     >
-                      <MaterialCommunityIcons
-                        name={
-                          news.type === "event"
-                            ? "calendar-star"
-                            : "information-variant"
-                        }
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor:
+                            news.type === "event" ? "#ECFDF5" : "#EFF6FF",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginRight: 12,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name={
+                            news.type === "event"
+                              ? "calendar-star"
+                              : "information-variant"
+                          }
+                          size={20}
+                          color={news.type === "event" ? "#059669" : "#2563EB"}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText
+                          style={{ fontWeight: "600", marginBottom: 2 }}
+                        >
+                          {news.title}
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 12, color: colors.icon }}
+                          numberOfLines={1}
+                        >
+                          {news.content}
+                        </ThemedText>
+                      </View>
+                      <MaterialIcons
+                        name="chevron-right"
                         size={20}
-                        color={news.type === "event" ? "#059669" : "#2563EB"}
+                        color={colors.icon}
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <ThemedText
-                        style={{ fontWeight: "600", marginBottom: 2 }}
-                      >
-                        {news.title}
-                      </ThemedText>
-                      <ThemedText
-                        style={{ fontSize: 12, color: colors.icon }}
-                        numberOfLines={1}
-                      >
-                        {news.content}
-                      </ThemedText>
-                    </View>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={20}
-                      color={colors.icon}
-                    />
-                  </View>
-                ))}
-            </View>
-          )}
+                  ))}
+              </View>
+            )}
 
           {/* Welcome Dashboard Card - Premium Redesign */}
           <Animated.View entering={FadeInDown.duration(800)}>
@@ -834,37 +834,37 @@ export default function HomeScreen() {
           {(userRole === "peer-educator" ||
             userRole === "peer-educator-executive" ||
             userRole === "moderator") && (
-            <Animated.View entering={FadeInDown.delay(1000)}>
-              <TouchableOpacity
-                style={[styles.mentorCard, { backgroundColor: colors.primary }]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  router.push("/peer-educator/dashboard" as any);
-                }}
-              >
-                <View style={styles.mentorInfo}>
-                  <ThemedText type="h3" style={{ color: "#FFF" }}>
-                    Educator Dashboard
-                  </ThemedText>
-                  <ThemedText style={{ color: "rgba(255,255,255,0.8)" }}>
-                    Manage support and responses
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.mentorBadge,
-                    { backgroundColor: "rgba(255,255,255,0.2)" },
-                  ]}
+              <Animated.View entering={FadeInDown.delay(1000)}>
+                <TouchableOpacity
+                  style={[styles.mentorCard, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    router.push("/peer-educator/dashboard" as any);
+                  }}
                 >
-                  <MaterialCommunityIcons
-                    name="shield-account"
-                    size={28}
-                    color="#FFF"
-                  />
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+                  <View style={styles.mentorInfo}>
+                    <ThemedText type="h3" style={{ color: "#FFF" }}>
+                      Educator Dashboard
+                    </ThemedText>
+                    <ThemedText style={{ color: "rgba(255,255,255,0.8)" }}>
+                      Manage support and responses
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.mentorBadge,
+                      { backgroundColor: "rgba(255,255,255,0.2)" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="shield-account"
+                      size={28}
+                      color="#FFF"
+                    />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -874,6 +874,40 @@ export default function HomeScreen() {
           onClose={() => setDrawerVisible(false)}
           role={userRole || undefined}
         />
+
+        {/* Role Navigation Bar (Floating Command Bar) */}
+        {(userRole === "peer-educator" || userRole === "peer-educator-executive" || userRole === "admin" || userRole === "moderator") && (
+          <View style={styles.commandBarContainer}>
+            <LinearGradient
+              colors={colorScheme === 'dark' ? ['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.95)'] : ['rgba(255, 255, 255, 0.95)', 'rgba(248, 250, 252, 0.95)']}
+              style={[styles.commandBar, PlatformStyles.premiumShadow]}
+            >
+              <View style={styles.commandItemActive}>
+                <LinearGradient colors={['#4F46E5', '#6366F1']} style={styles.activeGradient}>
+                  <MaterialCommunityIcons name="account" size={24} color="#FFF" />
+                </LinearGradient>
+                <ThemedText style={[styles.commandLabel, { color: colors.primary, fontWeight: '800' }]}>Student</ThemedText>
+              </View>
+
+              <TouchableOpacity onPress={() => router.replace('/peer-educator/dashboard')} style={styles.commandItem}>
+                <MaterialCommunityIcons name="view-dashboard" size={22} color={colors.icon} />
+                <ThemedText style={styles.commandLabel}>Educator</ThemedText>
+              </TouchableOpacity>
+
+              {userRole === 'peer-educator-executive' || userRole === 'admin' ? (
+                <TouchableOpacity onPress={() => router.replace('/executive')} style={styles.commandItem}>
+                  <MaterialCommunityIcons name="shield-crown" size={22} color={colors.icon} />
+                  <ThemedText style={styles.commandLabel}>Executive</ThemedText>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.commandItem, { opacity: 0.3 }]} disabled>
+                  <MaterialCommunityIcons name="lock" size={22} color={colors.icon} />
+                  <ThemedText style={styles.commandLabel}>Locked</ThemedText>
+                </TouchableOpacity>
+              )}
+            </LinearGradient>
+          </View>
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -1128,5 +1162,48 @@ const styles = StyleSheet.create({
     width: 280,
     padding: 12,
     borderRadius: 24,
+  },
+  commandBarContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    zIndex: 100,
+  },
+  commandBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  commandItem: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  commandItemActive: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  activeGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -20,
+    elevation: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  commandLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

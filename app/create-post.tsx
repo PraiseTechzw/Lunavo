@@ -8,54 +8,54 @@ import { ThemedView } from "@/app/components/themed-view";
 import { CATEGORIES, CATEGORY_LIST } from "@/app/constants/categories";
 import { checkEscalation } from "@/app/constants/escalation";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { useDebounce } from "@/app/hooks/use-debounce";
 import { PostCategory } from "@/app/types";
 import {
-    containsIdentifyingInfo,
-    generatePseudonym,
-    sanitizeContent,
+  containsIdentifyingInfo,
+  generatePseudonym,
+  sanitizeContent,
 } from "@/app/utils/anonymization";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import { getPseudonym, savePseudonym } from "@/app/utils/storage";
 import { analyzePost } from "@/lib/ai-utils";
 import {
-    createPost as createPostDB,
-    getCurrentUser,
-    getTopicStats,
+  createPost as createPostDB,
+  getCurrentUser,
+  getTopicStats,
 } from "@/lib/database";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useHeaderHeight } from "@react-navigation/elements";
-import * as ExpoFileSystem from "expo-file-system";
+import * as ExpoFileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 const DRAFT_KEY = "post_draft";

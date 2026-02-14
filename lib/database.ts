@@ -25,7 +25,7 @@ import {
   SupportSession,
   User,
 } from "@/app/types";
-import * as ExpoFileSystem from "expo-file-system";
+import * as ExpoFileSystem from "expo-file-system/legacy";
 import { checkAllBadges } from "./gamification";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";

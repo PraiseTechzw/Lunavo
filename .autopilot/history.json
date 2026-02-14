@@ -1,6 +1,20 @@
 {
   "commits": [
     {
+      "hash": "84f380da54401221d5b505f25766b6f275271ba9",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 3fc73327cb11d94cf58b1c21d5b5fbf0d07bc644ffc7131899b042fa7bed3c14",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/peer-educator/resources.tsx",
+        "app/resource/list.tsx",
+        "app/types/resources.ts",
+        "lib/database.ts",
+        "supabase/migrations/029_gallery_and_images.sql"
+      ],
+      "timestamp": "2026-02-14T17:59:32.867Z"
+    },
+    {
       "hash": "fdb232720c0db52246974b64e0001d4f92e6f177",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 55e28fd94c152d534baeea80ad3c32e632dcb439786c5869e3dba7add50ebee5",
       "files": [
