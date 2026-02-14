@@ -2,11 +2,13 @@
 
 # dependencies
 node_modules/
+web-reset/node_modules/
 
 # Expo
 .expo/
 dist/
 web-build/
+web-reset/out/
 expo-env.d.ts
 
 # Native
@@ -33,9 +35,13 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+web-reset/.env
+web-reset/.env*.local
 
 # typescript
 *.tsbuildinfo
+web-reset/.next/
+web-reset/.vercel/
 
 app-example
 

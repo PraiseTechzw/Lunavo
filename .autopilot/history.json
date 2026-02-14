@@ -1,6 +1,148 @@
 {
   "commits": [
     {
+      "hash": "0cc4efba61029a3d48e356f7d4f16779c5652b21",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 84229c5e0870359c1df9669113e26186bbdfc17828928cf53a6c08d55d4f1507",
+      "files": [
+        "gitignore",
+        "web-reset/.next/build-manifest.json",
+        "web-reset/.next/server/middleware-build-manifest.js",
+        "web-reset/.next/server/pages-manifest.json",
+        "web-reset/.next/static/development/_buildManifest.js",
+        "web-reset/.vercelignore",
+        "web-reset/vercel.json"
+      ],
+      "timestamp": "2026-02-14T12:15:27.638Z"
+    },
+    {
+      "hash": "dc33e0119de6e904772bf23d25441d3dc6f0d1eb",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b7cccc625bb295992b6b0f098d2513c650758af31965748de637b1f2b1baa6b6",
+      "files": [
+        "autopilot/history.json",
+        "web-reset/package.json",
+        "web-reset/pnpm-lock.yaml"
+      ],
+      "timestamp": "2026-02-14T11:48:55.922Z"
+    },
+    {
+      "hash": "c2333390bd30c36444d6441b31f7c285198e53ad",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 142eccbc2431c1eb50919814e0e729e19dda861edd91f9cec9e25d42b33743c2",
+      "files": [
+        "autopilot/history.json",
+        "web-reset/package.json",
+        "web-reset/src/pages/change-password.tsx"
+      ],
+      "timestamp": "2026-02-14T11:29:39.238Z"
+    },
+    {
+      "hash": "22c5d16edb40e957446f1537f2f973a23baab58b",
+      "message": "[autopilot] style(theme): update color variables\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 983a512e63fa64fa66d0153436f166c14db7b2fa39b2e1bfa58d802907f007ca",
+      "files": [
+        "autopilot/history.json",
+        "app/account/reset-password.tsx",
+        "web-reset/"
+      ],
+      "timestamp": "2026-02-14T11:16:07.013Z"
+    },
+    {
+      "hash": "cbbd7fe94e94abc752066a5dfae43d7df2cc370c",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 06972cadb58897524c1c21b4de79c03c3007b19a2741d07056a397a3a62575e5",
+      "files": [
+        "autopilot/history.json",
+        "app/account/"
+      ],
+      "timestamp": "2026-02-14T11:12:11.542Z"
+    },
+    {
+      "hash": "46097e5d5a0e0c35648a95745c8a060212454ee0",
+      "message": "[autopilot] chore(autopilot): update autopilot\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 717e9530864f9e88890b0729aa6466dda6efe9aa8a4badc791d958d1b153e404",
+      "files": [
+        "autopilot/history.json"
+      ],
+      "timestamp": "2026-02-14T11:08:44.982Z"
+    },
+    {
+      "hash": "302e5534aec846fd76d0fb8276c9952262ee17eb",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 24acd8390469187f7997c3a86a18d3a88757c99a0178b6f4f4accedb0c97c76e",
+      "files": [
+        "autopilot/history.json",
+        "app.json",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T11:01:57.220Z"
+    },
+    {
+      "hash": "c04185678523d63526a8ffd3932e9cdf4cb52970",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: d262db4e52bd9ad81f7eab45849c6899a81d019f63270f3b67a5c89ec63a2734",
+      "files": [
+        "autopilot/history.json",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T10:56:17.789Z"
+    },
+    {
+      "hash": "4363481695300da9566aaf436bcc874779b91b23",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ad9e11bb9aa842caf8bc10bc182d0255311c5f8026bddcc5dcf3067db4c32c51",
+      "files": [
+        "autopilot/history.json",
+        "app.json"
+      ],
+      "timestamp": "2026-02-14T10:51:07.967Z"
+    },
+    {
+      "hash": "1850f95087f9366b1fc858cb617bf999b677a485",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c37b68c30fc7e41a6fce013566007b54118c5a5b5d6ebd64dbe1e75263d1be5b",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/forgot-password.tsx",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T10:46:21.227Z"
+    },
+    {
+      "hash": "0d7da20936c4cdea527b157a485349e32e54c8b1",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b7f55a77c9632fe64d0d54c5b3fd25428993245183d5f4f9b1a5b90f3099c99d",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/forgot-password.tsx",
+        "app/auth/reset-password.tsx",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T10:41:42.865Z"
+    },
+    {
+      "hash": "f00cf70a443cf5986f340e75250c64d5a4f0ada6",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 573c8eb89dfc95467d1a4bb4b91089282d5388e5ebaf53cbe3247665f6951378",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/reset-password.tsx",
+        "lib/auth.ts"
+      ],
+      "timestamp": "2026-02-14T10:38:37.695Z"
+    },
+    {
+      "hash": "06aff3473e9a9d324b90b31d07b15cf76702c6ba",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2f724d449d7f9ac7d8b333439cfc5cb717b94eb23c23f0ef0ab4926048076e65",
+      "files": [
+        "autopilot/state.json",
+        ".autopilotrc.json",
+        "app.config.js",
+        "app.json",
+        "app/(tabs)/chat.tsx",
+        "app/auth/forgot-password.tsx",
+        "app/auth/reset-password.tsx",
+        "lib/auth.ts",
+        "lib/supabase.ts",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json",
+        ".eslintignore",
+        "supabase/functions/reset-password-code/",
+        "supabase/migrations/027_password_reset_codes.sql"
+      ],
+      "timestamp": "2026-02-14T10:25:02.440Z"
+    },
+    {
       "hash": "2b389a2edc9dc1cda10bce157450edd3df97d53b",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 88f5647ae779e0a3cfdb69bdfc53f3caa7269d6434577c1ca6031b226d5a642c",
       "files": [

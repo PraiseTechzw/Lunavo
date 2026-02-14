@@ -2,16 +2,21 @@
  * Premium Reset Password Screen
  */
 
-import { PEACELogo } from '@/app/components/peace-logo';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { updatePassword } from '@/lib/auth';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { PEACELogo } from "@/app/components/peace-logo";
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import {
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
+} from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { updatePassword } from "@/lib/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,33 +25,59 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const params = useLocalSearchParams();
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const email = typeof params.email === "string" ? params.email : "";
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
     if (password !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
+      Alert.alert("Mismatch", "Passwords do not match.");
       return;
     }
     setLoading(true);
     try {
       const { error } = await updatePassword(password);
       if (error) throw error;
-      Alert.alert('Success', 'Password restored. Access re-established.', [
-        { text: 'Login', onPress: () => router.replace('/auth/login') }
+      Alert.alert("Success", "Password restored. Access re-established.", [
+        { text: "Login", onPress: () => router.replace("/auth/login") },
       ]);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      console.error("reset-password verify error", {
+        error: e,
+        status: e?.status,
+        message: e?.message,
+      });
+      const msg = String(e?.message || "Reset failed");
+      const lower = msg.toLowerCase();
+      if (lower.includes("not authenticated") || lower.includes("session")) {
+        Alert.alert(
+          "Open Recovery Link",
+          "Open the password recovery link from your email to continue.",
+        );
+      } else if (lower.includes("not found") || lower.includes("user")) {
+        Alert.alert(
+          "Account Not Found",
+          "No account matches this email. Check your email address or sign up.",
+        );
+      } else if (lower.includes("server") || lower.includes("unavailable")) {
+        Alert.alert(
+          "Server Error",
+          "Password reset service is temporarily unavailable. Try again later.",
+        );
+      } else {
+        Alert.alert("Error", msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,24 +86,46 @@ export default function ResetPasswordScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.background}>
-        <LinearGradient colors={[colors.success, colors.primary]} style={[styles.blob, { top: -200, left: -100, opacity: 0.1 }]} />
+        <LinearGradient
+          colors={[colors.success, colors.primary]}
+          style={[styles.blob, { top: -200, left: -100, opacity: 0.1 }]}
+        />
       </View>
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
-
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={false}
+          >
             <View style={styles.header}>
               <PEACELogo size={80} />
-              <ThemedText type="h1" style={styles.title}>New Protocol</ThemedText>
-              <ThemedText style={styles.subtitle}>Define your new access key to restore connection.</ThemedText>
+              <ThemedText type="h1" style={styles.title}>
+                New Protocol
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                Open the link from your email, then set a new password.
+              </ThemedText>
             </View>
 
-            <Animated.View entering={FadeInDown} style={[styles.card, { backgroundColor: colors.card }]}>
+            <Animated.View
+              entering={FadeInDown}
+              style={[styles.card, { backgroundColor: colors.card }]}
+            >
               <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>New Access Key (Password)</ThemedText>
-                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-                  <Ionicons name="lock-open-outline" size={20} color={colors.icon} />
+                <ThemedText style={styles.label}>
+                  New Access Key (Password)
+                </ThemedText>
+                <View
+                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                >
+                  <Ionicons
+                    name="lock-open-outline"
+                    size={20}
+                    color={colors.icon}
+                  />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="••••••••"
@@ -86,8 +139,14 @@ export default function ResetPasswordScreen() {
 
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.label}>Confirm Access Key</ThemedText>
-                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
+                <View
+                  style={[styles.inputWrapper, { borderColor: colors.border }]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.icon}
+                  />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="••••••••"
@@ -101,15 +160,23 @@ export default function ResetPasswordScreen() {
 
               <TouchableOpacity
                 onPress={handleReset}
-                disabled={loading || !password}
+                disabled={loading || !password || !code}
                 style={styles.btnWrapper}
               >
-                <LinearGradient colors={colors.gradients.primary as any} style={styles.btn}>
-                  {loading ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.btnText}>ESTABLISH NEW KEY</ThemedText>}
+                <LinearGradient
+                  colors={colors.gradients.primary as any}
+                  style={styles.btn}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <ThemedText style={styles.btnText}>
+                      ESTABLISH NEW KEY
+                    </ThemedText>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
-
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -125,7 +192,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   blob: {
-    position: 'absolute',
+    position: "absolute",
     width: 600,
     height: 600,
     borderRadius: 300,
@@ -136,20 +203,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   title: {
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: "900",
     marginTop: 20,
   },
   subtitle: {
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 10,
     lineHeight: 22,
   },
@@ -158,27 +225,27 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xxl,
     ...PlatformStyles.shadow,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   inputGroup: {
     marginBottom: Spacing.lg,
   },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Spacing.xs,
     marginLeft: 4,
     opacity: 0.7,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     height: 60,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     gap: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   input: {
     flex: 1,
@@ -191,12 +258,12 @@ const styles = StyleSheet.create({
   btn: {
     height: 60,
     borderRadius: BorderRadius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   btnText: {
-    color: '#FFF',
-    fontWeight: '900',
+    color: "#FFF",
+    fontWeight: "900",
     letterSpacing: 1,
   },
 });

@@ -26,6 +26,33 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.peaceclub.app",
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "peace",
+            "host": "auth",
+            "pathPrefix": "/reset-password"
+          }
+        },
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "peace"
+          }
+        },
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "https",
+            "host": "peace.praisetech.tech",
+            "pathPrefix": "/auth/reset-password"
+          }
+        }
+      ],
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -58,6 +85,11 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "62ecdcb4-ade7-419b-a404-b15b1e70446f"
+      }
     }
   }
 }

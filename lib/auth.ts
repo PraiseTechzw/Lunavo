@@ -339,10 +339,115 @@ export function onAuthStateChange(
  * Reset password
  */
 export async function resetPassword(email: string): Promise<{ error: any }> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "peace://auth/reset-password",
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email.toLowerCase().trim(),
+    {
+      redirectTo: "peace://auth/reset-password",
+    },
+  );
+  return { error };
+}
+
+/**
+ * Alternative flow without Edge Functions:
+ * Send an email OTP code that the user will enter in-app.
+ * After verification, we will update the password using the recovery session.
+ */
+export async function requestOtpResetCode(
+  email: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.toLowerCase().trim(),
+    options: {
+      shouldCreateUser: false,
+    },
   });
   return { error };
+}
+
+export async function verifyOtpAndUpdatePassword(
+  email: string,
+  token: string,
+  newPassword: string,
+): Promise<{ error: any }> {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.toLowerCase().trim(),
+    token: token.trim(),
+    type: "email",
+  });
+  if (error) {
+    return { error };
+  }
+  const { error: updErr } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  return { error: updErr };
+}
+
+export async function requestPasswordResetCode(
+  email: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.functions.invoke("reset-password-code", {
+    body: { action: "request", email },
+  });
+  if (!error) return { error: null };
+  const msg = String(error?.message || "");
+  const ctx = (error as any)?.context;
+  const bodyText =
+    typeof ctx === "string"
+      ? ctx
+      : typeof ctx?.body === "string"
+        ? ctx.body
+        : "";
+  const statusGuess =
+    msg.includes("404") || bodyText.toLowerCase().includes("not found")
+      ? 404
+      : msg.includes("400") || bodyText.toLowerCase().includes("invalid")
+        ? 400
+        : undefined;
+  const status = (error as any)?.status ?? statusGuess;
+  const wrapped = Object.assign(new Error(bodyText || msg), {
+    status,
+    raw: error,
+    body: bodyText,
+  });
+  return { error: wrapped };
+}
+
+export async function verifyPasswordResetCode(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<{ data: any; error: any }> {
+  const { data, error } = await supabase.functions.invoke(
+    "reset-password-code",
+    {
+      body: { action: "verify", email, code, newPassword },
+    },
+  );
+  if (!error) return { data, error: null };
+  const msg = String(error?.message || "");
+  const ctx = (error as any)?.context;
+  const bodyText =
+    typeof ctx === "string"
+      ? ctx
+      : typeof ctx?.body === "string"
+        ? ctx.body
+        : "";
+  const statusGuess =
+    msg.includes("404") || bodyText.toLowerCase().includes("not found")
+      ? 404
+      : msg.includes("400") ||
+          bodyText.toLowerCase().includes("invalid or expired code")
+        ? 400
+        : undefined;
+  const status = (error as any)?.status ?? statusGuess;
+  const wrapped = Object.assign(new Error(bodyText || msg), {
+    status,
+    raw: error,
+    body: bodyText,
+  });
+  return { data: null, error: wrapped };
 }
 
 /**
