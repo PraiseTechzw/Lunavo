@@ -27,9 +27,20 @@ export default function ResourceListScreen() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filtered, setFiltered] = useState<Resource[]>([]);
   const [searchQuery, setSearchQuery] = useState(params.q ?? "");
-  const [selectedCategory, setSelectedCategory] = useState(
-    params.cat && typeof params.cat === "string" ? params.cat : "All",
-  );
+  const slugToLabel: Record<string, string> = {
+    "mental-health": "Mental Health",
+    "substance-abuse": "Substance Abuse",
+    "sexual-health": "SRH",
+    "stis-hiv": "HIV/Safe Sex",
+    "family-home": "Family/Home",
+    academic: "Academic",
+    relationships: "Relationships",
+  };
+  const initialCat =
+    params.cat && typeof params.cat === "string"
+      ? slugToLabel[params.cat] || params.cat
+      : "All";
+  const [selectedCategory, setSelectedCategory] = useState(initialCat);
   const [loading, setLoading] = useState(true);
 
   const categories = useMemo(
@@ -81,11 +92,16 @@ export default function ResourceListScreen() {
   const filter = useCallback(() => {
     let items = resources;
     if (selectedCategory !== "All") {
-      const mapped = categoryMap[selectedCategory];
-      if (mapped) {
+      const mapped = categoryMap[selectedCategory] || undefined;
+      const slug = Object.entries(categoryMap).find(
+        ([label]) => label === selectedCategory,
+      )?.[1]?.cat;
+      const catRule = mapped?.cat || slug;
+      const typeRule = mapped?.type;
+      if (catRule || typeRule) {
         items = items.filter((r) => {
-          if (mapped.cat) return r.category === mapped.cat;
-          if (mapped.type) return r.resourceType === mapped.type;
+          if (catRule) return r.category === catRule;
+          if (typeRule) return r.resourceType === typeRule;
           return true;
         });
       }

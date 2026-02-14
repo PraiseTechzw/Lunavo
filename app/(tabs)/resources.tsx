@@ -662,8 +662,7 @@ export default function ResourcesScreen() {
                         },
                         active ? createShadow(2, colors.primary, 0.25) : null,
                       ]}
-                      onPress={() => setSelectedCategory(item)}
-                      onLongPress={() => {
+                      onPress={() => {
                         const map: Record<string, string> = {
                           "Mental Health": "mental-health",
                           "Substance Abuse": "substance-abuse",
@@ -680,6 +679,9 @@ export default function ResourcesScreen() {
                             params: { slug },
                           });
                         }
+                      }}
+                      onLongPress={() => {
+                        setSelectedCategory(item);
                       }}
                       activeOpacity={0.75}
                     >
