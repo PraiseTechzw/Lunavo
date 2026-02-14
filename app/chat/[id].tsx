@@ -412,97 +412,93 @@ export default function ChatDetailScreen() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
-        <LinearGradient
-          colors={[
-            (session && priorityColor(session.priority)) + "25",
-            colors.card,
+        <View
+          style={[
+            styles.headerBar,
+            { backgroundColor: colors.card, borderColor: colors.border },
           ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.header, { backgroundColor: colors.background }]}
         >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={getCursorStyle()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: Spacing.md }}>
-            <ThemedText type="h2" style={styles.headerTitle}>
-              {counterpartName}
-            </ThemedText>
-            <ThemedText type="small" style={{ opacity: 0.6 }}>
-              {secondaryLabel}
-            </ThemedText>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
             <View
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: isOnline ? "#10B981" : colors.icon,
-              }}
+              style={[
+                styles.headerAvatar,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Ionicons name="person-outline" size={18} color="#FFF" />
+            </View>
+            <View style={styles.headerInfo}>
+              <ThemedText style={styles.headerTitle}>{counterpartName}</ThemedText>
+              <ThemedText type="small" style={{ opacity: 0.6 }}>
+                {secondaryLabel}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: isOnline ? "#10B981" : colors.icon },
+              ]}
             />
             <ThemedText type="small" style={{ opacity: 0.6 }}>
               {isOnline ? "Online" : "Offline"}
             </ThemedText>
-          </View>
-          {session?.priority && (
-            <View
-              style={[
-                styles.priorityBadge,
-                { backgroundColor: priorityColor(session.priority) + "20" },
-              ]}
-            >
-              <ThemedText
-                type="small"
-                style={{
-                  color: priorityColor(session.priority),
-                  fontWeight: "700",
-                }}
+            {session?.priority && (
+              <View
+                style={[
+                  styles.priorityChip,
+                  { borderColor: priorityColor(session.priority) },
+                ]}
               >
-                {String(session.priority).toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
-        </LinearGradient>
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: priorityColor(session.priority),
+                    fontWeight: "700",
+                  }}
+                >
+                  {String(session.priority).toUpperCase()}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </View>
 
         {canUseSupportTools && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.toolsRow,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
+          <View style={[styles.toolsRow, { backgroundColor: colors.surface }]}>
             <TouchableOpacity
-              style={styles.toolChip}
+              style={[styles.toolChip, { borderColor: colors.border }]}
               onPress={() => router.push("/(tabs)/resources" as any)}
             >
               <Ionicons name="book" size={16} color={colors.primary} />
               <ThemedText style={styles.toolChipText}>Resources</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.toolChip}
+              style={[styles.toolChip, { borderColor: colors.border }]}
               onPress={() => router.push("/urgent-support" as any)}
             >
               <Ionicons name="shield-checkmark" size={16} color="#EF4444" />
               <ThemedText style={styles.toolChipText}>Urgent</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.toolChip}
+              style={[styles.toolChip, { borderColor: colors.border }]}
               onPress={handleScheduleMeeting}
             >
               <Ionicons name="calendar" size={16} color="#F59E0B" />
               <ThemedText style={styles.toolChipText}>Meeting</ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.toolChip} onPress={handleResolve}>
+            <TouchableOpacity
+              style={[styles.toolChip, { borderColor: colors.border }]}
+              onPress={handleResolve}
+            >
               <Ionicons name="checkmark-done" size={16} color="#10B981" />
               <ThemedText style={styles.toolChipText}>Resolve</ThemedText>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         )}
 
         {loading ? (
@@ -590,10 +586,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   headerTitle: {
     fontWeight: "700",
+    fontSize: 18,
+    lineHeight: 22,
   },
   priorityBadge: {
     paddingHorizontal: 10,
@@ -606,9 +604,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    paddingVertical: 8,
+    marginTop: 4,
   },
   toolChip: {
     flexDirection: "row",
@@ -632,11 +629,11 @@ const styles = StyleSheet.create({
   messagesList: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
-    paddingTop: Spacing.md,
+    paddingTop: 4,
   },
   dateDivider: {
     alignSelf: "center",
-    marginVertical: Spacing.sm,
+    marginVertical: 6,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
@@ -667,6 +664,8 @@ const styles = StyleSheet.create({
     ...PlatformStyles.premiumShadow,
   },
   theirBubble: {
+    backgroundColor: "#00000008",
+    borderWidth: 0,
     ...PlatformStyles.shadow,
   },
   ticks: {
@@ -685,15 +684,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   labelWrap: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginHorizontal: 6,
-    marginTop: 6,
+    display: "none",
   },
   labelText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 0,
   },
   timeRow: {
     marginTop: 2,
