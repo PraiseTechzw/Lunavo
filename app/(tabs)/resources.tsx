@@ -2,31 +2,31 @@
  * Resource Library Screen
  */
 
+import { FAB as FABButton } from "@/app/components/navigation/fab-button";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { Resource } from "@/app/types";
+import { Resource, UserRole } from "@/app/types";
 import { createInputStyle, createShadow } from "@/app/utils/platform-styles";
 import { getCurrentUser, getResources } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { Image } from "expo-image";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FAB as FABButton } from "@/app/components/navigation/fab-button";
-import { UserRole } from "@/app/types";
 
 const FAVORITES_KEY = "resource_favorites";
 
@@ -62,7 +62,10 @@ export default function ResourcesScreen() {
   const { width } = Dimensions.get("window");
   const ITEM_SPACING = Spacing.sm;
   const NUM_COLUMNS = 2;
-  const THUMB_SIZE = (width - ITEM_SPACING * (NUM_COLUMNS + 2)) / NUM_COLUMNS;
+  const H_PADDING = Spacing.md;
+  const THUMB_SIZE = Math.floor(
+    (width - H_PADDING * 2 - ITEM_SPACING * (NUM_COLUMNS - 1)) / NUM_COLUMNS,
+  );
 
   useEffect(() => {
     loadResources();
@@ -175,12 +178,21 @@ export default function ResourcesScreen() {
     }
   };
 
-  const getGalleryItems = (): { id: string; url: string; type: "image" | "video" }[] => {
+  const getGalleryItems = (): {
+    id: string;
+    url: string;
+    type: "image" | "video";
+  }[] => {
     const isImage = (u?: string) =>
       !!u &&
-      ["png", "jpg", "jpeg", "webp", "gif"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+      ["png", "jpg", "jpeg", "webp", "gif"].some((ext) =>
+        u.toLowerCase().includes(`.${ext}`),
+      );
     const isVideo = (u?: string) =>
-      !!u && ["mp4", "mov", "webm", "mkv"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+      !!u &&
+      ["mp4", "mov", "webm", "mkv"].some((ext) =>
+        u.toLowerCase().includes(`.${ext}`),
+      );
 
     return resources
       .map((r) => {
@@ -190,16 +202,41 @@ export default function ResourcesScreen() {
         if (isVideo(url)) return { id: r.id, url, type: "video" as const };
         return null;
       })
-      .filter(Boolean) as { id: string; url: string; type: "image" | "video" }[];
+      .filter(Boolean) as {
+      id: string;
+      url: string;
+      type: "image" | "video";
+    }[];
   };
 
-  const renderGalleryItem = ({ item }: { item: { id: string; url: string; type: "image" | "video" } }) => (
+  const renderGalleryItem = ({
+    item,
+    index,
+  }: {
+    item: { id: string; url: string; type: "image" | "video" };
+    index: number;
+  }) => (
     <TouchableOpacity
-      style={[styles.galleryItem, { backgroundColor: colors.surface }, createShadow(2, "#000", 0.1)]}
+      style={[
+        styles.galleryItem,
+        {
+          backgroundColor: colors.surface,
+          marginRight:
+            index % NUM_COLUMNS === NUM_COLUMNS - 1 ? 0 : ITEM_SPACING,
+          width: THUMB_SIZE,
+          height: THUMB_SIZE,
+        },
+        createShadow(2, "#000", 0.1),
+      ]}
       activeOpacity={0.8}
       onPress={() => router.push(`/resource/${item.id}`)}
     >
-      <Image source={{ uri: item.url }} style={styles.galleryImage} contentFit="cover" transition={200} />
+      <Image
+        source={{ uri: item.url }}
+        style={styles.galleryImage}
+        contentFit="cover"
+        transition={200}
+      />
       {item.type === "video" && (
         <View style={styles.galleryOverlay}>
           <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
@@ -209,9 +246,18 @@ export default function ResourcesScreen() {
   );
 
   const isImageUrl = (u?: string) =>
-    !!u && ["png", "jpg", "jpeg", "webp", "gif"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+    !!u &&
+    ["png", "jpg", "jpeg", "webp", "gif"].some((ext) =>
+      u.toLowerCase().includes(`.${ext}`),
+    );
 
-  const renderResourceCard = ({ item }: { item: Resource }) => {
+  const renderResourceCard = ({
+    item,
+    index,
+  }: {
+    item: Resource;
+    index: number;
+  }) => {
     const isFavorite = favorites.has(item.id);
     const getResourceIcon = () => {
       switch (item.resourceType) {
@@ -232,7 +278,11 @@ export default function ResourcesScreen() {
       <TouchableOpacity
         style={[
           styles.resourceCard,
-          { backgroundColor: colors.card },
+          {
+            backgroundColor: colors.card,
+            marginRight:
+              index % NUM_COLUMNS === NUM_COLUMNS - 1 ? 0 : ITEM_SPACING,
+          },
           createShadow(2, "#000", 0.1),
         ]}
         activeOpacity={0.8}
@@ -245,7 +295,12 @@ export default function ResourcesScreen() {
           ]}
         >
           {isImageUrl(item.url || (item as any).filePath) ? (
-            <Image source={{ uri: (item.url || (item as any).filePath) as string }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={200} />
+            <Image
+              source={{ uri: (item.url || (item as any).filePath) as string }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              transition={200}
+            />
           ) : (
             <Ionicons
               name={getResourceIcon() as any}
@@ -265,17 +320,27 @@ export default function ResourcesScreen() {
           <ThemedText type="small" style={styles.resourceMeta}>
             {item.category} • {item.resourceType}
           </ThemedText>
-          {Array.isArray((item as any).tags) && (item as any).tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {(item as any).tags.slice(0, 3).map((tag: string) => (
-                <View key={tag} style={[styles.tagChip, { backgroundColor: colors.surface }]}>
-                  <ThemedText type="small" style={{ color: colors.text, fontSize: 10 }}>
-                    {tag}
-                  </ThemedText>
-                </View>
-              ))}
-            </View>
-          )}
+          {Array.isArray((item as any).tags) &&
+            (item as any).tags.length > 0 && (
+              <View style={styles.tagsRow}>
+                {(item as any).tags.slice(0, 3).map((tag: string) => (
+                  <View
+                    key={tag}
+                    style={[
+                      styles.tagChip,
+                      { backgroundColor: colors.surface },
+                    ]}
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{ color: colors.text, fontSize: 10 }}
+                    >
+                      {tag}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
         </View>
         <TouchableOpacity
           style={styles.bookmarkButton}
@@ -303,7 +368,9 @@ export default function ResourcesScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
-          <ThemedText type="h1" style={styles.heroTitle}>Resource Center</ThemedText>
+          <ThemedText type="h1" style={styles.heroTitle}>
+            Resource Center
+          </ThemedText>
           <ThemedText type="body" style={styles.heroSubtitle}>
             Articles, videos, documents, and media in one beautiful place
           </ThemedText>
@@ -315,14 +382,21 @@ export default function ResourcesScreen() {
                   key={mode}
                   style={[
                     styles.segmentChip,
-                    { backgroundColor: isActive ? "#FFFFFF" : "rgba(255,255,255,0.2)" },
+                    {
+                      backgroundColor: isActive
+                        ? "#FFFFFF"
+                        : "rgba(255,255,255,0.2)",
+                    },
                   ]}
                   onPress={() => setViewMode(mode as any)}
                   activeOpacity={0.8}
                 >
                   <ThemedText
                     type="small"
-                    style={{ color: isActive ? colors.primary : "#FFFFFF", fontWeight: "700" }}
+                    style={{
+                      color: isActive ? colors.primary : "#FFFFFF",
+                      fontWeight: "700",
+                    }}
                   >
                     {mode === "library" ? "Library" : "Gallery"}
                   </ThemedText>
@@ -338,7 +412,15 @@ export default function ResourcesScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Sticky Header (Search + Favorites + Filters) */}
-          <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
+          <View
+            style={[
+              styles.stickyHeader,
+              {
+                backgroundColor: colors.background,
+                borderBottomColor: colors.border,
+              },
+            ]}
+          >
             {/* Search Bar */}
             <View
               style={[
@@ -366,35 +448,34 @@ export default function ResourcesScreen() {
               />
             </View>
 
-            {/* Favorites Toggle */}
-            <TouchableOpacity
-              style={[
-                styles.favoritesToggle,
-                {
-                  backgroundColor: showFavoritesOnly
-                    ? colors.primary
-                    : colors.surface,
-                },
-                createShadow(1, "#000", 0.05),
-              ]}
-              onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-            >
-              <MaterialIcons
-                name={showFavoritesOnly ? "favorite" : "favorite-border"}
-                size={20}
-                color={showFavoritesOnly ? "#FFFFFF" : colors.text}
-              />
-              <ThemedText
-                type="body"
-                style={{
-                  color: showFavoritesOnly ? "#FFFFFF" : colors.text,
-                  marginLeft: Spacing.sm,
-                  fontWeight: "600",
+            <View style={[styles.favoritesRow, { borderColor: colors.border }]}>
+              <View style={styles.row}>
+                <MaterialIcons
+                  name="favorite"
+                  size={18}
+                  color={showFavoritesOnly ? colors.primary : colors.icon}
+                />
+                <ThemedText
+                  type="body"
+                  style={{
+                    color: colors.text,
+                    marginLeft: Spacing.xs,
+                    fontWeight: "600",
+                  }}
+                >
+                  Show Favorites
+                </ThemedText>
+              </View>
+              <Switch
+                value={showFavoritesOnly}
+                onValueChange={setShowFavoritesOnly}
+                trackColor={{
+                  false: colors.surface,
+                  true: colors.primary + "66",
                 }}
-              >
-                {showFavoritesOnly ? "Show All" : "Show Favorites"}
-              </ThemedText>
-            </TouchableOpacity>
+                thumbColor={showFavoritesOnly ? colors.primary : colors.icon}
+              />
+            </View>
 
             {/* Category Filters */}
             <View style={styles.filtersContainer}>
@@ -439,7 +520,8 @@ export default function ResourcesScreen() {
           {viewMode === "library" ? (
             <View style={styles.section}>
               <ThemedText type="h3" style={styles.sectionTitle}>
-                {showFavoritesOnly ? "Favorite Resources" : "All Resources"} ({filteredResources.length})
+                {showFavoritesOnly ? "Favorite Resources" : "All Resources"} (
+                {filteredResources.length})
               </ThemedText>
               {loading ? (
                 <View style={styles.loadingContainer}>
@@ -448,7 +530,9 @@ export default function ResourcesScreen() {
               ) : filteredResources.length > 0 ? (
                 <FlatList
                   data={filteredResources}
-                  renderItem={renderResourceCard}
+                  renderItem={({ item, index }) =>
+                    renderResourceCard({ item, index })
+                  }
                   keyExtractor={(item) => item.id}
                   scrollEnabled={false}
                   numColumns={2}
@@ -458,8 +542,13 @@ export default function ResourcesScreen() {
               ) : (
                 <View style={styles.emptyContainer}>
                   <MaterialIcons name="inbox" size={48} color={colors.icon} />
-                  <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
-                    {showFavoritesOnly ? "No favorite resources yet" : "No resources found"}
+                  <ThemedText
+                    type="body"
+                    style={{ color: colors.icon, marginTop: Spacing.md }}
+                  >
+                    {showFavoritesOnly
+                      ? "No favorite resources yet"
+                      : "No resources found"}
                   </ThemedText>
                 </View>
               )}
@@ -476,7 +565,9 @@ export default function ResourcesScreen() {
               ) : getGalleryItems().length > 0 ? (
                 <FlatList
                   data={getGalleryItems()}
-                  renderItem={renderGalleryItem}
+                  renderItem={({ item, index }) =>
+                    renderGalleryItem({ item, index })
+                  }
                   keyExtractor={(item) => item.id}
                   numColumns={2}
                   columnWrapperStyle={styles.row}
@@ -484,8 +575,15 @@ export default function ResourcesScreen() {
                 />
               ) : (
                 <View style={styles.emptyContainer}>
-                  <MaterialIcons name="image-not-supported" size={48} color={colors.icon} />
-                  <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                  <MaterialIcons
+                    name="image-not-supported"
+                    size={48}
+                    color={colors.icon}
+                  />
+                  <ThemedText
+                    type="body"
+                    style={{ color: colors.icon, marginTop: Spacing.md }}
+                  >
                     No media found
                   </ThemedText>
                 </View>
@@ -538,6 +636,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
   },
   scrollView: {
     flex: 1,
@@ -549,8 +649,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
+    borderWidth: 1,
   },
   searchIcon: {
     marginRight: Spacing.sm,
@@ -572,6 +674,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
     borderWidth: 1,
+    letterSpacing: 0.2,
   },
   section: {
     marginBottom: Spacing.xl,
@@ -584,7 +687,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
-    marginRight: Spacing.md,
     marginBottom: Spacing.md,
   },
   resourceImage: {
@@ -629,6 +731,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
   },
+  favoritesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -643,11 +755,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   galleryItem: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
-    marginRight: Spacing.md,
   },
   galleryImage: {
     width: "100%",
@@ -661,6 +770,7 @@ const styles = StyleSheet.create({
   stickyHeader: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
   },
   emptyContainer: {
     flex: 1,
