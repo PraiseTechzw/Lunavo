@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+    Dimensions,
     FlatList,
     ScrollView,
     StyleSheet,
@@ -43,49 +44,7 @@ const categories = [
   "PDFs",
 ];
 
-const copingStrategies: any[] = [
-  {
-    id: "1",
-    title: "Mindfulness Exercises",
-    resourceType: "article",
-    category: "mental-health",
-    iconName: "body-outline",
-    color: "#90EE90",
-  },
-  {
-    id: "2",
-    title: "Breathing Techniques",
-    resourceType: "article",
-    category: "mental-health",
-    iconName: "leaf-outline",
-    color: "#DDA0DD",
-  },
-  {
-    id: "3",
-    title: "Stress Management",
-    resourceType: "video",
-    category: "mental-health",
-    iconName: "medical-outline",
-    color: "#87CEEB",
-  },
-];
-
-const academicResources: any[] = [
-  {
-    id: "1",
-    title: "Effective Study Habits",
-    resourceType: "article",
-    category: "academic",
-    iconName: "book-outline",
-  },
-  {
-    id: "2",
-    title: "Time Management",
-    resourceType: "video",
-    category: "academic",
-    iconName: "time",
-  },
-];
+// Fresh build: remove legacy sample sections; keep data driven content only
 
 export default function ResourcesScreen() {
   const router = useRouter();
@@ -100,6 +59,10 @@ export default function ResourcesScreen() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [viewMode, setViewMode] = useState<"library" | "gallery">("library");
+  const { width } = Dimensions.get("window");
+  const ITEM_SPACING = Spacing.sm;
+  const NUM_COLUMNS = 2;
+  const THUMB_SIZE = (width - ITEM_SPACING * (NUM_COLUMNS + 2)) / NUM_COLUMNS;
 
   useEffect(() => {
     loadResources();
@@ -245,6 +208,9 @@ export default function ResourcesScreen() {
     </TouchableOpacity>
   );
 
+  const isImageUrl = (u?: string) =>
+    !!u && ["png", "jpg", "jpeg", "webp", "gif"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const isFavorite = favorites.has(item.id);
     const getResourceIcon = () => {
@@ -278,11 +244,15 @@ export default function ResourcesScreen() {
             { backgroundColor: colors.primary + "20" },
           ]}
         >
-          <Ionicons
-            name={getResourceIcon() as any}
-            size={40}
-            color={colors.primary}
-          />
+          {isImageUrl(item.url || (item as any).filePath) ? (
+            <Image source={{ uri: (item.url || (item as any).filePath) as string }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={200} />
+          ) : (
+            <Ionicons
+              name={getResourceIcon() as any}
+              size={40}
+              color={colors.primary}
+            />
+          )}
         </View>
         <View style={styles.resourceContent}>
           <ThemedText
@@ -364,99 +334,105 @@ export default function ResourcesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          stickyHeaderIndices={[0]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Search Bar */}
-          <View
-            style={[
-              styles.searchContainer,
-              { backgroundColor: colors.surface },
-            ]}
-          >
-            <Ionicons
-              name="search"
-              size={20}
-              color={colors.icon}
-              style={styles.searchIcon}
-            />
-            <TextInput
+          {/* Sticky Header (Search + Favorites + Filters) */}
+          <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
+            {/* Search Bar */}
+            <View
               style={[
-                styles.searchInput,
-                createInputStyle(),
-                { color: colors.text },
+                styles.searchContainer,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                createShadow(2, "#000", 0.08),
               ]}
-              placeholder="Search for articles, videos..."
-              placeholderTextColor={colors.icon}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-
-          {/* Favorites Toggle */}
-          <TouchableOpacity
-            style={[
-              styles.favoritesToggle,
-              {
-                backgroundColor: showFavoritesOnly
-                  ? colors.primary
-                  : colors.surface,
-              },
-              createShadow(1, "#000", 0.05),
-            ]}
-            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-          >
-            <MaterialIcons
-              name={showFavoritesOnly ? "favorite" : "favorite-border"}
-              size={20}
-              color={showFavoritesOnly ? "#FFFFFF" : colors.text}
-            />
-            <ThemedText
-              type="body"
-              style={{
-                color: showFavoritesOnly ? "#FFFFFF" : colors.text,
-                marginLeft: Spacing.sm,
-                fontWeight: "600",
-              }}
             >
-              {showFavoritesOnly ? "Show All" : "Show Favorites"}
-            </ThemedText>
-          </TouchableOpacity>
+              <Ionicons
+                name="search"
+                size={20}
+                color={colors.icon}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={[
+                  styles.searchInput,
+                  createInputStyle(),
+                  { color: colors.text },
+                ]}
+                placeholder="Search for articles, videos..."
+                placeholderTextColor={colors.icon}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
 
-          {/* Category Filters */}
-          <View style={styles.filtersContainer}>
-            <FlatList
-              horizontal
-              data={categories}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor:
-                        selectedCategory === item
-                          ? colors.primary
-                          : colors.surface,
-                    },
-                  ]}
-                  onPress={() => setSelectedCategory(item)}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText
-                    type="small"
-                    style={{
-                      color:
-                        selectedCategory === item ? "#FFFFFF" : colors.text,
-                      fontWeight: "600",
-                    }}
+            {/* Favorites Toggle */}
+            <TouchableOpacity
+              style={[
+                styles.favoritesToggle,
+                {
+                  backgroundColor: showFavoritesOnly
+                    ? colors.primary
+                    : colors.surface,
+                },
+                createShadow(1, "#000", 0.05),
+              ]}
+              onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            >
+              <MaterialIcons
+                name={showFavoritesOnly ? "favorite" : "favorite-border"}
+                size={20}
+                color={showFavoritesOnly ? "#FFFFFF" : colors.text}
+              />
+              <ThemedText
+                type="body"
+                style={{
+                  color: showFavoritesOnly ? "#FFFFFF" : colors.text,
+                  marginLeft: Spacing.sm,
+                  fontWeight: "600",
+                }}
+              >
+                {showFavoritesOnly ? "Show All" : "Show Favorites"}
+              </ThemedText>
+            </TouchableOpacity>
+
+            {/* Category Filters */}
+            <View style={styles.filtersContainer}>
+              <FlatList
+                horizontal
+                data={categories}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor:
+                          selectedCategory === item
+                            ? colors.primary
+                            : colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => setSelectedCategory(item)}
+                    activeOpacity={0.7}
                   >
-                    {item}
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-              keyExtractor={(item) => item}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filtersContent}
-            />
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color:
+                          selectedCategory === item ? "#FFFFFF" : colors.text,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {item}
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+                keyExtractor={(item) => item}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersContent}
+              />
+            </View>
           </View>
 
           {/* Content */}
@@ -517,72 +493,13 @@ export default function ResourcesScreen() {
             </View>
           )}
 
-          {/* Coping Strategies */}
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Coping Strategies
-            </ThemedText>
-            {copingStrategies.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.copingCard,
-                  { backgroundColor: colors.card },
-                  createShadow(1, "#000", 0.05),
-                ]}
-                activeOpacity={0.8}
-              >
-                <View
-                  style={[
-                    styles.copingIcon,
-                    { backgroundColor: item.color + "30" },
-                  ]}
-                >
-                  <Ionicons
-                    name={item.iconName as any}
-                    size={28}
-                    color={item.color}
-                  />
-                </View>
-                <View style={styles.copingContent}>
-                  <ThemedText type="body" style={styles.copingTitle}>
-                    {item.title}
-                  </ThemedText>
-                  <ThemedText type="small" style={styles.copingMeta}>
-                    {item.duration || item.type}
-                  </ThemedText>
-                </View>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="bookmark-outline"
-                    size={20}
-                    color={colors.icon}
-                  />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Academic Support */}
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Academic Support
-            </ThemedText>
-            <FlatList
-              horizontal
-              data={academicResources as any}
-              renderItem={renderResourceCard}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            />
-          </View>
+          {/* Fresh build: unified content only; removed sample sections */}
+          <View style={{ height: 140 }} />
         </ScrollView>
       </ThemedView>
       {userRole === "peer-educator-executive" || userRole === "admin" ? (
         <FABButton
           icon="cloud-upload"
-          label="Suggest Resource"
           onPress={() => router.push("/executive/new-resource")}
           position="bottom-right"
           color={colors.primary}
@@ -663,9 +580,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     fontWeight: "700",
   },
-  horizontalList: {
-    gap: Spacing.md,
-  },
   resourceCard: {
     flex: 1,
     borderRadius: BorderRadius.md,
@@ -706,37 +620,9 @@ const styles = StyleSheet.create({
     bottom: Spacing.sm,
     right: Spacing.sm,
   },
-  copingCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  copingIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.md,
-  },
-  copingContent: {
-    flex: 1,
-  },
-  copingTitle: {
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-  },
-  copingMeta: {
-    opacity: 0.7,
-  },
   resourceContent: {
     padding: Spacing.sm,
     flex: 1,
-  },
-  copingEmoji: {
-    fontSize: 24,
   },
   favoritesToggle: {
     flexDirection: "row",
@@ -757,8 +643,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   galleryItem: {
-    width: 180,
-    height: 180,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
     marginRight: Spacing.md,
@@ -771,6 +657,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: Spacing.sm,
     bottom: Spacing.sm,
+  },
+  stickyHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
   },
   emptyContainer: {
     flex: 1,
