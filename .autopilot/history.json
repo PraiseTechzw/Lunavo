@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "5d3686767dbd6a4075bc96af82a63c28368347c6",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 1658ec38320293a702efb07e255a35db6d6b8d02d50412466c6ac9573fef4624",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx"
+      ],
+      "timestamp": "2026-02-14T15:58:19.597Z"
+    },
+    {
       "hash": "8e15fd1103670e29a54afd6bc50fcf1e025029a4",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 8eb0caf1d3784f52eaebac8b282259caf14e6505d8a53456530c692183575e7a",
       "files": [

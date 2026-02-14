@@ -296,15 +296,13 @@ export default function ResourcesScreen() {
       activeOpacity={0.8}
       onPress={() => router.push(`/resource/${item.id}`)}
     >
-      <Image
-        source={{ uri: item.url }}
+      <Image source={{ uri: item.url }} style={styles.galleryImage} contentFit="cover" transition={200} />
+      {item.type === "video" && (
         <View style={styles.galleryOverlay}>
           <View style={[styles.galleryPlayBg, { backgroundColor: "rgba(0,0,0,0.3)" }]} />
           <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
         </View>
-      />
-      {item.type === "video" && (
-        <View style={styles.galleryOverlay}>
+      )}
 
   const isImageUrl = (u?: string) =>
     !!u &&
