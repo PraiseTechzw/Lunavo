@@ -42,6 +42,15 @@
           "data": {
             "scheme": "peace"
           }
+        },
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "https",
+            "host": "peace.praisetech.tech",
+            "pathPrefix": "/auth/reset-password"
+          }
         }
       ],
       "permissions": [
