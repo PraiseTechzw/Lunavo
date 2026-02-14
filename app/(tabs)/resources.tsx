@@ -176,7 +176,14 @@ export default function ResourcesScreen() {
     }
 
     setFilteredResources(filtered);
-  }, [resources, selectedCategory, searchQuery, showFavoritesOnly, favorites, categoryMap]);
+  }, [
+    resources,
+    selectedCategory,
+    searchQuery,
+    showFavoritesOnly,
+    favorites,
+    categoryMap,
+  ]);
 
   useEffect(() => {
     filterResources();
@@ -234,7 +241,11 @@ export default function ResourcesScreen() {
       u.toLowerCase().includes(`.${ext}`),
     );
 
-  const getGalleryItems = (): { id: string; url: string; type: "image" | "video" }[] => {
+  const getGalleryItems = (): {
+    id: string;
+    url: string;
+    type: "image" | "video";
+  }[] => {
     const isVideo = (u?: string) =>
       !!u &&
       ["mp4", "mov", "webm", "mkv"].some((ext) =>
@@ -249,7 +260,11 @@ export default function ResourcesScreen() {
         if (isVideo(url)) return { id: r.id, url, type: "video" as const };
         return null;
       })
-      .filter(Boolean) as { id: string; url: string; type: "image" | "video" }[];
+      .filter(Boolean) as {
+      id: string;
+      url: string;
+      type: "image" | "video";
+    }[];
   };
 
   const renderGalleryItem = ({
@@ -290,7 +305,11 @@ export default function ResourcesScreen() {
                 { backgroundColor: "rgba(0,0,0,0.3)" },
               ]}
             />
-            <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
+            <MaterialIcons
+              name="play-circle-filled"
+              size={36}
+              color="#FFFFFF"
+            />
           </View>
         )}
       </TouchableOpacity>
@@ -326,10 +345,10 @@ export default function ResourcesScreen() {
       item.resourceType === "video"
         ? "videocam"
         : item.resourceType === "pdf"
-        ? "picture-as-pdf"
-        : item.resourceType === "article"
-        ? "library-books"
-        : "insert-link";
+          ? "picture-as-pdf"
+          : item.resourceType === "article"
+            ? "library-books"
+            : "insert-link";
 
     const mediaUrl = (item.url || (item as any).filePath) as string | undefined;
     const hasImage = isImageUrl(mediaUrl);
@@ -369,7 +388,11 @@ export default function ResourcesScreen() {
           )}
 
           <View style={[styles.typeBadge, { backgroundColor: colors.card }]}>
-            <MaterialIcons name={badgeIcon as any} size={14} color={colors.text} />
+            <MaterialIcons
+              name={badgeIcon as any}
+              size={14}
+              color={colors.text}
+            />
             <ThemedText type="small" style={{ marginLeft: 6, fontSize: 10 }}>
               {item.resourceType.toUpperCase()}
             </ThemedText>
@@ -377,7 +400,11 @@ export default function ResourcesScreen() {
         </View>
 
         <View style={styles.resourceContent}>
-          <ThemedText type="body" style={styles.resourceTitle} numberOfLines={2}>
+          <ThemedText
+            type="body"
+            style={styles.resourceTitle}
+            numberOfLines={2}
+          >
             {item.title}
           </ThemedText>
 
@@ -385,20 +412,27 @@ export default function ResourcesScreen() {
             {item.category} • {item.resourceType}
           </ThemedText>
 
-          {Array.isArray((item as any).tags) && (item as any).tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {(item as any).tags.slice(0, 3).map((tag: string) => (
-                <View
-                  key={tag}
-                  style={[styles.tagChip, { backgroundColor: colors.surface }]}
-                >
-                  <ThemedText type="small" style={{ color: colors.text, fontSize: 10 }}>
-                    {tag}
-                  </ThemedText>
-                </View>
-              ))}
-            </View>
-          )}
+          {Array.isArray((item as any).tags) &&
+            (item as any).tags.length > 0 && (
+              <View style={styles.tagsRow}>
+                {(item as any).tags.slice(0, 3).map((tag: string) => (
+                  <View
+                    key={tag}
+                    style={[
+                      styles.tagChip,
+                      { backgroundColor: colors.surface },
+                    ]}
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{ color: colors.text, fontSize: 10 }}
+                    >
+                      {tag}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
         </View>
 
         <TouchableOpacity
@@ -425,8 +459,8 @@ export default function ResourcesScreen() {
       item.resourceType === "video"
         ? "videocam-outline"
         : item.resourceType === "pdf"
-        ? "document-text-outline"
-        : "library-outline";
+          ? "document-text-outline"
+          : "library-outline";
 
     return (
       <TouchableOpacity
@@ -437,7 +471,9 @@ export default function ResourcesScreen() {
         ]}
         activeOpacity={0.85}
       >
-        <View style={[styles.miniIcon, { backgroundColor: colors.primary + "18" }]}>
+        <View
+          style={[styles.miniIcon, { backgroundColor: colors.primary + "18" }]}
+        >
           <Ionicons name={icon as any} size={22} color={colors.primary} />
         </View>
         <ThemedText type="body" numberOfLines={2} style={{ fontWeight: "600" }}>
@@ -475,7 +511,9 @@ export default function ResourcesScreen() {
                   style={[
                     styles.segmentChip,
                     {
-                      backgroundColor: isActive ? "#FFFFFF" : "rgba(255,255,255,0.2)",
+                      backgroundColor: isActive
+                        ? "#FFFFFF"
+                        : "rgba(255,255,255,0.2)",
                     },
                   ]}
                   onPress={() => setViewMode(mode)}
@@ -537,6 +575,12 @@ export default function ResourcesScreen() {
                 placeholderTextColor={colors.icon}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                onSubmitEditing={() =>
+                  router.push({
+                    pathname: "/resource/list",
+                    params: { q: searchQuery, cat: selectedCategory },
+                  })
+                }
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -547,6 +591,22 @@ export default function ResourcesScreen() {
                   <MaterialIcons name="close" size={18} color={colors.icon} />
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/resource/list",
+                    params: { q: searchQuery, cat: selectedCategory },
+                  })
+                }
+                style={styles.searchClearBtn}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  name="open-in-full"
+                  size={18}
+                  color={colors.icon}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Favorites toggle */}
@@ -554,7 +614,9 @@ export default function ResourcesScreen() {
               style={[
                 styles.favoritesToggle,
                 {
-                  backgroundColor: showFavoritesOnly ? colors.primary : colors.surface,
+                  backgroundColor: showFavoritesOnly
+                    ? colors.primary
+                    : colors.surface,
                 },
                 createShadow(1, "#000", 0.05),
               ]}
@@ -593,15 +655,41 @@ export default function ResourcesScreen() {
                       style={[
                         styles.filterChip,
                         {
-                          backgroundColor: active ? colors.primary : colors.surface,
+                          backgroundColor: active
+                            ? colors.primary
+                            : colors.surface,
                           borderColor: colors.border,
                         },
                         active ? createShadow(2, colors.primary, 0.25) : null,
                       ]}
                       onPress={() => setSelectedCategory(item)}
+                      onLongPress={() => {
+                        const map: Record<string, string> = {
+                          "Mental Health": "mental-health",
+                          "Substance Abuse": "substance-abuse",
+                          SRH: "sexual-health",
+                          "HIV/Safe Sex": "stis-hiv",
+                          "Family/Home": "family-home",
+                          Academic: "academic",
+                          Relationships: "relationships",
+                        };
+                        const slug = map[item];
+                        if (slug) {
+                          router.push({
+                            pathname: "/resource/category/[slug]",
+                            params: { slug },
+                          });
+                        }
+                      }}
                       activeOpacity={0.75}
                     >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
                         <ThemedText
                           type="small"
                           style={{
@@ -617,9 +705,13 @@ export default function ResourcesScreen() {
                             style={[
                               styles.countBadge,
                               {
-                                backgroundColor: active ? "#FFFFFF22" : colors.surface,
+                                backgroundColor: active
+                                  ? "#FFFFFF22"
+                                  : colors.surface,
                                 borderWidth: 1,
-                                borderColor: active ? "transparent" : colors.border,
+                                borderColor: active
+                                  ? "transparent"
+                                  : colors.border,
                               },
                             ]}
                           >
@@ -659,11 +751,18 @@ export default function ResourcesScreen() {
                         key={i}
                         style={[
                           styles.resourceCard,
-                          { backgroundColor: colors.card, marginRight: i === 0 ? ITEM_SPACING : 0 },
+                          {
+                            backgroundColor: colors.card,
+                            marginRight: i === 0 ? ITEM_SPACING : 0,
+                          },
                           createShadow(2, "#000", 0.08),
                         ]}
                       >
-                        <Skeleton width="100%" height={120} borderRadius={BorderRadius.md} />
+                        <Skeleton
+                          width="100%"
+                          height={120}
+                          borderRadius={BorderRadius.md}
+                        />
                         <View style={styles.resourceContent}>
                           <Skeleton width="80%" height={16} />
                           <Skeleton
@@ -682,11 +781,18 @@ export default function ResourcesScreen() {
                         key={i}
                         style={[
                           styles.resourceCard,
-                          { backgroundColor: colors.card, marginRight: i === 0 ? ITEM_SPACING : 0 },
+                          {
+                            backgroundColor: colors.card,
+                            marginRight: i === 0 ? ITEM_SPACING : 0,
+                          },
                           createShadow(2, "#000", 0.08),
                         ]}
                       >
-                        <Skeleton width="100%" height={120} borderRadius={BorderRadius.md} />
+                        <Skeleton
+                          width="100%"
+                          height={120}
+                          borderRadius={BorderRadius.md}
+                        />
                         <View style={styles.resourceContent}>
                           <Skeleton width="85%" height={16} />
                           <Skeleton
@@ -702,7 +808,9 @@ export default function ResourcesScreen() {
               ) : filteredResources.length > 0 ? (
                 <FlatList
                   data={filteredResources}
-                  renderItem={({ item, index }) => renderResourceCard({ item, index })}
+                  renderItem={({ item, index }) =>
+                    renderResourceCard({ item, index })
+                  }
                   keyExtractor={(item) => item.id}
                   scrollEnabled={false}
                   numColumns={2}
@@ -716,7 +824,9 @@ export default function ResourcesScreen() {
                     type="body"
                     style={{ color: colors.icon, marginTop: Spacing.md }}
                   >
-                    {showFavoritesOnly ? "No favorite resources yet" : "No resources found"}
+                    {showFavoritesOnly
+                      ? "No favorite resources yet"
+                      : "No resources found"}
                   </ThemedText>
                 </View>
               )}
@@ -735,11 +845,19 @@ export default function ResourcesScreen() {
                         key={i}
                         style={[
                           styles.galleryItem,
-                          { width: THUMB_SIZE, height: THUMB_SIZE, marginRight: i === 0 ? ITEM_SPACING : 0 },
+                          {
+                            width: THUMB_SIZE,
+                            height: THUMB_SIZE,
+                            marginRight: i === 0 ? ITEM_SPACING : 0,
+                          },
                           createShadow(2, "#000", 0.08),
                         ]}
                       >
-                        <Skeleton width="100%" height={THUMB_SIZE} borderRadius={BorderRadius.md} />
+                        <Skeleton
+                          width="100%"
+                          height={THUMB_SIZE}
+                          borderRadius={BorderRadius.md}
+                        />
                       </View>
                     ))}
                   </View>
@@ -749,11 +867,19 @@ export default function ResourcesScreen() {
                         key={i}
                         style={[
                           styles.galleryItem,
-                          { width: THUMB_SIZE, height: THUMB_SIZE, marginRight: i === 0 ? ITEM_SPACING : 0 },
+                          {
+                            width: THUMB_SIZE,
+                            height: THUMB_SIZE,
+                            marginRight: i === 0 ? ITEM_SPACING : 0,
+                          },
                           createShadow(2, "#000", 0.08),
                         ]}
                       >
-                        <Skeleton width="100%" height={THUMB_SIZE} borderRadius={BorderRadius.md} />
+                        <Skeleton
+                          width="100%"
+                          height={THUMB_SIZE}
+                          borderRadius={BorderRadius.md}
+                        />
                       </View>
                     ))}
                   </View>
@@ -761,7 +887,9 @@ export default function ResourcesScreen() {
               ) : getGalleryItems().length > 0 ? (
                 <FlatList
                   data={getGalleryItems()}
-                  renderItem={({ item, index }) => renderGalleryItem({ item, index })}
+                  renderItem={({ item, index }) =>
+                    renderGalleryItem({ item, index })
+                  }
                   keyExtractor={(item) => item.id}
                   numColumns={2}
                   columnWrapperStyle={styles.row}
@@ -807,7 +935,11 @@ export default function ResourcesScreen() {
                     { backgroundColor: item.color + "30" },
                   ]}
                 >
-                  <Ionicons name={item.iconName as any} size={28} color={item.color} />
+                  <Ionicons
+                    name={item.iconName as any}
+                    size={28}
+                    color={item.color}
+                  />
                 </View>
                 <View style={styles.copingContent}>
                   <ThemedText type="body" style={styles.copingTitle}>
@@ -818,7 +950,11 @@ export default function ResourcesScreen() {
                   </ThemedText>
                 </View>
                 <TouchableOpacity activeOpacity={0.8}>
-                  <Ionicons name="bookmark-outline" size={20} color={colors.icon} />
+                  <Ionicons
+                    name="bookmark-outline"
+                    size={20}
+                    color={colors.icon}
+                  />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -867,7 +1003,11 @@ const styles = StyleSheet.create({
   heroTitle: { color: "#FFFFFF", fontWeight: "900" },
   heroSubtitle: { color: "rgba(255,255,255,0.85)", marginTop: Spacing.xs },
 
-  segmentContainer: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.md },
+  segmentContainer: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
   segmentChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -896,7 +1036,11 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: Spacing.sm },
   searchInput: { flex: 1, paddingVertical: Spacing.sm, fontSize: 16 },
-  searchClearBtn: { marginLeft: Spacing.xs, padding: 6, borderRadius: BorderRadius.sm },
+  searchClearBtn: {
+    marginLeft: Spacing.xs,
+    padding: 6,
+    borderRadius: BorderRadius.sm,
+  },
 
   favoritesToggle: {
     flexDirection: "row",
@@ -959,17 +1103,33 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   resourceContent: { padding: Spacing.sm, flex: 1 },
-  resourceTitle: { fontWeight: "600", marginTop: Spacing.sm, marginBottom: Spacing.xs },
+  resourceTitle: {
+    fontWeight: "600",
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
   resourceMeta: { opacity: 0.7, marginBottom: Spacing.sm },
 
   tagsRow: { flexDirection: "row", gap: Spacing.xs, paddingBottom: Spacing.sm },
-  tagChip: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm },
+  tagChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
 
-  bookmarkButton: { position: "absolute", bottom: Spacing.sm, right: Spacing.sm },
+  bookmarkButton: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+  },
 
   galleryItem: { borderRadius: BorderRadius.md, overflow: "hidden" },
   galleryImage: { width: "100%", height: "100%" },
-  galleryOverlay: { position: "absolute", right: Spacing.sm, bottom: Spacing.sm },
+  galleryOverlay: {
+    position: "absolute",
+    right: Spacing.sm,
+    bottom: Spacing.sm,
+  },
   galleryPlayBg: {
     position: "absolute",
     width: 32,

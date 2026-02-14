@@ -2,11 +2,12 @@ import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { Resource } from "@/app/types";
 import { createInputStyle, createShadow } from "@/app/utils/platform-styles";
 import { getResources } from "@/lib/database";
-import { Resource } from "@/app/types";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Image } from "expo-image";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -16,17 +17,19 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
 
 export default function ResourceListScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string; cat?: string }>();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
 
   const [resources, setResources] = useState<Resource[]>([]);
   const [filtered, setFiltered] = useState<Resource[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState(params.q ?? "");
+  const [selectedCategory, setSelectedCategory] = useState(
+    params.cat && typeof params.cat === "string" ? params.cat : "All",
+  );
   const [loading, setLoading] = useState(true);
 
   const categories = useMemo(
@@ -103,7 +106,10 @@ export default function ResourceListScreen() {
   }, [filter]);
 
   const isImageUrl = (u?: string) =>
-    !!u && ["png", "jpg", "jpeg", "webp", "gif"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+    !!u &&
+    ["png", "jpg", "jpeg", "webp", "gif"].some((ext) =>
+      u.toLowerCase().includes(`.${ext}`),
+    );
 
   const renderItem = ({ item }: { item: Resource }) => {
     const getIcon = () => {
@@ -131,7 +137,9 @@ export default function ResourceListScreen() {
         activeOpacity={0.8}
         onPress={() => router.push(`/resource/${item.id}`)}
       >
-        <View style={[styles.thumb, { backgroundColor: colors.primary + "20" }]}>
+        <View
+          style={[styles.thumb, { backgroundColor: colors.primary + "20" }]}
+        >
           {isImageUrl(item.url || (item as any).filePath) ? (
             <Image
               source={{ uri: (item.url || (item as any).filePath) as string }}
@@ -140,11 +148,19 @@ export default function ResourceListScreen() {
               transition={200}
             />
           ) : (
-            <MaterialIcons name={getIcon() as any} size={28} color={colors.primary} />
+            <MaterialIcons
+              name={getIcon() as any}
+              size={28}
+              color={colors.primary}
+            />
           )}
         </View>
         <View style={styles.content}>
-          <ThemedText type="body" style={{ fontWeight: "600" }} numberOfLines={2}>
+          <ThemedText
+            type="body"
+            style={{ fontWeight: "600" }}
+            numberOfLines={2}
+          >
             {item.title}
           </ThemedText>
           <ThemedText type="small" style={{ opacity: 0.7 }}>
@@ -175,19 +191,44 @@ export default function ResourceListScreen() {
             createShadow(2, "#000", 0.08),
           ]}
         >
-          <MaterialIcons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
+          <MaterialIcons
+            name="search"
+            size={20}
+            color={colors.icon}
+            style={styles.searchIcon}
+          />
           <TextInput
-            style={[styles.searchInput, createInputStyle(), { color: colors.text }]}
+            style={[
+              styles.searchInput,
+              createInputStyle(),
+              { color: colors.text },
+            ]}
             placeholder="Search resources..."
             placeholderTextColor={colors.icon}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={styles.clearBtn}
+              activeOpacity={0.7}
+            >
               <MaterialIcons name="close" size={18} color={colors.icon} />
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/resource/list",
+                params: { q: searchQuery, cat: selectedCategory },
+              })
+            }
+            style={styles.clearBtn}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="open-in-full" size={18} color={colors.icon} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.filtersContainer}>
@@ -209,7 +250,13 @@ export default function ResourceListScreen() {
                   onPress={() => setSelectedCategory(item)}
                   activeOpacity={0.7}
                 >
-                  <ThemedText type="small" style={{ color: active ? "#FFFFFF" : colors.text, fontWeight: "600" }}>
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: active ? "#FFFFFF" : colors.text,
+                      fontWeight: "600",
+                    }}
+                  >
                     {item}
                   </ThemedText>
                 </TouchableOpacity>
@@ -222,7 +269,14 @@ export default function ResourceListScreen() {
         </View>
 
         {loading ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              padding: Spacing.xl,
+            }}
+          >
             <ThemedText>Loading...</ThemedText>
           </View>
         ) : (
@@ -230,7 +284,11 @@ export default function ResourceListScreen() {
             data={filtered}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: Spacing.xl, paddingHorizontal: Spacing.md, gap: Spacing.md }}
+            contentContainerStyle={{
+              paddingBottom: Spacing.xl,
+              paddingHorizontal: Spacing.md,
+              gap: Spacing.md,
+            }}
           />
         )}
       </ThemedView>
@@ -302,4 +360,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-})
+});
