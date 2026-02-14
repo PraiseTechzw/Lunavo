@@ -1,6 +1,18 @@
 {
   "commits": [
     {
+      "hash": "bdf6a4361c4338d658cd913b09c0e39de809232d",
+      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b6fbefba4dd260b2037352d51b77cd75867bfa0f91f120024ef324c307eb7bfc",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/resource/[id].tsx",
+        "lib/database.ts",
+        "supabase/migrations/032_resource_views_rpc.sql"
+      ],
+      "timestamp": "2026-02-14T19:49:53.852Z"
+    },
+    {
       "hash": "836ad513fe38a3460c7cc2dcb9f4098e73c9241e",
       "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c50a8f4a5291e0b71b8412bc932f6a723cc5693e8ce156d41f400d85b1dd2d3f",
       "files": [
@@ -1020,21 +1032,6 @@
         "app/peer-educator/training.tsx"
       ],
       "timestamp": "2026-02-13T06:27:02.346Z"
-    },
-    {
-      "hash": "1e22549c70df398c9f955e92cc6c0badad951595",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 008b395844544903796dbc8fe790fb015840545573c9a837f607213ce294712d",
-      "files": [
-        "autopilot/history.json",
-        "app/(tabs)/forum.tsx",
-        "app/(tabs)/index.tsx",
-        "app/(tabs)/resources.tsx",
-        "app/_layout.tsx",
-        "app/admin/analytics.tsx",
-        "app/admin/dashboard.tsx",
-        "app/admin/escalations.tsx"
-      ],
-      "timestamp": "2026-02-13T06:22:54.175Z"
     }
   ]
 }

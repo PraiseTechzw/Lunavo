@@ -77,6 +77,7 @@ export default function NewResourceScreen() {
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [pickingFile, setPickingFile] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
     const [form, setForm] = useState({
@@ -115,6 +116,8 @@ export default function NewResourceScreen() {
     const isGallery = form.category === 'gallery';
 
     const handlePickFile = async () => {
+        if (pickingFile) return;
+        setPickingFile(true);
         try {
             if (['pdf', 'training', 'tool'].includes(form.resourceType)) {
                 // Pick Document
@@ -155,7 +158,12 @@ export default function NewResourceScreen() {
             }
         } catch (error) {
             console.error('File pick error:', error);
-            Alert.alert('Error', 'Failed to pick file.');
+            // Ignore cancel errors or specific errors if needed, but alerting is fine for unknown ones
+            if ((error as any)?.code !== 'DOCUMENT_PICKER_CANCELED') {
+                Alert.alert('Error', 'Failed to pick file.');
+            }
+        } finally {
+            setPickingFile(false);
         }
     };
 
