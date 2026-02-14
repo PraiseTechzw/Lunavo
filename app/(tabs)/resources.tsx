@@ -109,6 +109,29 @@ export default function ResourcesScreen() {
     (width - H_PADDING * 2 - ITEM_SPACING * (NUM_COLUMNS - 1)) / NUM_COLUMNS,
   );
 
+  const getCategoryCount = (label: string): number => {
+    const map: Record<string, { cat?: string; type?: string }> = {
+      "Mental Health": { cat: "mental-health" },
+      "Substance Abuse": { cat: "substance-abuse" },
+      SRH: { cat: "sexual-health" },
+      "HIV/Safe Sex": { cat: "stis-hiv" },
+      "Family/Home": { cat: "family-home" },
+      Academic: { cat: "academic" },
+      Relationships: { cat: "relationships" },
+      Articles: { type: "article" },
+      Videos: { type: "video" },
+      PDFs: { type: "pdf" },
+    };
+    if (label === "All") return resources.length;
+    const rule = map[label];
+    if (!rule) return resources.length;
+    return resources.filter((r) => {
+      if (rule.cat) return r.category === rule.cat;
+      if (rule.type) return r.resourceType === rule.type;
+      return true;
+    }).length;
+  };
+
   useEffect(() => {
     loadResources();
     loadFavorites();
@@ -275,17 +298,13 @@ export default function ResourcesScreen() {
     >
       <Image
         source={{ uri: item.url }}
-        style={styles.galleryImage}
-        contentFit="cover"
-        transition={200}
+        <View style={styles.galleryOverlay}>
+          <View style={[styles.galleryPlayBg, { backgroundColor: "rgba(0,0,0,0.3)" }]} />
+          <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
+        </View>
       />
       {item.type === "video" && (
         <View style={styles.galleryOverlay}>
-          <MaterialIcons name="play-circle-filled" size={36} color="#FFFFFF" />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
 
   const isImageUrl = (u?: string) =>
     !!u &&
@@ -345,12 +364,25 @@ export default function ResourcesScreen() {
             />
           ) : (
             <Ionicons
-              name={getResourceIcon() as any}
-              size={40}
-              color={colors.primary}
+          <View style={[styles.typeBadge, { backgroundColor: colors.card }]}>
+            <MaterialIcons
+              name={
+                item.resourceType === "video"
+                  ? "videocam"
+                  : item.resourceType === "pdf"
+                  ? "picture-as-pdf"
+                  : item.resourceType === "article"
+                  ? "library-books"
+                  : "insert-link"
+              }
+              size={14}
+              color={colors.text}
             />
-          )}
-        </View>
+            <ThemedText type="small" style={{ marginLeft: 6, fontSize: 10 }}>
+              {item.resourceType.toUpperCase()}
+            </ThemedText>
+          </View>
+              name={getResourceIcon() as any}
         <View style={styles.resourceContent}>
           <ThemedText
             type="body"
@@ -461,6 +493,7 @@ export default function ResourcesScreen() {
                 backgroundColor: colors.background,
                 borderBottomColor: colors.border,
               },
+              createShadow(1, "#000", 0.04),
             ]}
           >
             {/* Search Bar */}
@@ -488,6 +521,15 @@ export default function ResourcesScreen() {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  style={styles.searchClearBtn}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="close" size={18} color={colors.icon} />
+                </TouchableOpacity>
+              )}
             </View>
 
             <TouchableOpacity
@@ -551,6 +593,20 @@ export default function ResourcesScreen() {
                         fontWeight: "600",
                       }}
                     >
+                    {item !== "All" && (
+                      <View style={[styles.countBadge, { backgroundColor: selectedCategory === item ? "#FFFFFF22" : colors.surface }]}>
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: selectedCategory === item ? "#FFFFFF" : colors.icon,
+                            fontSize: 10,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {getCategoryCount(item)}
+                        </ThemedText>
+                      </View>
+                    )}
                       {item}
                     </ThemedText>
                   </TouchableOpacity>
@@ -559,8 +615,6 @@ export default function ResourcesScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filtersContent}
               />
-            </View>
-          </View>
 
           {/* Content */}
           {viewMode === "library" ? (
@@ -909,6 +963,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     fontSize: 16,
   },
+  searchClearBtn: {
+    marginLeft: Spacing.xs,
+    padding: 6,
+    borderRadius: BorderRadius.sm,
+  },
   filtersContainer: {
     marginBottom: Spacing.lg,
   },
@@ -916,12 +975,20 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
     borderWidth: 1,
     letterSpacing: 0.2,
+  },
+  countBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
   },
   horizontalList: {
     gap: Spacing.md,
@@ -944,6 +1011,16 @@ const styles = StyleSheet.create({
     height: 120,
     alignItems: "center",
     justifyContent: "center",
+  },
+  typeBadge: {
+    position: "absolute",
+    top: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
   resourceTitle: {
     fontWeight: "600",
@@ -1006,16 +1083,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
   },
-  favoritesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    marginBottom: Spacing.md,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1041,6 +1108,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: Spacing.sm,
     bottom: Spacing.sm,
+  },
+  galleryPlayBg: {
+    position: "absolute",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    right: 2,
+    bottom: 2,
   },
   stickyHeader: {
     paddingHorizontal: Spacing.md,
