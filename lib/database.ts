@@ -5,25 +5,25 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-    ActivityLog,
-    Announcement,
-    Category,
-    CheckIn,
-    Escalation,
-    EscalationLevel,
-    Meeting,
-    MeetingAttendance,
-    MeetingType,
-    Notification,
-    NotificationType,
-    Post,
-    PostCategory,
-    PostStatus,
-    Reply,
-    Report,
-    SupportMessage,
-    SupportSession,
-    User,
+  ActivityLog,
+  Announcement,
+  Category,
+  CheckIn,
+  Escalation,
+  EscalationLevel,
+  Meeting,
+  MeetingAttendance,
+  MeetingType,
+  Notification,
+  NotificationType,
+  Post,
+  PostCategory,
+  PostStatus,
+  Reply,
+  Report,
+  SupportMessage,
+  SupportSession,
+  User,
 } from "@/app/types";
 import * as ExpoFileSystem from "expo-file-system";
 import { checkAllBadges } from "./gamification";
@@ -140,14 +140,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-    | "student"
-    | "peer-educator"
-    | "peer-educator-executive"
-    | "moderator"
-    | "counselor"
-    | "life-coach"
-    | "student-affairs"
-    | "admin";
+  | "student"
+  | "peer-educator"
+  | "peer-educator-executive"
+  | "moderator"
+  | "counselor"
+  | "life-coach"
+  | "student-affairs"
+  | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -1605,6 +1605,21 @@ export async function getResources(filters?: {
   return data || [];
 }
 
+export async function getResourceStats(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("resources")
+    .select("category");
+
+  if (error) throw error;
+
+  const stats: Record<string, number> = {};
+  (data || []).forEach((r: any) => {
+    stats[r.category] = (stats[r.category] || 0) + 1;
+  });
+
+  return stats;
+}
+
 export async function getResource(resourceId: string): Promise<any | null> {
   const { data, error } = await supabase
     .from("resources")
@@ -1788,13 +1803,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-          id: ub.badges.id,
-          name: ub.badges.name,
-          description: ub.badges.description,
-          icon: ub.badges.icon,
-          color: ub.badges.color,
-          category: ub.badges.category,
-        }
+        id: ub.badges.id,
+        name: ub.badges.name,
+        description: ub.badges.description,
+        icon: ub.badges.icon,
+        color: ub.badges.color,
+        category: ub.badges.category,
+      }
       : null,
   }));
 }
