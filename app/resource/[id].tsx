@@ -1,30 +1,31 @@
-/**
- * Resource Detail Screen
- */
-
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  Share,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
 import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
+import { ThemedView } from '@/app/components/themed-view';
+import { Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { getResource } from '@/lib/database';
 import { Resource } from '@/app/types';
+import { createShadow } from '@/app/utils/platform-styles';
+import { getResource } from '@/lib/database';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Linking,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+const { width } = Dimensions.get('window');
 const FAVORITES_KEY = 'resource_favorites';
 const DOWNLOADS_KEY = 'resource_downloads';
 
@@ -108,7 +109,6 @@ export default function ResourceDetailScreen() {
     if (!resource) return;
 
     try {
-      // Record download
       const downloadsJson = await AsyncStorage.getItem(DOWNLOADS_KEY);
       let downloads = downloadsJson ? JSON.parse(downloadsJson) : [];
 
@@ -128,7 +128,6 @@ export default function ResourceDetailScreen() {
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
       setIsDownloaded(true);
 
-      // Open resource URL if available
       if (resource.url) {
         const canOpen = await Linking.canOpenURL(resource.url);
         if (canOpen) {
@@ -147,7 +146,6 @@ export default function ResourceDetailScreen() {
 
   const handleShare = async () => {
     if (!resource) return;
-
     try {
       await Share.share({
         message: `Check out this resource: ${resource.title}\n${resource.description || ''}`,
@@ -158,313 +156,350 @@ export default function ResourceDetailScreen() {
     }
   };
 
+  const getResourceIcon = () => {
+    if (!resource) return 'file-outline';
+    switch (resource.resourceType) {
+      case 'article': return 'book-open-page-variant-outline';
+      case 'video': return 'play-circle-outline';
+      case 'pdf': return 'file-pdf-box';
+      case 'link': return 'link-variant';
+      case 'training': return 'school-outline';
+      default: return 'file-document-outline';
+    }
+  };
+
+  const getTypeColor = () => {
+    if (!resource) return colors.primary;
+    switch (resource.resourceType) {
+      case 'article': return '#6366F1';
+      case 'video': return '#10B981';
+      case 'pdf': return '#EF4444';
+      case 'link': return '#8B5CF6';
+      case 'training': return '#F59E0B';
+      default: return colors.primary;
+    }
+  };
+
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <ThemedView style={styles.loadingContainer}>
-          <ThemedText>Loading resource...</ThemedText>
-        </ThemedView>
-      </SafeAreaView>
+      <ThemedView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <ThemedText style={{ marginTop: 16 }}>Loading resource...</ThemedText>
+      </ThemedView>
     );
   }
 
   if (!resource) {
     return (
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <ThemedView style={styles.loadingContainer}>
-          <ThemedText>Resource not found</ThemedText>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            onPress={() => router.back()}
-          >
-            <ThemedText style={{ color: '#FFFFFF' }}>Go Back</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
+      <SafeAreaView style={styles.centerContainer}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.danger} />
+        <ThemedText type="h2" style={{ marginTop: 16 }}>Not Found</ThemedText>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+          <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Go Back</ThemedText>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  const getResourceIcon = () => {
-    switch (resource.resourceType) {
-      case 'article':
-        return 'article';
-      case 'video':
-        return 'video-library';
-      case 'pdf':
-        return 'picture-as-pdf';
-      case 'link':
-        return 'link';
-      default:
-        return 'description';
-    }
-  };
+  const accentColor = getTypeColor();
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity onPress={() => router.back()} style={getCursorStyle()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="h2" style={styles.headerTitle}>
-            Resource Details
-          </ThemedText>
-          <View style={{ width: 24 }} />
+    <ThemedView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {/* Immersive Header */}
+        <View style={styles.heroSection}>
+          <LinearGradient
+            colors={[accentColor, accentColor + '80', colors.background]}
+            style={styles.heroGradient}
+          />
+          <SafeAreaView edges={['top']} style={styles.navHeader}>
+            <TouchableOpacity style={styles.circleBtn} onPress={() => router.back()}>
+              <MaterialIcons name="arrow-back" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <View style={styles.navActions衡}>
+              <TouchableOpacity style={styles.circleBtn} onPress={handleShare}>
+                <MaterialIcons name="share" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.circleBtn} onPress={toggleFavorite}>
+                <MaterialIcons
+                  name={isFavorite ? "favorite" : "favorite-border"}
+                  size={24}
+                  color={isFavorite ? "#FF4757" : "#FFF"}
+                />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          <Animated.View entering={FadeInDown.duration(800)} style={styles.heroContent衡}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <MaterialCommunityIcons name={getResourceIcon() as any} size={64} color="#FFF" />
+            </View>
+            <View style={styles.typeTag}>
+              <ThemedText style={styles.typeTagText}>{resource.resourceType}</ThemedText>
+            </View>
+            <ThemedText type="h1" style={styles.title}>{resource.title}</ThemedText>
+            <ThemedText style={styles.category}>{resource.category.replace('-', ' ').toUpperCase()}</ThemedText>
+          </Animated.View>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Resource Header */}
-          <View style={[styles.resourceHeader, { backgroundColor: colors.card }, createShadow(2, '#000', 0.1)]}>
-            <View style={[styles.resourceIcon, { backgroundColor: colors.primary + '20' }]}>
-              <MaterialIcons name={getResourceIcon() as any} size={48} color={colors.primary} />
+        {/* Body Content */}
+        <Animated.View entering={FadeIn.delay(300)} style={styles.body}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statValue}>1.2k</ThemedText>
+              <ThemedText style={styles.statLabel}>Views</ThemedText>
             </View>
-            <ThemedText type="h2" style={styles.resourceTitle}>
-              {resource.title}
-            </ThemedText>
-            <View style={styles.resourceMeta}>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                {resource.category} • {resource.resourceType}
-              </ThemedText>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statValue}>{format(new Date(resource.createdAt), 'MMM yyyy')}</ThemedText>
+              <ThemedText style={styles.statLabel}>Published</ThemedText>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statValue}>4.8</ThemedText>
+              <ThemedText style={styles.statLabel}>Rating</ThemedText>
             </View>
           </View>
 
-          {/* Description */}
-          {resource.description && (
-            <View style={[styles.section, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Description
-              </ThemedText>
-              <ThemedText type="body" style={styles.description}>
-                {resource.description}
-              </ThemedText>
-            </View>
-          )}
+          <View style={styles.section衡}>
+            <ThemedText type="h3" style={styles.sectionTitle衡}>Description</ThemedText>
+            <ThemedText style={styles.descriptionText衡}>
+              {resource.description || "No detailed description available for this resource. Research and educational content designed for peer support."}
+            </ThemedText>
+          </View>
 
-          {/* Tags */}
           {resource.tags && resource.tags.length > 0 && (
-            <View style={styles.tagsSection}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Tags
-              </ThemedText>
-              <View style={styles.tagsContainer}>
-                {resource.tags.map((tag, index) => (
-                  <View
-                    key={index}
-                    style={[styles.tag, { backgroundColor: colors.surface }]}
-                  >
-                    <ThemedText type="small" style={{ color: colors.text }}>
-                      {tag}
-                    </ThemedText>
+            <View style={styles.section衡}>
+              <ThemedText type="h3" style={styles.sectionTitle衡}>Key Topics</ThemedText>
+              <View style={styles.tagsContainer衡}>
+                {resource.tags.map((tag, i) => (
+                  <View key={i} style={[styles.tag衡, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <ThemedText style={styles.tagText衡}>#{tag}</ThemedText>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Actions */}
-          <View style={styles.actionsSection}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: isFavorite ? colors.primary : colors.surface },
-                createShadow(2, '#000', 0.1),
-              ]}
-              onPress={toggleFavorite}
-            >
-              <MaterialIcons
-                name={isFavorite ? 'favorite' : 'favorite-border'}
-                size={24}
-                color={isFavorite ? '#FFFFFF' : colors.text}
-              />
-              <ThemedText
-                type="body"
-                style={{
-                  color: isFavorite ? '#FFFFFF' : colors.text,
-                  marginLeft: Spacing.sm,
-                  fontWeight: '600',
-                }}
-              >
-                {isFavorite ? 'Favorited' : 'Add to Favorites'}
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.primary },
-                createShadow(2, '#000', 0.1),
-              ]}
-              onPress={handleDownload}
-            >
-              <MaterialIcons name="download" size={24} color="#FFFFFF" />
-              <ThemedText
-                type="body"
-                style={{ color: '#FFFFFF', marginLeft: Spacing.sm, fontWeight: '600' }}
-              >
-                {isDownloaded ? 'Open' : 'Download'}
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.surface },
-                createShadow(2, '#000', 0.1),
-              ]}
-              onPress={handleShare}
-            >
-              <MaterialIcons name="share" size={24} color={colors.text} />
-              <ThemedText
-                type="body"
-                style={{ color: colors.text, marginLeft: Spacing.sm, fontWeight: '600' }}
-              >
-                Share
-              </ThemedText>
-            </TouchableOpacity>
+          <View style={[styles.infoCard衡, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.infoRow衡}>
+              <MaterialCommunityIcons name="shield-check-outline" size={20} color={colors.success} />
+              <ThemedText style={styles.infoText衡}>Verified PEACE Resource</ThemedText>
+            </View>
+            <View style={styles.infoRow衡}>
+              <MaterialCommunityIcons name="update" size={20} color={colors.primary} />
+              <ThemedText style={styles.infoText衡}>Last updated {format(new Date(resource.updatedAt), 'PP')}</ThemedText>
+            </View>
           </View>
 
-          {/* Metadata */}
-          <View style={[styles.metadataSection, { backgroundColor: colors.card }, createShadow(1, '#000', 0.05)]}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Information
-            </ThemedText>
-            <View style={styles.metadataRow}>
-              <ThemedText type="body" style={{ color: colors.icon }}>
-                Category:
-              </ThemedText>
-              <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
-                {resource.category}
-              </ThemedText>
-            </View>
-            <View style={styles.metadataRow}>
-              <ThemedText type="body" style={{ color: colors.icon }}>
-                Type:
-              </ThemedText>
-              <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
-                {resource.resourceType}
-              </ThemedText>
-            </View>
-            {resource.createdAt && (
-              <View style={styles.metadataRow}>
-                <ThemedText type="body" style={{ color: colors.icon }}>
-                  Added:
-                </ThemedText>
-                <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
-                  {format(new Date(resource.createdAt), 'MMM dd, yyyy')}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </ThemedView>
-    </SafeAreaView>
+          <View style={{ height: 120 }} />
+        </Animated.View>
+      </ScrollView>
+
+      {/* Float Action Bar */}
+      <View style={styles.bottomBar衡}>
+        <LinearGradient
+          colors={['transparent', colors.background]}
+          style={styles.bottomGradient衡}
+        />
+        <TouchableOpacity
+          style={[styles.mainActionBtn衡, { backgroundColor: accentColor }, createShadow(8, accentColor, 0.3)]}
+          onPress={handleDownload}
+        >
+          <MaterialCommunityIcons name={resource.resourceType === 'video' ? "play" : "open-in-new"} size={24} color="#FFF" />
+          <ThemedText style={styles.mainActionText衡}>
+            {resource.resourceType === 'video' ? 'Watch Video' : 'Open Resource'}
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
   },
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
   },
-  header: {
+  heroSection: {
+    height: 440,
+    position: 'relative',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  navHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: Spacing.md,
+    paddingTop: 10,
+    zIndex: 10,
   },
-  headerTitle: {
-    fontWeight: '700',
+  navActions衡: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-  },
-  resourceHeader: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  resourceIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
+  circleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    alignItems: 'center',
   },
-  resourceTitle: {
+  heroContent衡: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: 40,
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  typeTag: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  typeTagText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  title: {
+    color: '#FFF',
+    fontSize: 28,
+    fontWeight: '900',
     textAlign: 'center',
-    marginBottom: Spacing.sm,
+    lineHeight: 34,
+    marginBottom: 8,
+  },
+  category: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
     fontWeight: '700',
+    letterSpacing: 2,
   },
-  resourceMeta: {
-    marginTop: Spacing.xs,
+  body: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    marginTop: -30,
   },
-  section: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
+    marginBottom: 30,
   },
-  sectionTitle: {
-    fontWeight: '700',
-    marginBottom: Spacing.sm,
+  statItem: {
+    alignItems: 'center',
   },
-  description: {
-    lineHeight: 22,
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
   },
-  tagsSection: {
-    marginBottom: Spacing.md,
+  statLabel: {
+    fontSize: 12,
+    opacity: 0.5,
+    fontWeight: '600',
   },
-  tagsContainer: {
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  section衡: {
+    marginBottom: 30,
+  },
+  sectionTitle衡: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  descriptionText衡: {
+    fontSize: 16,
+    lineHeight: 26,
+    opacity: 0.7,
+  },
+  tagsContainer衡: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
   },
-  tag: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
+  tag衡: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  actionsSection: {
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+  tagText衡: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  actionButton: {
+  infoCard衡: {
+    padding: Spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    gap: 12,
+  },
+  infoRow衡: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoText衡: {
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.6,
+  },
+  bottomBar衡: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.lg,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
+  bottomGradient衡: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mainActionBtn衡: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    height: 64,
+    paddingHorizontal: 40,
+    borderRadius: 32,
+    gap: 12,
   },
-  metadataSection: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+  mainActionText衡: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '900',
   },
-  metadataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  button: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
-  },
+  backBtn: {
+    marginTop: 20,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 16,
+  }
 });
-

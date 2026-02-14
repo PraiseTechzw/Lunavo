@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHeaderHeight } from '@react-navigation/elements';
+import * as ExpoFileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -213,25 +214,25 @@ export default function CreatePostScreen() {
         return;
       }
 
-      // Read the image file
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
       // Generate unique filename with proper extension
-      const uriParts = imageUri.split('.');
-      const fileExt = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      const filePath = `post-images/${fileName}`;
+      const fileExt = imageUri.split('.').pop()?.split('?')[0].toLowerCase() || 'jpg';
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
       // Determine content type
       const contentType = fileExt === 'png' ? 'image/png' :
         fileExt === 'gif' ? 'image/gif' :
           fileExt === 'webp' ? 'image/webp' : 'image/jpeg';
 
+      const base64 = await ExpoFileSystem.readAsStringAsync(imageUri, {
+        encoding: 'base64' as any,
+      });
+      const response = await fetch(`data:${contentType};base64,${base64}`);
+      const arrayBuffer = await response.arrayBuffer();
+
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('post-images')
-        .upload(filePath, blob, {
+        .upload(filePath, arrayBuffer, {
           contentType: contentType,
           upsert: false,
         });
