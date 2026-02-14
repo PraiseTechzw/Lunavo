@@ -4,7 +4,7 @@ import { Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Resource } from '@/app/types';
 import { createShadow } from '@/app/utils/platform-styles';
-import { getResource, incrementResourceViews } from '@/lib/database';
+import { addResourceRating, getResource, incrementResourceViews } from '@/lib/database';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
@@ -17,6 +17,7 @@ import {
   Dimensions,
   ImageBackground,
   Linking,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
@@ -40,6 +41,8 @@ export default function ResourceDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   const loadResource = useCallback(async () => {
     try {
@@ -158,6 +161,27 @@ export default function ResourceDetailScreen() {
     }
   };
 
+  const handleRate = () => {
+    setShowRatingModal(true);
+  };
+
+  const submitRating = async (rating: number) => {
+    if (!resource) return;
+    try {
+      // Assuming a default user ID for now as useRoleGuard might not be available here, 
+      // replace with actual user ID from auth context
+      const userId = 'current-user-id';
+      await addResourceRating(resource.id, userId, rating);
+      setUserRating(rating);
+      setShowRatingModal(false);
+      Alert.alert('Thank You', 'Your rating has been submitted.');
+      loadResource(); // Reload to update average
+    } catch (error) {
+      console.error('Error rating resource:', error);
+      Alert.alert('Error', 'Failed to submit rating.');
+    }
+  };
+
   const getResourceIcon = () => {
     if (!resource) return 'file-outline';
     switch (resource.resourceType) {
@@ -210,13 +234,20 @@ export default function ResourceDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
         {/* Immersive Header */}
         <View style={styles.heroSection}>
-          {resource.filePath || (resource.url && (resource.url.includes('.jpg') || resource.url.includes('.png'))) ? (
+          {resource.filePath && (resource.filePath.endsWith('.jpg') || resource.filePath.endsWith('.png') || resource.filePath.endsWith('.jpeg')) ? (
             <ImageBackground
-              source={{
-                uri: resource.filePath ?
-                  `https://gqdpylrhlzpsjxjxymcn.supabase.co/storage/v1/object/public/system-resources/${resource.filePath}` :
-                  resource.url
-              }}
+              source={{ uri: `https://gqdpylrhlzpsjxjxymcn.supabase.co/storage/v1/object/public/system-resources/${resource.filePath}` }}
+              style={styles.heroBackground}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={[accentColor + '90', accentColor + '60', colors.background]}
+                style={styles.heroGradient}
+              />
+            </ImageBackground>
+          ) : resource.url && (resource.url.includes('images.unsplash.com') || resource.url.endsWith('.jpg') || resource.url.endsWith('.png')) ? (
+            <ImageBackground
+              source={{ uri: resource.url }}
               style={styles.heroBackground}
               resizeMode="cover"
             >
@@ -331,16 +362,59 @@ export default function ResourceDetailScreen() {
           colors={['transparent', colors.background]}
           style={styles.bottomGradient衡}
         />
-        <TouchableOpacity
-          style={[styles.mainActionBtn衡, { backgroundColor: accentColor }, createShadow(8, accentColor, 0.3)]}
-          onPress={handleDownload}
-        >
-          <MaterialCommunityIcons name={resource.resourceType === 'video' ? "play" : "open-in-new"} size={24} color="#FFF" />
-          <ThemedText style={styles.mainActionText衡}>
-            {resource.resourceType === 'video' ? 'Watch Video' : 'Open Resource'}
-          </ThemedText>
-        </TouchableOpacity>
+        <View style={styles.bottomActionsRow}>
+          <TouchableOpacity
+            style={[styles.secondaryActionBtn, { backgroundColor: colors.surface }]}
+            onPress={handleRate}
+          >
+            <MaterialCommunityIcons name="star-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.mainActionBtn衡, { backgroundColor: accentColor, flex: 1 }, createShadow(8, accentColor, 0.3)]}
+            onPress={handleDownload}
+          >
+            <MaterialCommunityIcons name={resource.resourceType === 'video' ? "play" : "open-in-new"} size={24} color="#FFF" />
+            <ThemedText style={styles.mainActionText衡}>
+              {resource.resourceType === 'video' ? 'Watch Video' : 'Open Resource'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Rating Modal */}
+      <Modal
+        visible={showRatingModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRatingModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.ratingCard, { backgroundColor: colors.card }]}>
+            <ThemedText type="h3" style={{ marginBottom: 8 }}>Rate this Resource</ThemedText>
+            <ThemedText style={{ opacity: 0.6, marginBottom: 24, textAlign: 'center' }}>
+              How helpful was this resource for you?
+            </ThemedText>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => submitRating(star)} style={{ padding: 8 }}>
+                  <MaterialCommunityIcons
+                    name={star <= userRating ? "star" : "star-outline"}
+                    size={40}
+                    color="#F59E0B"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={{ marginTop: 24, padding: 12 }}
+              onPress={() => setShowRatingModal(false)}
+            >
+              <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Cancel</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -356,7 +430,13 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     height: 440,
+    width: '100%',
     position: 'relative',
+  },
+  heroBackground: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
   },
   heroGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -506,6 +586,10 @@ const styles = StyleSheet.create({
     right: 0,
     padding: Spacing.lg,
     paddingBottom: 40,
+  },
+  bottomActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
     alignItems: 'center',
   },
   bottomGradient衡: {
@@ -516,14 +600,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 64,
-    paddingHorizontal: 40,
+    paddingHorizontal: 24,
     borderRadius: 32,
     gap: 12,
+  },
+  secondaryActionBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   mainActionText衡: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: '900',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  ratingCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    ...createShadow(20, '#000', 0.1),
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    gap: 8,
   },
   backBtn: {
     marginTop: 20,
