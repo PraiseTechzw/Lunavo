@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "dc33e0119de6e904772bf23d25441d3dc6f0d1eb",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b7cccc625bb295992b6b0f098d2513c650758af31965748de637b1f2b1baa6b6",
+      "files": [
+        "autopilot/history.json",
+        "web-reset/package.json",
+        "web-reset/pnpm-lock.yaml"
+      ],
+      "timestamp": "2026-02-14T11:48:55.922Z"
+    },
+    {
       "hash": "c2333390bd30c36444d6441b31f7c285198e53ad",
       "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 142eccbc2431c1eb50919814e0e729e19dda861edd91f9cec9e25d42b33743c2",
       "files": [
