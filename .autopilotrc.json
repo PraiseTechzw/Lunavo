@@ -3,8 +3,7 @@
   "minSecondsBetweenCommits": 180,
   "autoPush": true,
   "blockBranches": [
-    "main",
-    "master"
+    "main"
   ],
   "requireChecks": false,
   "checks": [],

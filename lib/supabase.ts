@@ -45,7 +45,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     // Persist the session
     persistSession: true,
     // Detect session from URL (for OAuth redirects)
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
   },
   // Enable real-time subscriptions
   realtime: {

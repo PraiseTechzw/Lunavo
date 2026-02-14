@@ -18,10 +18,10 @@ import {
     getUserSupportSessions,
 } from "@/lib/database";
 import {
-  subscribeToSupportSessions,
-  subscribeToMessages,
-  unsubscribe,
-  RealtimeChannel,
+    RealtimeChannel,
+    subscribeToMessages,
+    subscribeToSupportSessions,
+    unsubscribe,
 } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
@@ -120,7 +120,6 @@ export default function ChatListScreen() {
       );
 
       setChats(mappedChats);
-    } catch (error) {
       const channels: Record<string, RealtimeChannel> = {};
       mappedChats.forEach((chat) => {
         if (!messageChannels[chat.id]) {
@@ -128,16 +127,14 @@ export default function ChatListScreen() {
             setChats((prev) =>
               prev.map((c) => {
                 if (c.id !== chat.id) return c;
-                const isIncoming =
-                  msg.sender_id && msg.sender_id !== user?.id;
+                const isIncoming = msg.sender_id && msg.sender_id !== user?.id;
                 const newTime = new Date(msg.created_at);
                 return {
                   ...c,
                   lastMessage: msg.content,
                   time: newTime,
                   unread: isIncoming ? c.unread + 1 : c.unread,
-                  isOnline:
-                    Date.now() - newTime.getTime() < 2 * 60 * 1000,
+                  isOnline: Date.now() - newTime.getTime() < 2 * 60 * 1000,
                 };
               }),
             );
@@ -184,7 +181,9 @@ export default function ChatListScreen() {
       <TouchableOpacity
         style={[styles.chatCard, { backgroundColor: colors.card }]}
         onPress={() => {
-          setChats(prev => prev.map(c => c.id === item.id ? { ...c, unread: 0 } : c));
+          setChats((prev) =>
+            prev.map((c) => (c.id === item.id ? { ...c, unread: 0 } : c)),
+          );
           router.push(`/chat/${item.id}`);
         }}
         activeOpacity={0.8}
