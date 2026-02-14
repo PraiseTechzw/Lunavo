@@ -1,6 +1,22 @@
 {
   "commits": [
     {
+      "hash": "d1afbce8ad8554a8ee2f9e9236cdf67e903275aa",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 490642f4130a758dca85219027b613c973fb50dcaaad2a31761cce47498563f6",
+      "files": [
+        "autopilot/history.json",
+        "web-reset/.next/build-manifest.json",
+        "web-reset/.next/cache/webpack/client-development/index.pack.gz",
+        "web-reset/.next/server/middleware-build-manifest.js",
+        "web-reset/.next/server/pages-manifest.json",
+        "web-reset/.next/static/development/_buildManifest.js",
+        "web-reset/package.json",
+        "web-reset/.eslintignore",
+        "web-reset/.eslintrc.json"
+      ],
+      "timestamp": "2026-02-14T12:23:05.179Z"
+    },
+    {
       "hash": "b6cf4be8f85e843cac05bfd981f02a4766144c74",
       "message": "[autopilot] chore(client-development): update client-development\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 9003281317e94102d10239170c8c2b81ea1d93e1a19b0c9b1f935e7d9d6c4ccf",
       "files": [
