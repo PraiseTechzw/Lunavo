@@ -1,6 +1,20 @@
 {
   "commits": [
     {
+      "hash": "0cc4efba61029a3d48e356f7d4f16779c5652b21",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 84229c5e0870359c1df9669113e26186bbdfc17828928cf53a6c08d55d4f1507",
+      "files": [
+        "gitignore",
+        "web-reset/.next/build-manifest.json",
+        "web-reset/.next/server/middleware-build-manifest.js",
+        "web-reset/.next/server/pages-manifest.json",
+        "web-reset/.next/static/development/_buildManifest.js",
+        "web-reset/.vercelignore",
+        "web-reset/vercel.json"
+      ],
+      "timestamp": "2026-02-14T12:15:27.638Z"
+    },
+    {
       "hash": "dc33e0119de6e904772bf23d25441d3dc6f0d1eb",
       "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b7cccc625bb295992b6b0f098d2513c650758af31965748de637b1f2b1baa6b6",
       "files": [
