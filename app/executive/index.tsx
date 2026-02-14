@@ -7,10 +7,10 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Resource, User } from "@/app/types";
@@ -22,14 +22,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -300,6 +300,17 @@ export default function PEExecutiveDashboard() {
           >
             <MaterialCommunityIcons name="bullhorn" size={24} color="#EC4899" />
             <ThemedText style={styles.secondaryActionText}>News</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.secondaryActionCard,
+              { backgroundColor: colors.card },
+            ]}
+            onPress={() => router.push("/gallery")}
+          >
+            <MaterialCommunityIcons name="image-multiple" size={24} color="#8B5CF6" />
+            <ThemedText style={styles.secondaryActionText}>Gallery</ThemedText>
           </TouchableOpacity>
         </View>
 

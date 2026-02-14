@@ -37,6 +37,7 @@ interface DrawerMenuProps {
 }
 
 const COMMON_ITEMS: DrawerItem[] = [
+  { id: 'gallery', label: 'Photo Gallery', icon: 'image-multiple-outline', route: '/gallery', section: 'main' },
   { id: 'settings', label: 'Settings', icon: 'cog-outline', route: '/profile-settings', section: 'main' },
   { id: 'help', label: 'Help & Support', icon: 'lifebuoy', route: '/help', section: 'main' },
   { id: 'privacy', label: 'Privacy Policy', icon: 'shield-lock-outline', route: '/privacy', section: 'main' },
