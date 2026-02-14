@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "c2333390bd30c36444d6441b31f7c285198e53ad",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 142eccbc2431c1eb50919814e0e729e19dda861edd91f9cec9e25d42b33743c2",
+      "files": [
+        "autopilot/history.json",
+        "web-reset/package.json",
+        "web-reset/src/pages/change-password.tsx"
+      ],
+      "timestamp": "2026-02-14T11:29:39.238Z"
+    },
+    {
       "hash": "22c5d16edb40e957446f1537f2f973a23baab58b",
       "message": "[autopilot] style(theme): update color variables\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 983a512e63fa64fa66d0153436f166c14db7b2fa39b2e1bfa58d802907f007ca",
       "files": [
