@@ -58,6 +58,7 @@ export default function ResourceListScreen() {
       "Academic",
       "Relationships",
       "Articles",
+      "Images",
       "Videos",
       "PDFs",
     ],
@@ -74,6 +75,7 @@ export default function ResourceListScreen() {
       Academic: { cat: "academic" },
       Relationships: { cat: "relationships" },
       Articles: { type: "article" },
+      Images: { type: "image" },
       Videos: { type: "video" },
       PDFs: { type: "pdf" },
     }),
@@ -131,11 +133,13 @@ export default function ResourceListScreen() {
       u.toLowerCase().includes(`.${ext}`),
     );
 
-  const renderItem = ({ item, index }: { item: Resource, index: number }) => {
+  const renderItem = ({ item, index }: { item: Resource; index: number }) => {
     const getIcon = () => {
       switch (item.resourceType) {
         case "article":
           return "book-open-variant";
+        case "image":
+          return "image-outline";
         case "video":
           return "play-circle-outline";
         case "pdf":
@@ -149,16 +153,20 @@ export default function ResourceListScreen() {
 
     const typeColors: Record<string, string> = {
       article: "#6366F1",
+      image: "#EC4899",
       video: "#10B981",
       pdf: "#EF4444",
       link: "#8B5CF6",
-      training: "#F59E0B"
+      training: "#F59E0B",
     };
 
     const typeColor = typeColors[item.resourceType] || colors.primary;
 
     return (
-      <Animated.View entering={FadeInDown.delay(index * 50)} layout={Layout.springify()}>
+      <Animated.View
+        entering={FadeInDown.delay(index * 50)}
+        layout={Layout.springify()}
+      >
         <TouchableOpacity
           style={[
             styles.card,
@@ -168,9 +176,7 @@ export default function ResourceListScreen() {
           activeOpacity={0.8}
           onPress={() => router.push(`/resource/${item.id}`)}
         >
-          <View
-            style={[styles.thumb, { backgroundColor: typeColor + "15" }]}
-          >
+          <View style={[styles.thumb, { backgroundColor: typeColor + "15" }]}>
             {isImageUrl(item.url || (item as any).filePath) ? (
               <Image
                 source={{ uri: (item.url || (item as any).filePath) as string }}
@@ -188,8 +194,15 @@ export default function ResourceListScreen() {
           </View>
           <View style={styles.content}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.typeBadge, { backgroundColor: typeColor + "10" }]}>
-                <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
+              <View
+                style={[
+                  styles.typeBadge,
+                  { backgroundColor: typeColor + "10" },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.typeBadgeText, { color: typeColor }]}
+                >
                   {item.resourceType}
                 </ThemedText>
               </View>
@@ -197,28 +210,38 @@ export default function ResourceListScreen() {
                 {slugToLabel[item.category] || item.category}
               </ThemedText>
             </View>
-            <ThemedText
-              type="h3"
-              style={styles.title}
-              numberOfLines={2}
-            >
+            <ThemedText type="h3" style={styles.title} numberOfLines={2}>
               {item.title}
             </ThemedText>
-            <ThemedText type="small" style={styles.description} numberOfLines={1}>
+            <ThemedText
+              type="small"
+              style={styles.description}
+              numberOfLines={1}
+            >
               {item.description || "No description available"}
             </ThemedText>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color={colors.icon} />
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={colors.icon}
+          />
         </TouchableOpacity>
       </Animated.View>
     );
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <ThemedView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
@@ -245,10 +268,7 @@ export default function ResourceListScreen() {
             style={styles.searchIcon}
           />
           <TextInput
-            style={[
-              styles.searchInput,
-              { color: colors.text },
-            ]}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search by title or topic..."
             placeholderTextColor={colors.icon}
             value={searchQuery}
@@ -307,9 +327,17 @@ export default function ResourceListScreen() {
           </View>
         ) : filtered.length === 0 ? (
           <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="book-search-outline" size={64} color={colors.icon} />
-            <ThemedText type="h3" style={styles.emptyTitle}>No resources found</ThemedText>
-            <ThemedText style={styles.emptySubtitle}>Try changing your search or category filter</ThemedText>
+            <MaterialCommunityIcons
+              name="book-search-outline"
+              size={64}
+              color={colors.icon}
+            />
+            <ThemedText type="h3" style={styles.emptyTitle}>
+              No resources found
+            </ThemedText>
+            <ThemedText style={styles.emptySubtitle}>
+              Try changing your search or category filter
+            </ThemedText>
             <TouchableOpacity
               style={[styles.resetBtn, { backgroundColor: colors.primary }]}
               onPress={() => {
@@ -317,7 +345,9 @@ export default function ResourceListScreen() {
                 setSelectedCategory("All");
               }}
             >
-              <ThemedText style={styles.resetBtnText}>Clear All Filters</ThemedText>
+              <ThemedText style={styles.resetBtnText}>
+                Clear All Filters
+              </ThemedText>
             </TouchableOpacity>
           </View>
         ) : (
@@ -479,5 +509,5 @@ const styles = StyleSheet.create({
   resetBtnText: {
     color: "#FFF",
     fontWeight: "800",
-  }
+  },
 });

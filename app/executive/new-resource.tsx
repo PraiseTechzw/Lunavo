@@ -28,6 +28,7 @@ const { width } = Dimensions.get('window');
 
 const RESOURCE_TYPES = [
     { id: 'article', label: 'Article', icon: 'book-open-variant' },
+    { id: 'image', label: 'Image', icon: 'image-outline' },
     { id: 'video', label: 'Video', icon: 'video-wireless' },
     { id: 'pdf', label: 'PDF / Doc', icon: 'file-pdf-box' },
     { id: 'link', label: 'External', icon: 'link-variant' },
@@ -42,6 +43,7 @@ const CATEGORIES: { id: PostCategory; label: string; icon: string; color: string
     { id: 'family-home', label: 'Family & Home Challenges', icon: 'home-heart', color: '#5F27CD' },
     { id: 'academic', label: 'Academic Support & Exam Stress', icon: 'book-open-page-variant', color: '#48DBFB' },
     { id: 'relationships', label: 'Relationship & Social Guidance', icon: 'account-heart', color: '#FF6B6B' },
+    { id: 'gallery', label: 'Photo Gallery', icon: 'image-multiple-outline', color: '#EC4899' },
     { id: 'general', label: 'General / Other', icon: 'dots-grid', color: '#576574' },
 ];
 
@@ -81,7 +83,10 @@ export default function NewResourceScreen() {
             });
 
             if (!result.canceled && result.assets[0].uri) {
-                setForm({ ...form, localUri: result.assets[0].uri });
+                const asset = result.assets[0] as any;
+                const inferredType =
+                    asset?.type === 'video' ? 'video' : asset?.type === 'image' ? 'image' : form.resourceType;
+                setForm({ ...form, localUri: asset.uri, resourceType: inferredType });
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }
         } catch (error) {

@@ -1551,7 +1551,7 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: "article" | "video" | "pdf" | "link" | "training";
+  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image";
   url?: string;
   filePath?: string;
   tags?: string[];
@@ -1583,7 +1583,7 @@ export async function createResource(
 
 export async function getResources(filters?: {
   category?: PostCategory;
-  resourceType?: "article" | "video" | "pdf" | "link" | "training";
+  resourceType?: "article" | "video" | "pdf" | "link" | "training" | "image";
 }): Promise<any[]> {
   let query = supabase
     .from("resources")
