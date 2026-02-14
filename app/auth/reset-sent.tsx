@@ -1,13 +1,18 @@
 import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
+import {
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
+} from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function ResetSentScreen() {
   const router = useRouter();
@@ -29,12 +34,18 @@ export default function ResetSentScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        <Animated.View entering={FadeInDown.duration(800)} style={styles.logoSection}>
+        <Animated.View
+          entering={FadeInDown.duration(800)}
+          style={styles.logoSection}
+        >
           <PEACELogo size={88} />
-          <ThemedText type="h1" style={styles.title}>Protocol Sent</ThemedText>
+          <ThemedText type="h1" style={styles.title}>
+            Protocol Sent
+          </ThemedText>
           <ThemedText style={styles.subtitle}>
-            We have sent a recovery link to {email ? String(email) : "your email"}.
-            Open it on this device to set a new password.
+            We have sent a recovery link to{" "}
+            {email ? String(email) : "your email"}. Use the web link to change
+            your password, then return to PEACE to sign in.
           </ThemedText>
         </Animated.View>
 
@@ -50,21 +61,15 @@ export default function ResetSentScreen() {
               - Tap the link on this device to establish a new access key.
             </ThemedText>
             <ThemedText>
-              - After updating, open the PEACE app and sign in with your new password.
+              - After updating, open the PEACE app and sign in with your new
+              password.
             </ThemedText>
           </View>
 
           <TouchableOpacity
-            onPress={() => router.replace(`/auth/reset-password?email=${encodeURIComponent(String(email ?? ""))}`)}
-            style={styles.btnWrapper}
-          >
-            <LinearGradient colors={colors.gradients.primary as any} style={styles.btn}>
-              <ThemedText style={styles.btnText}>I HAVE THE LINK</ThemedText>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => Linking.openURL("https://peace.praisetech.tech/reset")}
+            onPress={() =>
+              Linking.openURL("https://peace.praisetech.tech/reset")
+            }
             style={styles.secondaryBtnWrapper}
           >
             <ThemedText style={{ color: colors.primary, fontWeight: "700" }}>
@@ -73,7 +78,10 @@ export default function ResetSentScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <TouchableOpacity onPress={() => router.replace("/auth/login")} style={styles.backLink}>
+        <TouchableOpacity
+          onPress={() => router.replace("/auth/login")}
+          style={styles.backLink}
+        >
           <ThemedText style={{ opacity: 0.7 }}>Return to login</ThemedText>
         </TouchableOpacity>
       </SafeAreaView>
@@ -88,7 +96,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, justifyContent: "center", padding: Spacing.xl },
   logoSection: { alignItems: "center", marginBottom: 36 },
   title: { fontSize: 32, fontWeight: "900", marginTop: 18 },
-  subtitle: { opacity: 0.7, textAlign: "center", marginTop: 10, lineHeight: 22 },
+  subtitle: {
+    opacity: 0.7,
+    textAlign: "center",
+    marginTop: 10,
+    lineHeight: 22,
+  },
   card: {
     padding: Spacing.xl,
     borderRadius: BorderRadius.xxl,
@@ -96,9 +109,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
-  btnWrapper: { ...PlatformStyles.premiumShadow, marginTop: 20 },
-  btn: { height: 56, borderRadius: BorderRadius.xl, justifyContent: "center", alignItems: "center" },
-  btnText: { color: "#FFF", fontWeight: "900", letterSpacing: 1 },
   secondaryBtnWrapper: { alignItems: "center", marginTop: 16 },
   backLink: { alignItems: "center", marginTop: Spacing.xl },
 });
