@@ -10,6 +10,7 @@ import { Resource } from "@/app/types";
 import { createInputStyle, createShadow } from "@/app/utils/platform-styles";
 import { getCurrentUser, getResources } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -97,6 +98,7 @@ export default function ResourcesScreen() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [viewMode, setViewMode] = useState<"library" | "gallery">("library");
 
   useEffect(() => {
     loadResources();
@@ -209,6 +211,40 @@ export default function ResourcesScreen() {
     }
   };
 
+  const getGalleryItems = (): { id: string; url: string; type: "image" | "video" }[] => {
+    const isImage = (u?: string) =>
+      !!u &&
+      ["png", "jpg", "jpeg", "webp", "gif"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+    const isVideo = (u?: string) =>
+      !!u && ["mp4", "mov", "webm", "mkv"].some((ext) => u.toLowerCase().includes(`.${ext}`));
+
+    return resources
+      .map((r) => {
+        const url = r.url || r.filePath || "";
+        if (!url) return null;
+        if (isImage(url)) return { id: r.id, url, type: "image" as const };
+        if (isVideo(url)) return { id: r.id, url, type: "video" as const };
+        return null;
+      })
+      .filter(Boolean) as { id: string; url: string; type: "image" | "video" }[];
+  };
+
+  const renderGalleryItem = ({ item }: { item: { id: string; url: string; type: "image" | "video" } }) => (
+    <TouchableOpacity
+      style={[styles.galleryItem, { backgroundColor: colors.surface }, createShadow(2, "#000", 0.1)]}
+      activeOpacity={0.8}
+      onPress={() => router.push(`/resource/${item.id}`)}
+    >
+      {item.type === "image" ? (
+        <View style={styles.galleryImage} />
+      ) : (
+        <View style={[styles.galleryImage, { alignItems: "center", justifyContent: "center" }]}>
+          <MaterialIcons name="play-circle-outline" size={36} color={colors.icon} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const isFavorite = favorites.has(item.id);
     const getResourceIcon = () => {
@@ -280,6 +316,40 @@ export default function ResourcesScreen() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeAreaTop}>
       <ThemedView style={styles.container}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <ThemedText type="h1" style={styles.heroTitle}>Resource Center</ThemedText>
+          <ThemedText type="body" style={styles.heroSubtitle}>
+            Articles, videos, documents, and media in one beautiful place
+          </ThemedText>
+          <View style={styles.segmentContainer}>
+            {["library", "gallery"].map((mode) => {
+              const isActive = viewMode === (mode as any);
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.segmentChip,
+                    { backgroundColor: isActive ? "#FFFFFF" : "rgba(255,255,255,0.2)" },
+                  ]}
+                  onPress={() => setViewMode(mode as any)}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText
+                    type="small"
+                    style={{ color: isActive ? colors.primary : "#FFFFFF", fontWeight: "700" }}
+                  >
+                    {mode === "library" ? "Library" : "Gallery"}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </LinearGradient>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -378,40 +448,63 @@ export default function ResourcesScreen() {
             />
           </View>
 
-          {/* Resources List */}
-          <View style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              {showFavoritesOnly ? "Favorite Resources" : "All Resources"} (
-              {filteredResources.length})
-            </ThemedText>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ThemedText>Loading resources...</ThemedText>
-              </View>
-            ) : filteredResources.length > 0 ? (
-              <FlatList
-                data={filteredResources}
-                renderItem={renderResourceCard}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                numColumns={2}
-                columnWrapperStyle={styles.row}
-                contentContainerStyle={styles.gridList}
-              />
-            ) : (
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="inbox" size={48} color={colors.icon} />
-                <ThemedText
-                  type="body"
-                  style={{ color: colors.icon, marginTop: Spacing.md }}
-                >
-                  {showFavoritesOnly
-                    ? "No favorite resources yet"
-                    : "No resources found"}
-                </ThemedText>
-              </View>
-            )}
-          </View>
+          {/* Content */}
+          {viewMode === "library" ? (
+            <View style={styles.section}>
+              <ThemedText type="h3" style={styles.sectionTitle}>
+                {showFavoritesOnly ? "Favorite Resources" : "All Resources"} ({filteredResources.length})
+              </ThemedText>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ThemedText>Loading resources...</ThemedText>
+                </View>
+              ) : filteredResources.length > 0 ? (
+                <FlatList
+                  data={filteredResources}
+                  renderItem={renderResourceCard}
+                  keyExtractor={(item) => item.id}
+                  scrollEnabled={false}
+                  numColumns={2}
+                  columnWrapperStyle={styles.row}
+                  contentContainerStyle={styles.gridList}
+                />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="inbox" size={48} color={colors.icon} />
+                  <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                    {showFavoritesOnly ? "No favorite resources yet" : "No resources found"}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.section}>
+              <ThemedText type="h3" style={styles.sectionTitle}>
+                Gallery ({getGalleryItems().length})
+              </ThemedText>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ThemedText>Loading gallery...</ThemedText>
+                </View>
+              ) : getGalleryItems().length > 0 ? (
+                <FlatList
+                  data={getGalleryItems()}
+                  renderItem={renderGalleryItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  columnWrapperStyle={styles.row}
+                  contentContainerStyle={styles.gridList}
+                />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="image-not-supported" size={48} color={colors.icon} />
+                  <ThemedText type="body" style={{ color: colors.icon, marginTop: Spacing.md }}>
+                    No media found
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Coping Strategies */}
           <View style={styles.section}>
@@ -494,6 +587,29 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  hero: {
+    padding: Spacing.lg,
+    borderBottomLeftRadius: BorderRadius.lg,
+    borderBottomRightRadius: BorderRadius.lg,
+  },
+  heroTitle: {
+    color: "#FFFFFF",
+    fontWeight: "900",
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.85)",
+    marginTop: Spacing.xs,
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  segmentChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   scrollView: {
     flex: 1,
@@ -615,6 +731,17 @@ const styles = StyleSheet.create({
   },
   gridList: {
     paddingBottom: Spacing.xl,
+  },
+  galleryItem: {
+    width: 180,
+    height: 180,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    marginRight: Spacing.md,
+  },
+  galleryImage: {
+    width: "100%",
+    height: "100%",
   },
   emptyContainer: {
     flex: 1,

@@ -101,6 +101,8 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+      />
+      <Tabs.Screen
         name="forum"
         options={{
           tabBarIcon: ({ color, focused }) => (
