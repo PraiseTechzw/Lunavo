@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -22,7 +22,20 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
+import Animated, {
+    FadeIn,
+    FadeInRight,
+    FadeOut,
+    FadeOutLeft,
+    Layout,
+    ZoomIn,
+    ZoomOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -73,6 +86,28 @@ export default function NewResourceScreen() {
         album: 'Events', // Specifically for gallery
         localUri: null as string | null,
     });
+
+    const pulse = useSharedValue(1);
+
+    useEffect(() => {
+        if (submitting || uploading) {
+            pulse.value = withRepeat(
+                withSequence(
+                    withTiming(1.2, { duration: 800 }),
+                    withTiming(1, { duration: 800 })
+                ),
+                -1,
+                true
+            );
+        } else {
+            pulse.value = 1;
+        }
+    }, [submitting, uploading]);
+
+    const pulseStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: pulse.value }],
+        opacity: 0.6 + (pulse.value - 1) * 2
+    }));
 
     const isGallery = form.category === 'gallery';
 
@@ -448,6 +483,46 @@ export default function NewResourceScreen() {
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
+
+            {/* Publishing Animation Overlay */}
+            {(submitting || uploading) && (
+                <Animated.View
+                    entering={FadeIn.duration(400)}
+                    exiting={FadeOut.duration(400)}
+                    style={styles.overlayContainer}
+                >
+                    <View style={styles.overlayBg} />
+                    <Animated.View
+                        entering={ZoomIn.springify()}
+                        exiting={ZoomOut.duration(200)}
+                        style={[styles.overlayCard, { backgroundColor: colors.card }]}
+                    >
+                        <View style={styles.loaderContainer}>
+                            <Animated.View
+                                entering={FadeIn.delay(200)}
+                                style={styles.pulsingIcon}
+                            >
+                                <MaterialCommunityIcons
+                                    name={uploading ? "cloud-upload" : "check-decagram"}
+                                    size={48}
+                                    color={colors.primary}
+                                />
+                            </Animated.View>
+                            <ActivityIndicator
+                                size={100}
+                                color={colors.primary}
+                                style={styles.absoluteLoader}
+                            />
+                        </View>
+                        <ThemedText style={styles.overlayTitle}>
+                            {uploading ? "Uploading media..." : "Finalizing post..."}
+                        </ThemedText>
+                        <ThemedText style={styles.overlaySubtitle}>
+                            {uploading ? "Almost there. Just securing your file." : "Setting everything up for the community."}
+                        </ThemedText>
+                    </Animated.View>
+                </Animated.View>
+            )}
         </SafeAreaView>
     );
 }
@@ -683,5 +758,49 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: '800',
+    },
+    overlayContainer: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 9999,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    overlayBg: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    overlayCard: {
+        width: width * 0.85,
+        padding: 40,
+        borderRadius: 32,
+        alignItems: 'center',
+        ...PlatformStyles.premiumShadow,
+    },
+    loaderContainer: {
+        marginBottom: 24,
+        width: 80,
+        height: 80,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    overlayTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    overlaySubtitle: {
+        fontSize: 14,
+        opacity: 0.6,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    pulsingIcon: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    absoluteLoader: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.5,
     }
 });
