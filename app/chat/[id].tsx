@@ -248,6 +248,8 @@ export default function ChatDetailScreen() {
       index === 0 ||
       new Date(messages[index - 1].created_at).toDateString() !==
         new Date(item.created_at).toDateString();
+    const isDelivered = !String(item.id).startsWith("temp-");
+    const isRead = !!item.is_read;
     return (
       <View>
         {showDateDivider && (
@@ -293,6 +295,28 @@ export default function ChatDetailScreen() {
                   {item.content}
                 </ThemedText>
               )}
+              {isMine && (
+                <View style={styles.ticks}>
+                  {isRead ? (
+                    <Ionicons
+                      name="checkmark-done"
+                      size={14}
+                      color={colors.card ? "#E0F2F1" : "#FFF"}
+                    />
+                  ) : isDelivered ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={14}
+                      color={colors.card ? "#E0F2F1" : "#FFF"}
+                    />
+                  ) : (
+                    <ActivityIndicator
+                      size="small"
+                      color={colors.card ? "#E0F2F1" : "#FFF"}
+                    />
+                  )}
+                </View>
+              )}
               {reactions[item.id]?.length ? (
                 <View style={styles.reactionBadge}>
                   <ThemedText style={{ color: isMine ? "#FFF" : colors.text }}>
@@ -322,6 +346,10 @@ export default function ChatDetailScreen() {
     );
   };
 
+  const last = messages[messages.length - 1];
+  const isOnline =
+    !!last && Date.now() - new Date(last.created_at).getTime() < 2 * 60 * 1000;
+
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -349,6 +377,19 @@ export default function ChatDetailScreen() {
                 {session.category}
               </ThemedText>
             ) : null}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: isOnline ? "#10B981" : colors.icon,
+              }}
+            />
+            <ThemedText type="small" style={{ opacity: 0.6 }}>
+              {isOnline ? "Online" : "Offline"}
+            </ThemedText>
           </View>
           {session?.priority && (
             <View
@@ -565,6 +606,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     marginHorizontal: Spacing.sm,
+  },
+  ticks: {
+    position: "absolute",
+    bottom: -10,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   reactionBadge: {
     position: "absolute",

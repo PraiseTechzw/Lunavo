@@ -417,6 +417,32 @@ export function subscribeToMessages(
 }
 
 /**
+ * Subscribe to message updates (e.g., is_read changes) in a session
+ */
+export function subscribeToMessageUpdates(
+  sessionId: string,
+  callback: (message: any) => void,
+): RealtimeChannel {
+  const channel = supabase
+    .channel(`messages-updates:${sessionId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "support_messages",
+        filter: `session_id=eq.${sessionId}`,
+      },
+      (payload) => {
+        callback(payload.new);
+      },
+    )
+    .subscribe();
+
+  return channel;
+}
+
+/**
  * Subscribe to support sessions for a user
  */
 export function subscribeToSupportSessions(
