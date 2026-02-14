@@ -47,6 +47,12 @@ export default function ResetSentScreen() {
             {email ? String(email) : "your email"}. Use the web link to change
             your password, then return to PEACE to sign in.
           </ThemedText>
+          {email ? (
+            <View style={styles.emailPill}>
+              <Ionicons name="mail-outline" size={18} color={colors.icon} />
+              <ThemedText style={styles.emailText}>{String(email)}</ThemedText>
+            </View>
+          ) : null}
         </Animated.View>
 
         <Animated.View
@@ -54,21 +60,23 @@ export default function ResetSentScreen() {
           style={[styles.card, { backgroundColor: colors.card }]}
         >
           <View style={{ gap: Spacing.md }}>
-            <ThemedText>
-              - Check your inbox and spam folders for “PEACE Password Recovery”.
-            </ThemedText>
-            <ThemedText>
-              - Tap the link on this device to establish a new access key.
-            </ThemedText>
-            <ThemedText>
-              - After updating, open the PEACE app and sign in with your new
-              password.
-            </ThemedText>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <ThemedText>Check inbox and spam for “PEACE Password Recovery”.</ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <ThemedText>Open the link on this device to set a new password.</ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <ThemedText>Return to the PEACE app and sign in with the new password.</ThemedText>
+            </View>
           </View>
 
           <TouchableOpacity
             onPress={() =>
-              Linking.openURL("https://peace.praisetech.tech/reset")
+              Linking.openURL("https://peace-club.praisetech.tech/reset")
             }
             style={styles.secondaryBtnWrapper}
           >
