@@ -35,6 +35,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -170,11 +171,8 @@ export default function ChatDetailScreen() {
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
     const uri = asset.uri;
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const mime =
+    
+    
         asset.type === "image" ? asset.mimeType || "image/jpeg" : "image/jpeg";
       const dataUri = `data:${mime};base64,${base64}`;
       const optimistic: SupportMessage = {
@@ -275,56 +273,75 @@ export default function ChatDetailScreen() {
               }
             }}
           >
-            <View
-              style={[
-                styles.bubble,
-                {
-                  backgroundColor: isMine ? colors.primary : colors.card,
-                  borderColor: isMine ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              {item.type === "image" ? (
-                <Image
-                  source={{ uri: item.content }}
-                  style={{ width: 220, height: 160, borderRadius: 12 }}
-                  contentFit="cover"
-                />
-              ) : (
-                <ThemedText style={{ color: isMine ? "#FFF" : colors.text }}>
-                  {item.content}
-                </ThemedText>
-              )}
-              {isMine && (
-                <View style={styles.ticks}>
-                  {isRead ? (
-                    <Ionicons
-                      name="checkmark-done"
-                      size={14}
-                      color={colors.card ? "#E0F2F1" : "#FFF"}
-                    />
-                  ) : isDelivered ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={14}
-                      color={colors.card ? "#E0F2F1" : "#FFF"}
-                    />
-                  ) : (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.card ? "#E0F2F1" : "#FFF"}
-                    />
-                  )}
-                </View>
-              )}
-              {reactions[item.id]?.length ? (
-                <View style={styles.reactionBadge}>
-                  <ThemedText style={{ color: isMine ? "#FFF" : colors.text }}>
-                    {reactions[item.id].join(" ")}
+            {isMine ? (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.bubble, styles.mineBubble]}
+              >
+                {item.type === "image" ? (
+                  <Image
+                    source={{ uri: item.content }}
+                    style={{ width: 220, height: 160, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <ThemedText style={{ color: "#FFF" }}>
+                    {item.content}
                   </ThemedText>
-                </View>
-              ) : null}
-            </View>
+                )}
+                {isMine && (
+                  <View style={styles.ticks}>
+                    {isRead ? (
+                      <Ionicons
+                        name="checkmark-done"
+                        size={14}
+                        color="#E0F2F1"
+                      />
+                    ) : isDelivered ? (
+                      <Ionicons name="checkmark" size={14} color="#E0F2F1" />
+                    ) : (
+                      <ActivityIndicator size="small" color="#E0F2F1" />
+                    )}
+                  </View>
+                )}
+                {reactions[item.id]?.length ? (
+                  <View style={styles.reactionBadge}>
+                    <ThemedText style={{ color: "#FFF" }}>
+                      {reactions[item.id].join(" ")}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </LinearGradient>
+            ) : (
+              <View
+                style={[
+                  styles.bubble,
+                  styles.theirBubble,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                {item.type === "image" ? (
+                  <Image
+                    source={{ uri: item.content }}
+                    style={{ width: 220, height: 160, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <ThemedText style={{ color: colors.text }}>
+                    {item.content}
+                  </ThemedText>
+                )}
+                {reactions[item.id]?.length ? (
+                  <View style={styles.reactionBadge}>
+                    <ThemedText style={{ color: colors.text }}>
+                      {reactions[item.id].join(" ")}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </TouchableOpacity>
           {isMine && (
             <View style={styles.labelWrap}>
@@ -374,7 +391,8 @@ export default function ChatDetailScreen() {
             </ThemedText>
             {session?.category ? (
               <ThemedText type="small" style={{ opacity: 0.6 }}>
-                {session.category}
+                {String(session.category).toUpperCase()} • {messages.length}{" "}
+                msgs
               </ThemedText>
             ) : null}
           </View>
@@ -412,38 +430,40 @@ export default function ChatDetailScreen() {
         </LinearGradient>
 
         {canUseSupportTools && (
-          <View
-            style={[
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[
               styles.toolsRow,
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
             <TouchableOpacity
-              style={styles.toolBtn}
+              style={styles.toolChip}
               onPress={() => router.push("/resource" as any)}
             >
-              <Ionicons name="book" size={18} color={colors.primary} />
-              <ThemedText style={styles.toolText}>Resources</ThemedText>
+              <Ionicons name="book" size={16} color={colors.primary} />
+              <ThemedText style={styles.toolChipText}>Resources</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.toolBtn}
+              style={styles.toolChip}
               onPress={() => router.push("/urgent-support" as any)}
             >
-              <Ionicons name="shield-checkmark" size={18} color="#EF4444" />
-              <ThemedText style={styles.toolText}>Urgent</ThemedText>
+              <Ionicons name="shield-checkmark" size={16} color="#EF4444" />
+              <ThemedText style={styles.toolChipText}>Urgent</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.toolBtn}
+              style={styles.toolChip}
               onPress={handleScheduleMeeting}
             >
-              <Ionicons name="calendar" size={18} color="#F59E0B" />
-              <ThemedText style={styles.toolText}>Meeting</ThemedText>
+              <Ionicons name="calendar" size={16} color="#F59E0B" />
+              <ThemedText style={styles.toolChipText}>Meeting</ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.toolBtn} onPress={handleResolve}>
-              <Ionicons name="checkmark-done" size={18} color="#10B981" />
-              <ThemedText style={styles.toolText}>Resolve</ThemedText>
+            <TouchableOpacity style={styles.toolChip} onPress={handleResolve}>
+              <Ionicons name="checkmark-done" size={16} color="#10B981" />
+              <ThemedText style={styles.toolChipText}>Resolve</ThemedText>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         )}
 
         {loading ? (
@@ -548,15 +568,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
   },
-  toolBtn: {
+  toolChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
+    marginRight: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "transparent",
+    backgroundColor: "rgba(0,0,0,0.04)",
   },
-  toolText: {
+  toolChipText: {
     fontWeight: "700",
     fontSize: 12,
   },
@@ -606,6 +630,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     marginHorizontal: Spacing.sm,
+  },
+  mineBubble: {
+    borderWidth: 0,
+    ...PlatformStyles.premiumShadow,
+  },
+  theirBubble: {
+    ...PlatformStyles.shadow,
   },
   ticks: {
     position: "absolute",
