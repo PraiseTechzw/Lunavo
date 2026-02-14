@@ -14,6 +14,8 @@ export interface Resource {
     filePath?: string;
     tags: string[];
     createdBy: string;
+    views?: number;
+    rating?: number;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -50,7 +50,7 @@ export default function ResourceCategoryScreen() {
     const load = async () => {
       try {
         setLoading(true);
-        const all = await getResources();
+        const all = await getResources({ category: slug } as any);
         setResources(all);
       } finally {
         setLoading(false);
@@ -60,7 +60,7 @@ export default function ResourceCategoryScreen() {
   }, []);
 
   const filter = useCallback(() => {
-    let items = resources.filter((r) => r.category === slug);
+    let items = resources;
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       items = items.filter(

@@ -1,6 +1,7 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { getResourceStats, getResources } from "@/lib/database";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -85,8 +86,8 @@ export default function ResourceCentreScreen() {
             try {
                 setLoading(true);
                 const [statsData, allResources] = await Promise.all([
-                    import("@/lib/database").then(m => m.getResourceStats()),
-                    import("@/lib/database").then(m => m.getResources({ limit: 5 } as any))
+                    getResourceStats(),
+                    getResources({ limit: 5 } as any)
                 ]);
                 setStats(statsData);
                 if (allResources && allResources.length > 0) {

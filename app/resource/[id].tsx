@@ -246,7 +246,9 @@ export default function ResourceDetailScreen() {
         <Animated.View entering={FadeIn.delay(300)} style={styles.body}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <ThemedText style={styles.statValue}>1.2k</ThemedText>
+              <ThemedText style={styles.statValue}>
+                {resource.views ? (resource.views > 999 ? `${(resource.views / 1000).toFixed(1)}k` : resource.views) : '0'}
+              </ThemedText>
               <ThemedText style={styles.statLabel}>Views</ThemedText>
             </View>
             <View style={styles.statDivider} />
@@ -256,7 +258,7 @@ export default function ResourceDetailScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <ThemedText style={styles.statValue}>4.8</ThemedText>
+              <ThemedText style={styles.statValue}>{resource.rating?.toFixed(1) || '0.0'}</ThemedText>
               <ThemedText style={styles.statLabel}>Rating</ThemedText>
             </View>
           </View>
