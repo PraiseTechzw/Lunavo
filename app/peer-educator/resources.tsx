@@ -30,7 +30,7 @@ interface Resource {
   title: string;
   description: string;
   category: PostCategory;
-  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+  resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training' | 'image';
   url?: string;
   tags: string[];
   bookmarked: boolean;

@@ -1,6 +1,302 @@
 {
   "commits": [
     {
+      "hash": "00d713110989fdc66e3e3c02cf3409762c6e3879",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5afd86bcbdbf274cba6fd92c3dec4b204e2d00cc18e25bffa5fb4d13d9f8ac69",
+      "files": [
+        "autopilot/history.json",
+        "app/resource/[id].tsx",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T19:27:01.139Z"
+    },
+    {
+      "hash": "66f2483e56bf83a7731b3ce2c9b8da65b420879e",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5e29a93a0aac71a1b740ef0784ec9f54bbd608becd511b735829242e46aed906",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/resource/[id].tsx"
+      ],
+      "timestamp": "2026-02-14T19:23:35.252Z"
+    },
+    {
+      "hash": "a44d900f049f42f40f01c80f4262f8d4a0520d03",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: fd7ee3412bdd20fb8df62bee9781dec1ee4ebe6c6526be4aa941d11b09f9777e",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T19:10:49.161Z"
+    },
+    {
+      "hash": "bb06122f522f5b9d29bf6aae33013d187480cc6a",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 83a85a6204817445e6624b63e239ed1f48c4104db724e0079d220746dec5476f",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/types/resources.ts",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T19:06:45.201Z"
+    },
+    {
+      "hash": "31694b4dea948835f0c8c626e15099d4a64dfa05",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 9ac9e0af4702a9c543076296194a60cc629ac10d1a9f114d808a5d62454fecf5",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T19:00:55.638Z"
+    },
+    {
+      "hash": "9f3e97cc40060d2cc3b9ae3073a7f634db37d23b",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 37bb470c9104c228db7bf219a323316173794c3ccfb7742250c8f6faebc0c820",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T18:57:28.605Z"
+    },
+    {
+      "hash": "349ac46e0b9a164a7130f44971d581978d554e24",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f1875a7b3b0da4f6150aa5222e1cc5c4b348b5556a3dffa9cedac735f5df4afc",
+      "files": [
+        "autopilot/history.json",
+        "app/create-post.tsx",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T18:53:48.567Z"
+    },
+    {
+      "hash": "d3b33c5f4b364ccd66928e2e85e42de4ed51bb1c",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 773c7857d160b022916b260e979aa188526e02493a4fae04fc915b6c2d083139",
+      "files": [
+        "autopilot/history.json",
+        "app/create-post.tsx",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T18:49:29.203Z"
+    },
+    {
+      "hash": "0c0169fa2089895a8b8dd08b91ce8ad4c1cae7d1",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: dccf618970acd3acb3ef171e295c5ac43bd106bb9b33d9b0b8452c061dbea9b8",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/gallery.tsx"
+      ],
+      "timestamp": "2026-02-14T18:45:56.246Z"
+    },
+    {
+      "hash": "09875392af8332ce57aa4d84dbff59df9c32327a",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 51af635b5ee96e28d6bcabc23b76581c63e5850f12470e29e8dff748bb69ac06",
+      "files": [
+        "autopilot/history.json",
+        "app/book-counsellor.tsx",
+        "app/executive/new-resource.tsx"
+      ],
+      "timestamp": "2026-02-14T18:34:04.215Z"
+    },
+    {
+      "hash": "8736eaf6b37d2f25482ad8d0ac97c09ac0e28ba0",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5342a0be2180dc901dbcf52f46b2e290e509c995aae643827418933f1a7e40d4",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx",
+        "app/book-counsellor.tsx",
+        "app/check-in.tsx",
+        "app/components/navigation/drawer-menu.tsx",
+        "app/counselor/dashboard.tsx",
+        "app/utils/navigation.ts",
+        "lib/database.ts",
+        "supabase/migrations/031_counseling_providers_rls.sql"
+      ],
+      "timestamp": "2026-02-14T18:24:38.903Z"
+    },
+    {
+      "hash": "2d8a0a4a84c994d1dd97ee8c582a8daa9bcd689f",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 40b54f3445b88ecf65c8d8fe46ebeed4bdd2535a4bf5604a1841cb18a15a5c89",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx"
+      ],
+      "timestamp": "2026-02-14T18:21:01.489Z"
+    },
+    {
+      "hash": "f2a73a55eaf5a086fc15b37bf1bba8aa9a058060",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 9c0d8bca80029d3ec40c1aa7fbe0f776c14dbc308434610519c3628d46e0af24",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx"
+      ],
+      "timestamp": "2026-02-14T18:17:04.568Z"
+    },
+    {
+      "hash": "caa8f4ddb72c9c54285cce3145ac3e42b233c379",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c0363d7f933a2d78f40b2b4e0562f633181f9cc505c229e56f83afc8ddc579a9",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx",
+        "app/executive/new-resource.tsx",
+        "app/gallery.tsx",
+        "supabase/migrations/030_fix_gamification_rls.sql"
+      ],
+      "timestamp": "2026-02-14T18:12:33.439Z"
+    },
+    {
+      "hash": "28c487bce6d358869d401780b16ca4107282b42c",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ef1226dbef157bba0c8d3a47399e7b2a7239d438ecdea21358bffa57ae8f666f",
+      "files": [
+        "autopilot/history.json",
+        "app/check-in.tsx",
+        "app/executive/new-resource.tsx",
+        "app/gallery.tsx"
+      ],
+      "timestamp": "2026-02-14T18:07:56.449Z"
+    },
+    {
+      "hash": "562f25b4e80ddf91b3d138d61cbdac0b872d0e80",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 7fbc0adaa427884d21ed0ccf90e2545c16c480f7c9a1265a871773c14efe7ad3",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx",
+        "app/create-post.tsx",
+        "app/peer-educator/dashboard.tsx",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T18:03:31.652Z"
+    },
+    {
+      "hash": "84f380da54401221d5b505f25766b6f275271ba9",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 3fc73327cb11d94cf58b1c21d5b5fbf0d07bc644ffc7131899b042fa7bed3c14",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/peer-educator/resources.tsx",
+        "app/resource/list.tsx",
+        "app/types/resources.ts",
+        "lib/database.ts",
+        "supabase/migrations/029_gallery_and_images.sql"
+      ],
+      "timestamp": "2026-02-14T17:59:32.867Z"
+    },
+    {
+      "hash": "fdb232720c0db52246974b64e0001d4f92e6f177",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 55e28fd94c152d534baeea80ad3c32e632dcb439786c5869e3dba7add50ebee5",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/index.tsx",
+        "app/gallery.tsx",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T17:55:43.514Z"
+    },
+    {
+      "hash": "4cb597a98d8e2a34c110b43c477a6162869d6bbd",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c302c1352e2107a0ecb16cb241586fb2f8ccb904f310e25d910a6ba343d9c9a8",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx",
+        "app/resource/[id].tsx",
+        "app/resource/category/[slug].tsx",
+        "app/types/resources.ts"
+      ],
+      "timestamp": "2026-02-14T17:46:03.909Z"
+    },
+    {
+      "hash": "c51488a34c390cb796f258ace002013a670872e5",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 87aa8156b64609b738fd61e947ce6df78b0762918b0850807fa2e9eae6e551af",
+      "files": [
+        "autopilot/history.json",
+        "lib/database.ts"
+      ],
+      "timestamp": "2026-02-14T16:51:21.029Z"
+    },
+    {
+      "hash": "632aa2c0c0c5790b7fee4ccb5fc855b94b2c23e6",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: cd5950cf08ddcc41001308ad1ee12fe89a687805cf189e174c70954bbd0fd5e2",
+      "files": [
+        "autopilot/history.json",
+        "app/create-post.tsx",
+        "app/utils/navigation.ts"
+      ],
+      "timestamp": "2026-02-14T16:48:00.319Z"
+    },
+    {
+      "hash": "bec150d303c1fe15cd15c355ae9fc01a1c968537",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f1dc58dddf5c26aa77de0970d0d595c1c2c2ab4987c6bb559dce860ea1e527eb",
+      "files": [
+        "autopilot/history.json",
+        "app/create-post.tsx",
+        "app/gallery.tsx",
+        "app/resource/[id].tsx",
+        "app/resource/category/[slug].tsx"
+      ],
+      "timestamp": "2026-02-14T16:44:32.274Z"
+    },
+    {
+      "hash": "4906291fc4794fdc8e2082303027e806e92f6687",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: e9432a8c7bfab6bcbe5cf94af6478e5d5fa063c44173fdbd173754d9280eb0ec",
+      "files": [
+        "autopilot/history.json",
+        "app/components/navigation/drawer-menu.tsx",
+        "app/executive/index.tsx",
+        "app/gallery.tsx",
+        "app/resource/list.tsx"
+      ],
+      "timestamp": "2026-02-14T16:40:21.218Z"
+    },
+    {
+      "hash": "f05700cbae2576c2125cfc26d92536c004fccf1c",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b7d310542e5cd5db833cfa36f52000e379f1ca29d88f39639443f37943fb57db",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx",
+        "app/gallery.tsx"
+      ],
+      "timestamp": "2026-02-14T16:36:39.212Z"
+    },
+    {
+      "hash": "dc6f7aeb6f6f3f3fe8a5f476bf470bd56f8bb81f",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 935cbbae6acb683f687aa66a868bcae14150d80b3a58e8cbc409295c6dfd7053",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx"
+      ],
+      "timestamp": "2026-02-14T16:29:27.875Z"
+    },
+    {
+      "hash": "dde06d735bea1ddcb69625a28f0624ad62384a88",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 4131c111f7ee2a5f9d5c419b92bd2b11b4ce8220d2d9d1411042087571c143d3",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx",
+        "app/resource/list.tsx"
+      ],
+      "timestamp": "2026-02-14T16:19:45.852Z"
+    },
+    {
+      "hash": "29ffd4568422986254864cf9c868163b1faed712",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 50b9c03fb68271ad190deaeb17d6674db96cfb63411cf738298f48e52eda3545",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/resources.tsx",
+        "app/resource/list.tsx"
+      ],
+      "timestamp": "2026-02-14T16:15:18.894Z"
+    },
+    {
+      "hash": "d292857f625999e0c270da7a60418ddecc2e1934",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ac8328c644ac95355c4a2955e58427ac2bca282fd44f19cb3fb2097726524a73",
+      "files": [
+        "autopilot/history.json",
+        "app/resource/category/",
+        "app/resource/list.tsx"
+      ],
+      "timestamp": "2026-02-14T16:10:53.546Z"
+    },
+    {
       "hash": "eae0ec78024a7b7395f7813fce0573d4de9bf334",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f55dcec21078153108d37fae448367d7c6c5a72672bfde944a5b4c2755f91861",
       "files": [
@@ -750,92 +1046,6 @@
         "app/_layout.tsx"
       ],
       "timestamp": "2026-02-13T06:12:20.777Z"
-    },
-    {
-      "hash": "4249196bcfc44b7af7aca2cd301766a86f4c25c0",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: be68d84a49659f02d8bedc3ab5ce459bf1912a2526c11273aa8ac1056e02d003",
-      "files": [
-        "autopilot/history.json",
-        "app/_layout.tsx",
-        "app/components/web/data-table.tsx",
-        "app/counselor/dashboard.tsx",
-        "app/feedback.tsx"
-      ],
-      "timestamp": "2026-02-13T06:08:41.174Z"
-    },
-    {
-      "hash": "f153b2a74bcbf6b0f1d74f5dc906deb1b3ee44d3",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: fcb1e8ba5c967657b7313f4897ad33b7958c1c0414d6bfd02b833e3d6db582a5",
-      "files": [
-        "autopilot/history.json",
-        "app/(tabs)/index.tsx",
-        "app/auth/login.tsx",
-        "app/auth/verify-email.tsx",
-        "app/executive/new-resource.tsx",
-        "app/feedback.tsx",
-        "app/meetings/[id].tsx"
-      ],
-      "timestamp": "2026-02-13T06:02:48.856Z"
-    },
-    {
-      "hash": "48418fc5818b18d738ede139134a3e45ba37ee45",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 42bd3e4866f687017f80d2b4b40faeb00dc3bef30c19190521bca4837478287a",
-      "files": [
-        "autopilot/history.json",
-        "app/mentorship.tsx",
-        "app/onboarding.tsx",
-        "app/peer-educator/_layout.tsx",
-        "app/peer-educator/club-info.tsx",
-        "app/peer-educator/meetings.tsx",
-        "app/peer-educator/orientation.tsx",
-        "app/peer-educator/posts.tsx",
-        "app/peer-educator/profile.tsx",
-        "app/student-affairs/dashboard.tsx",
-        "app/student-affairs/trends.tsx",
-        "app/topic/[category].tsx"
-      ],
-      "timestamp": "2026-02-13T05:57:18.805Z"
-    },
-    {
-      "hash": "7f08df7dcc7c3bfb706588ac4e4bee687fb1a1da",
-      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 51c016016e5e82a103c386fcb2a5d19e89838610d2949018a60e4da4a2607960",
-      "files": [
-        "autopilot/history.json",
-        "app/peer-educator/_layout.tsx",
-        "app/peer-educator/meetings.tsx",
-        "app/peer-educator/posts.tsx",
-        "app/peer-educator/resources.tsx"
-      ],
-      "timestamp": "2026-02-13T05:51:40.252Z"
-    },
-    {
-      "hash": "d7b79c09f3f21a84373591b1387732c4fef89abd",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c14bc20194c9275f516a92a97d9f43b30a3b5d6783e7129ce0184d16ff9386aa",
-      "files": [
-        "autopilot/history.json",
-        "app/help.tsx",
-        "app/profile-settings.tsx"
-      ],
-      "timestamp": "2026-02-13T05:45:39.972Z"
-    },
-    {
-      "hash": "3193b76f17c5695d416cc5c85612b2e21aa50cb1",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 046921891a6fe0d395184e521c005a7bdd3e1e1b227842c86d8a3d0405678070",
-      "files": [
-        "pp/peer-educator/queue.tsx",
-        "app/peer-educator/training.tsx",
-        "app/post/[id].tsx",
-        "app/privacy.tsx",
-        "app/resource/[id].tsx",
-        "app/search.tsx",
-        "app/student-affairs/_layout.tsx",
-        "app/utils/storage-supabase.ts",
-        "app/utils/storage.ts",
-        "app/utils/toast.tsx",
-        "app/volunteer/dashboard.tsx",
-        ".autopilot/"
-      ],
-      "timestamp": "2026-02-13T05:42:17.150Z"
     }
   ]
 }

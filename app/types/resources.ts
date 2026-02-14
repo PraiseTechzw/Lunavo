@@ -9,11 +9,13 @@ export interface Resource {
     title: string;
     description?: string;
     category: PostCategory;
-    resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training';
+    resourceType: 'article' | 'video' | 'pdf' | 'link' | 'training' | 'image' | 'tool';
     url?: string;
     filePath?: string;
     tags: string[];
     createdBy: string;
+    views?: number;
+    rating?: number;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -5,27 +5,26 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-    ActivityLog,
-    Announcement,
-    Category,
-    CheckIn,
-    Escalation,
-    EscalationLevel,
-    Meeting,
-    MeetingAttendance,
-    MeetingType,
-    Notification,
-    NotificationType,
-    Post,
-    PostCategory,
-    PostStatus,
-    Reply,
-    Report,
-    SupportMessage,
-    SupportSession,
-    User,
+  ActivityLog,
+  Announcement,
+  Category,
+  CheckIn,
+  Escalation,
+  EscalationLevel,
+  Meeting,
+  MeetingAttendance,
+  MeetingType,
+  Notification,
+  NotificationType,
+  Post,
+  PostCategory,
+  PostStatus,
+  Reply,
+  Report,
+  SupportMessage,
+  SupportSession,
+  User,
 } from "@/app/types";
-import * as ExpoFileSystem from "expo-file-system";
 import { checkAllBadges } from "./gamification";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";
@@ -140,14 +139,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-    | "student"
-    | "peer-educator"
-    | "peer-educator-executive"
-    | "moderator"
-    | "counselor"
-    | "life-coach"
-    | "student-affairs"
-    | "admin";
+  | "student"
+  | "peer-educator"
+  | "peer-educator-executive"
+  | "moderator"
+  | "counselor"
+  | "life-coach"
+  | "student-affairs"
+  | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -479,6 +478,20 @@ export async function getUsers(limit?: number): Promise<User[]> {
   }
 
   const { data, error } = await query;
+
+  if (error) throw error;
+
+  return (data || []).map(mapUserFromDB);
+}
+
+export async function getCounsellingProviders(): Promise<User[]> {
+  const { data, error } = await supabase
+    .from("users")
+    .select(
+      "id,email,pseudonym,username,is_anonymous,role,full_name,specialization,bio,interests,avatar_url,created_at,last_active,profile_data",
+    )
+    .in("role", ["life-coach", "peer-educator-executive"])
+    .order("full_name", { ascending: true });
 
   if (error) throw error;
 
@@ -1551,7 +1564,7 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: "article" | "video" | "pdf" | "link" | "training";
+  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image" | "tool";
   url?: string;
   filePath?: string;
   tags?: string[];
@@ -1583,7 +1596,7 @@ export async function createResource(
 
 export async function getResources(filters?: {
   category?: PostCategory;
-  resourceType?: "article" | "video" | "pdf" | "link" | "training";
+  resourceType?: "article" | "video" | "pdf" | "link" | "training" | "image";
 }): Promise<any[]> {
   let query = supabase
     .from("resources")
@@ -1605,6 +1618,19 @@ export async function getResources(filters?: {
   return data || [];
 }
 
+export async function getResourceStats(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from("resources").select("category");
+
+  if (error) throw error;
+
+  const stats: Record<string, number> = {};
+  (data || []).forEach((r: any) => {
+    stats[r.category] = (stats[r.category] || 0) + 1;
+  });
+
+  return stats;
+}
+
 export async function getResource(resourceId: string): Promise<any | null> {
   const { data, error } = await supabase
     .from("resources")
@@ -1618,6 +1644,78 @@ export async function getResource(resourceId: string): Promise<any | null> {
   }
 
   return data;
+}
+
+export async function incrementResourceViews(resourceId: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_resource_views', {
+    resource_id: resourceId
+  });
+
+  if (error) {
+    console.error('Error incrementing views:', error);
+    // Fallback: manual increment if RPC doesn't exist
+    const { data: resource } = await supabase
+      .from('resources')
+      .select('views')
+      .eq('id', resourceId)
+      .single();
+
+    if (resource) {
+      await supabase
+        .from('resources')
+        .update({ views: (resource.views || 0) + 1 })
+        .eq('id', resourceId);
+    }
+  }
+}
+
+export async function addResourceRating(
+  resourceId: string,
+  userId: string,
+  rating: number
+): Promise<void> {
+  // Store individual rating
+  const { error: ratingError } = await supabase
+    .from('resource_ratings')
+    .upsert({
+      resource_id: resourceId,
+      user_id: userId,
+      rating: rating,
+      created_at: new Date().toISOString()
+    }, {
+      onConflict: 'resource_id,user_id'
+    });
+
+  if (ratingError) {
+    console.error('Error saving rating:', ratingError);
+    throw ratingError;
+  }
+
+  // Calculate new average rating
+  const { data: ratings } = await supabase
+    .from('resource_ratings')
+    .select('rating')
+    .eq('resource_id', resourceId);
+
+  if (ratings && ratings.length > 0) {
+    const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    await supabase
+      .from('resources')
+      .update({ rating: avgRating })
+      .eq('id', resourceId);
+  }
+}
+
+export async function getGalleryImages(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("resources")
+    .select("*")
+    .eq("category", "gallery")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
 }
 
 export async function updateResource(
@@ -1658,33 +1756,30 @@ export async function uploadResourceFile(
   try {
     console.log("Starting robust upload for URI:", uri);
 
-    // Using expo-file-system to read file as base64 is the most stable method on Android
-    const base64 = await ExpoFileSystem.readAsStringAsync(uri, {
-      encoding: "base64" as any,
-    });
-
-    // Convert base64 to ArrayBuffer using the fetch(data:) trick (most reliable in RN)
-    // This creates an internal Blob from the base64 string and then we grab its data
-    const response = await fetch(
-      `data:application/octet-stream;base64,${base64}`,
-    );
-    const arrayBuffer = await response.arrayBuffer();
-
     const fileExt = uri.split(".").pop()?.split("?")[0].toLowerCase() || "bin";
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
 
-    console.log(
-      "Uploading base64-converted buffer to path:",
-      filePath,
-      "Size:",
-      arrayBuffer.byteLength,
-    );
+    // Determine content type
+    let contentType = 'application/octet-stream';
+    if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
+    else if (fileExt === 'png') contentType = 'image/png';
+    else if (fileExt === 'gif') contentType = 'image/gif';
+    else if (fileExt === 'pdf') contentType = 'application/pdf';
+
+    console.log("Uploading via FormData to path:", filePath, "ContentType:", contentType);
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uri,
+      name: fileName,
+      type: contentType,
+    } as any);
 
     const { data, error } = await supabase.storage
       .from("system-resources")
-      .upload(filePath, arrayBuffer, {
-        contentType: "application/octet-stream", // Safer default
+      .upload(filePath, formData, {
+        contentType: contentType,
         upsert: false,
       });
 
@@ -1788,13 +1883,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-          id: ub.badges.id,
-          name: ub.badges.name,
-          description: ub.badges.description,
-          icon: ub.badges.icon,
-          color: ub.badges.color,
-          category: ub.badges.category,
-        }
+        id: ub.badges.id,
+        name: ub.badges.name,
+        description: ub.badges.description,
+        icon: ub.badges.icon,
+        color: ub.badges.color,
+        category: ub.badges.category,
+      }
       : null,
   }));
 }

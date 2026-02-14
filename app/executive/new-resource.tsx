@@ -7,8 +7,9 @@ import { createResource, uploadResourceFile } from '@/lib/database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -21,16 +22,31 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
+import Animated, {
+    FadeIn,
+    FadeInRight,
+    FadeOut,
+    FadeOutLeft,
+    Layout,
+    ZoomIn,
+    ZoomOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 const RESOURCE_TYPES = [
     { id: 'article', label: 'Article', icon: 'book-open-variant' },
+    { id: 'image', label: 'Image', icon: 'image-outline' },
     { id: 'video', label: 'Video', icon: 'video-wireless' },
     { id: 'pdf', label: 'PDF / Doc', icon: 'file-pdf-box' },
     { id: 'link', label: 'External', icon: 'link-variant' },
+    { id: 'tool', label: 'Tool', icon: 'hammer-wrench' },
     { id: 'training', label: 'Training', icon: 'school' },
 ];
 
@@ -42,8 +58,11 @@ const CATEGORIES: { id: PostCategory; label: string; icon: string; color: string
     { id: 'family-home', label: 'Family & Home Challenges', icon: 'home-heart', color: '#5F27CD' },
     { id: 'academic', label: 'Academic Support & Exam Stress', icon: 'book-open-page-variant', color: '#48DBFB' },
     { id: 'relationships', label: 'Relationship & Social Guidance', icon: 'account-heart', color: '#FF6B6B' },
+    { id: 'gallery', label: 'Photo Gallery', icon: 'image-multiple-outline', color: '#EC4899' },
     { id: 'general', label: 'General / Other', icon: 'dots-grid', color: '#576574' },
 ];
+
+const GALLERY_ALBUMS = ['Team', 'Events', 'Club Life'];
 
 export default function NewResourceScreen() {
     const router = useRouter();
@@ -53,19 +72,46 @@ export default function NewResourceScreen() {
     // Role Guard
     const { user, loading: authLoading } = useRoleGuard(['peer-educator-executive', 'admin'], '/peer-educator/dashboard');
 
+    const params = useLocalSearchParams<{ category?: string }>();
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const [form, setForm] = useState({
         title: '',
         description: '',
-        category: 'general' as PostCategory,
-        resourceType: 'article' as any,
+        category: (params.category as PostCategory) || 'general',
+        resourceType: (params.category === 'gallery' ? 'image' : 'article') as any,
         url: '',
         tags: '',
+        album: 'Events', // Specifically for gallery
         localUri: null as string | null,
     });
+
+    const pulse = useSharedValue(1);
+
+    useEffect(() => {
+        if (submitting || uploading) {
+            pulse.value = withRepeat(
+                withSequence(
+                    withTiming(1.2, { duration: 800 }),
+                    withTiming(1, { duration: 800 })
+                ),
+                -1,
+                true
+            );
+        } else {
+            pulse.value = 1;
+        }
+    }, [submitting, uploading]);
+
+    const pulseStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: pulse.value }],
+        opacity: 0.6 + (pulse.value - 1) * 2
+    }));
+
+    const isGallery = form.category === 'gallery';
 
     const handlePickFile = async () => {
         try {
@@ -81,7 +127,10 @@ export default function NewResourceScreen() {
             });
 
             if (!result.canceled && result.assets[0].uri) {
-                setForm({ ...form, localUri: result.assets[0].uri });
+                const asset = result.assets[0] as any;
+                const inferredType =
+                    asset?.type === 'video' ? 'video' : asset?.type === 'image' ? 'image' : form.resourceType;
+                setForm({ ...form, localUri: asset.uri, resourceType: inferredType });
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }
         } catch (error) {
@@ -95,9 +144,22 @@ export default function NewResourceScreen() {
             Alert.alert('Missing Field', 'Please provide a title for the resource.');
             return;
         }
-        if (step === 2 && !form.url && !form.localUri) {
-            Alert.alert('Missing Source', 'Please provide a URL or upload a file.');
-            return;
+        if (step === 2) {
+            // Articles need content (description)
+            if (form.resourceType === 'article' && !form.description) {
+                Alert.alert('Missing Content', 'Please write your article content.');
+                return;
+            }
+            // Links need URL
+            if (form.resourceType === 'link' && !form.url) {
+                Alert.alert('Missing URL', 'Please provide the website address.');
+                return;
+            }
+            // Other types need URL or file
+            if (form.resourceType !== 'article' && form.resourceType !== 'link' && !form.url && !form.localUri) {
+                Alert.alert('Missing Source', 'Please provide a URL or upload a file.');
+                return;
+            }
         }
 
         Haptics.selectionAsync();
@@ -122,21 +184,24 @@ export default function NewResourceScreen() {
                 setUploading(false);
             }
 
+            // For gallery, the album is the first tag
+            let tagsArray = form.tags.split(',').map(t => t.trim()).filter(Boolean);
+            if (isGallery) {
+                tagsArray = [form.album, ...tagsArray];
+            }
+
             await createResource({
                 title: form.title,
                 description: form.description,
                 category: form.category,
                 resourceType: form.resourceType,
                 url: finalUrl,
-                tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+                tags: tagsArray,
                 createdBy: user.id,
             });
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Resource Published', 'Your resource is now live in the library!', [
-                { text: 'View Library', onPress: () => router.push('/(tabs)/resources') },
-                { text: 'Done', onPress: () => router.back() }
-            ]);
+            setShowSuccess(true);
         } catch (e) {
             console.error('Failed to create resource:', e);
             Alert.alert('Error', 'Could not post resource. Please check your connection.');
@@ -173,7 +238,7 @@ export default function NewResourceScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <MaterialCommunityIcons name="close" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <ThemedText style={styles.headerTitle}>New Resource</ThemedText>
+                    <ThemedText style={styles.headerTitle}>{isGallery ? 'Gallery Upload' : 'New Resource'}</ThemedText>
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -187,21 +252,46 @@ export default function NewResourceScreen() {
                             layout={Layout.springify()}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Let&apos;s start with basics</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>What are we sharing with the network today?</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {isGallery ? "Capture the moment" : "Let's start with basics"}
+                            </ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {isGallery ? "Give this memory a title and location." : "What are we sharing with the network today?"}
+                            </ThemedText>
 
                             <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>RESOURCE TITLE</ThemedText>
+                                <ThemedText style={styles.label}>{isGallery ? "ITEM TITLE" : "RESOURCE TITLE"}</ThemedText>
                                 <TextInput
                                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="e.g. Managing Exam Stress"
+                                    placeholder={isGallery ? "e.g. Wellness Workshop 2024" : "e.g. Managing Exam Stress"}
                                     placeholderTextColor={colors.icon}
                                     value={form.title}
                                     onChangeText={(t) => setForm({ ...form, title: t })}
                                 />
                             </View>
 
-                            <ThemedText style={styles.label}>CATEGORY</ThemedText>
+                            {isGallery && (
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={styles.label}>ALBUM / CATEGORY</ThemedText>
+                                    <View style={styles.albumGrid}>
+                                        {GALLERY_ALBUMS.map((album) => (
+                                            <TouchableOpacity
+                                                key={album}
+                                                style={[
+                                                    styles.albumChip,
+                                                    { backgroundColor: colors.surface, borderColor: colors.border },
+                                                    form.album === album && { backgroundColor: colors.primary, borderColor: colors.primary }
+                                                ]}
+                                                onPress={() => setForm({ ...form, album })}
+                                            >
+                                                <ThemedText style={[styles.albumText, form.album === album && { color: '#FFF' }]}>{album}</ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            <ThemedText style={styles.label}>MAIN CATEGORY</ThemedText>
                             <View style={styles.categoryGrid}>
                                 {CATEGORIES.map((cat) => (
                                     <TouchableOpacity
@@ -212,7 +302,11 @@ export default function NewResourceScreen() {
                                             form.category === cat.id && { borderColor: cat.color, borderWidth: 2 }
                                         ]}
                                         onPress={() => {
-                                            setForm({ ...form, category: cat.id });
+                                            setForm({
+                                                ...form,
+                                                category: cat.id,
+                                                resourceType: cat.id === 'gallery' ? 'image' : form.resourceType
+                                            });
                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                         }}
                                     >
@@ -226,37 +320,36 @@ export default function NewResourceScreen() {
                                 ))}
                             </View>
 
-                            <ThemedText style={styles.label}>RESOURCE TYPE</ThemedText>
-                            <View style={styles.typeGrid}>
-                                {RESOURCE_TYPES.map((type) => (
-                                    <TouchableOpacity
-                                        key={type.id}
-                                        style={[
-                                            styles.typeCardSmall,
-                                            { backgroundColor: colors.surface, borderColor: colors.border },
-                                            form.resourceType === type.id && { backgroundColor: colors.primary + '10', borderColor: colors.primary, borderWidth: 2 }
-                                        ]}
-                                        onPress={() => {
-                                            setForm({ ...form, resourceType: type.id as any });
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                        }}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name={type.icon as any}
-                                            size={24}
-                                            color={form.resourceType === type.id ? colors.primary : colors.icon}
-                                        />
-                                        <ThemedText style={[styles.typeTabText, form.resourceType === type.id && { color: colors.primary, fontWeight: '800' }]}>
-                                            {type.label}
-                                        </ThemedText>
-                                        {form.resourceType === type.id && (
-                                            <View style={[styles.selectedCheck, { backgroundColor: colors.primary }]}>
-                                                <MaterialCommunityIcons name="check" size={12} color="#FFF" />
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                            {!isGallery && (
+                                <>
+                                    <ThemedText style={styles.label}>RESOURCE TYPE</ThemedText>
+                                    <View style={styles.typeGrid}>
+                                        {RESOURCE_TYPES.map((type) => (
+                                            <TouchableOpacity
+                                                key={type.id}
+                                                style={[
+                                                    styles.typeCardSmall,
+                                                    { backgroundColor: colors.surface, borderColor: colors.border },
+                                                    form.resourceType === type.id && { backgroundColor: colors.primary + '10', borderColor: colors.primary, borderWidth: 2 }
+                                                ]}
+                                                onPress={() => {
+                                                    setForm({ ...form, resourceType: type.id as any });
+                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                }}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={type.icon as any}
+                                                    size={24}
+                                                    color={form.resourceType === type.id ? colors.primary : colors.icon}
+                                                />
+                                                <ThemedText style={[styles.typeTabText, form.resourceType === type.id && { color: colors.primary, fontWeight: '800' }]}>
+                                                    {type.label}
+                                                </ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
                         </Animated.View>
                     )}
 
@@ -266,43 +359,117 @@ export default function NewResourceScreen() {
                             exiting={FadeOutLeft}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Provide the content</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>Link an external resource or upload a file directly.</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {form.resourceType === 'link' ? "Where does it lead?" :
+                                    form.resourceType === 'article' ? "Write your article" :
+                                        isGallery ? "Upload the media" : "Provide the content"}
+                            </ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {form.resourceType === 'link' ? "Paste the full website address below." :
+                                    form.resourceType === 'article' ? "Provide a rich description or the full content of your article." :
+                                        isGallery ? "Pick a high-quality photo or video from your gallery." :
+                                            "Link an external resource or upload a file directly."}
+                            </ThemedText>
 
                             <View style={styles.sourceChoiceContainer}>
-                                <TouchableOpacity
-                                    style={[styles.uploadBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
-                                    onPress={handlePickFile}
-                                >
-                                    <MaterialCommunityIcons
-                                        name={form.localUri ? "check-circle" : "cloud-upload-outline"}
-                                        size={48}
-                                        color={form.localUri ? colors.primary : colors.icon}
-                                    />
-                                    <ThemedText style={styles.uploadText}>
-                                        {form.localUri ? "File Selected!" : "Upload from Gallery"}
-                                    </ThemedText>
-                                    {form.localUri && (
-                                        <ThemedText style={styles.fileName} numberOfLines={1}>{form.localUri.split('/').pop()}</ThemedText>
-                                    )}
-                                </TouchableOpacity>
+                                {form.resourceType === 'article' ? (
+                                    <>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>ARTICLE HEADLINE</ThemedText>
+                                            <TextInput
+                                                style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                placeholder="Give your article a compelling title..."
+                                                placeholderTextColor={colors.icon}
+                                                value={form.title}
+                                                onChangeText={(t) => setForm({ ...form, title: t })}
+                                            />
+                                        </View>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>ARTICLE CONTENT</ThemedText>
+                                            <TextInput
+                                                style={[styles.input, styles.articleTextArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                placeholder="Write your article content here. Share insights, guidance, or resources that will help students...\n\nYou can structure your content with clear sections and key takeaways."
+                                                placeholderTextColor={colors.icon}
+                                                multiline
+                                                numberOfLines={16}
+                                                value={form.description}
+                                                onChangeText={(t) => setForm({ ...form, description: t })}
+                                            />
+                                        </View>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>THUMBNAIL IMAGE (OPTIONAL)</ThemedText>
+                                            <TouchableOpacity
+                                                style={[styles.thumbnailBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
+                                                onPress={handlePickFile}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={form.localUri ? "image-check" : "image-plus-outline"}
+                                                    size={32}
+                                                    color={form.localUri ? colors.primary : colors.icon}
+                                                />
+                                                <ThemedText style={styles.thumbnailText}>
+                                                    {form.localUri ? "Thumbnail Selected" : "Add Cover Image"}
+                                                </ThemedText>
+                                                {form.localUri && (
+                                                    <ThemedText style={styles.fileName} numberOfLines={1}>
+                                                        {form.localUri.split('/').pop()}
+                                                    </ThemedText>
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
+                                ) : form.resourceType === 'link' ? (
+                                    <View style={styles.inputGroup}>
+                                        <ThemedText style={styles.label}>WEBSITE / RESOURCE URL</ThemedText>
+                                        <TextInput
+                                            style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                            placeholder="https://..."
+                                            placeholderTextColor={colors.icon}
+                                            value={form.url}
+                                            onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                        />
+                                    </View>
+                                ) : (
+                                    <>
+                                        <TouchableOpacity
+                                            style={[styles.uploadBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
+                                            onPress={handlePickFile}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name={form.localUri ? "check-circle" : (isGallery ? "image-plus" : "cloud-upload-outline")}
+                                                size={48}
+                                                color={form.localUri ? colors.primary : colors.icon}
+                                            />
+                                            <ThemedText style={styles.uploadText}>
+                                                {form.localUri ? "File Selected!" : (isGallery ? "Select Photo/Video" : "Upload from Gallery")}
+                                            </ThemedText>
+                                            {form.localUri && (
+                                                <ThemedText style={styles.fileName} numberOfLines={1}>{form.localUri.split('/').pop()}</ThemedText>
+                                            )}
+                                        </TouchableOpacity>
 
-                                <View style={styles.orDivider}>
-                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                    <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
-                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                </View>
+                                        {!isGallery && (
+                                            <>
+                                                <View style={styles.orDivider}>
+                                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                                    <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
+                                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                                </View>
 
-                                <View style={styles.inputGroup}>
-                                    <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                        placeholder="https://..."
-                                        placeholderTextColor={colors.icon}
-                                        value={form.url}
-                                        onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
-                                    />
-                                </View>
+                                                <View style={styles.inputGroup}>
+                                                    <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
+                                                    <TextInput
+                                                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                        placeholder="https://..."
+                                                        placeholderTextColor={colors.icon}
+                                                        value={form.url}
+                                                        onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                                    />
+                                                </View>
+                                            </>
+                                        )}
+                                    </>
+                                )}
                             </View>
                         </Animated.View>
                     )}
@@ -313,27 +480,33 @@ export default function NewResourceScreen() {
                             exiting={FadeOutLeft}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Final Enrichment</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>Add a description and tags to help students find it.</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {isGallery ? "Add Context" : "Final Enrichment"}
+                            </ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {isGallery ? "Tell others what was happening in this moment." : "Add a description and tags to help students find it."}
+                            </ThemedText>
+
+                            {form.resourceType !== 'article' && (
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={styles.label}>{isGallery ? "CAPTION" : "DESCRIPTION"}</ThemedText>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                        placeholder={isGallery ? "Describe this memory..." : "Briefly explain what this resource covers..."}
+                                        placeholderTextColor={colors.icon}
+                                        multiline
+                                        numberOfLines={4}
+                                        value={form.description}
+                                        onChangeText={(t) => setForm({ ...form, description: t })}
+                                    />
+                                </View>
+                            )}
 
                             <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>DESCRIPTION</ThemedText>
-                                <TextInput
-                                    style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="Briefly explain what this resource covers..."
-                                    placeholderTextColor={colors.icon}
-                                    multiline
-                                    numberOfLines={4}
-                                    value={form.description}
-                                    onChangeText={(t) => setForm({ ...form, description: t })}
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>TAGS (COMMA SEPARATED)</ThemedText>
+                                <ThemedText style={styles.label}>ADDITIONAL TAGS (OPTIONAL)</ThemedText>
                                 <TextInput
                                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="wellness, exam-prep, mentalhealth"
+                                    placeholder="memories, fun, community"
                                     placeholderTextColor={colors.icon}
                                     value={form.tags}
                                     onChangeText={(t) => setForm({ ...form, tags: t })}
@@ -342,8 +515,17 @@ export default function NewResourceScreen() {
 
                             <View style={[styles.previewCard, { backgroundColor: colors.surface, borderLeftColor: CATEGORIES.find(c => c.id === form.category)?.color || colors.primary }]}>
                                 <ThemedText style={styles.previewTag}>PREVIEW</ThemedText>
-                                <ThemedText style={styles.previewTitle}>{form.title || 'Untitled Resource'}</ThemedText>
-                                <ThemedText style={styles.previewMeta}>{form.category} • {form.resourceType}</ThemedText>
+                                <View style={styles.previewHeaderRow}>
+                                    <ThemedText style={styles.previewTitle}>{form.title || 'Untitled'}</ThemedText>
+                                    <MaterialCommunityIcons
+                                        name={RESOURCE_TYPES.find(r => r.id === form.resourceType)?.icon as any}
+                                        size={20}
+                                        color={colors.primary}
+                                    />
+                                </View>
+                                <ThemedText style={styles.previewMeta}>
+                                    {isGallery ? `Album: ${form.album}` : `${CATEGORIES.find(c => c.id === form.category)?.label} • ${form.resourceType}`}
+                                </ThemedText>
                             </View>
                         </Animated.View>
                     )}
@@ -361,24 +543,143 @@ export default function NewResourceScreen() {
                     )}
 
                     <TouchableOpacity
-                        style={[
-                            styles.primaryButton,
-                            { backgroundColor: colors.primary },
-                            step === 1 && { flex: 1 }
-                        ]}
+                        style={[styles.primaryButton, step === 1 && { flex: 1 }]}
                         onPress={step === 3 ? handleSubmit : nextStep}
                         disabled={submitting}
+                        activeOpacity={0.8}
                     >
-                        {submitting || uploading ? (
-                            <ActivityIndicator color="#FFF" />
-                        ) : (
-                            <ThemedText style={styles.buttonText}>
-                                {step === 3 ? "Publish Resource" : "Next Step"}
-                            </ThemedText>
-                        )}
+                        <LinearGradient
+                            colors={colors.gradients.primary as any}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.buttonGradient}
+                        >
+                            {submitting || uploading ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <View style={styles.buttonContent}>
+                                    <ThemedText style={styles.buttonText}>
+                                        {step === 3 ? "Publish Now" : "Continue"}
+                                    </ThemedText>
+                                    <MaterialCommunityIcons
+                                        name={step === 3 ? "check-decagram" : "arrow-right"}
+                                        size={20}
+                                        color="#FFF"
+                                    />
+                                </View>
+                            )}
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
+
+            {/* Publishing Animation Overlay */}
+            {(submitting || uploading) && (
+                <Animated.View
+                    entering={FadeIn.duration(400)}
+                    exiting={FadeOut.duration(400)}
+                    style={styles.overlayContainer}
+                >
+                    <View style={styles.overlayBg} />
+                    <Animated.View
+                        entering={ZoomIn.springify()}
+                        exiting={ZoomOut.duration(200)}
+                        style={[styles.overlayCard, { backgroundColor: colors.card }]}
+                    >
+                        <View style={styles.loaderContainer}>
+                            <Animated.View
+                                style={[styles.pulsingIcon, pulseStyle]}
+                            >
+                                <MaterialCommunityIcons
+                                    name={uploading ? "cloud-upload" : "check-decagram"}
+                                    size={48}
+                                    color={colors.primary}
+                                />
+                            </Animated.View>
+                            <ActivityIndicator
+                                size={100}
+                                color={colors.primary}
+                                style={styles.absoluteLoader}
+                            />
+                        </View>
+                        <ThemedText style={styles.overlayTitle}>
+                            {uploading ? "Uploading media..." : "Finalizing post..."}
+                        </ThemedText>
+                        <ThemedText style={styles.overlaySubtitle}>
+                            {uploading ? "Almost there. Just securing your file." : "Setting everything up for the community."}
+                        </ThemedText>
+                    </Animated.View>
+                </Animated.View>
+            )}
+
+            {/* Success Celebration Modal */}
+            {showSuccess && (
+                <Animated.View
+                    entering={FadeIn.duration(300)}
+                    exiting={FadeOut.duration(300)}
+                    style={styles.overlayContainer}
+                >
+                    <View style={styles.overlayBg} />
+                    <Animated.View
+                        entering={ZoomIn.springify().delay(200)}
+                        style={[styles.successCard, { backgroundColor: colors.card }]}
+                    >
+                        <Animated.View entering={ZoomIn.springify().delay(400)} style={styles.successIconContainer}>
+                            <LinearGradient
+                                colors={['#10B981', '#059669']}
+                                style={styles.successIconGradient}
+                            >
+                                <MaterialCommunityIcons name="check-circle" size={64} color="#FFF" />
+                            </LinearGradient>
+                        </Animated.View>
+
+                        <Animated.View entering={FadeIn.delay(600)} style={styles.successTextContainer}>
+                            <ThemedText style={styles.successTitle}>
+                                {isGallery ? "Memory Shared! 📸" :
+                                    form.resourceType === 'article' ? "Article Published! ✍️" :
+                                        form.resourceType === 'tool' ? "Tool Added! 🛠️" :
+                                            "Resource Live! 🎉"}
+                            </ThemedText>
+                            <ThemedText style={styles.successMessage}>
+                                {isGallery ? "Your photo is now in the gallery for everyone to see." :
+                                    form.resourceType === 'article' ? "Your article is now available to help students." :
+                                        "Your resource is now live and ready to support the community."}
+                            </ThemedText>
+                        </Animated.View>
+
+                        <Animated.View entering={FadeIn.delay(800)} style={styles.successActions}>
+                            <TouchableOpacity
+                                style={[styles.successButton, styles.viewButton, { borderColor: colors.primary }]}
+                                onPress={() => {
+                                    setShowSuccess(false);
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    router.push(isGallery ? '/gallery' : '/(tabs)/resources');
+                                }}
+                            >
+                                <MaterialCommunityIcons name="eye-outline" size={20} color={colors.primary} />
+                                <ThemedText style={[styles.viewButtonText, { color: colors.primary }]}>View Now</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.successButton}
+                                onPress={() => {
+                                    setShowSuccess(false);
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    router.back();
+                                }}
+                            >
+                                <LinearGradient
+                                    colors={colors.gradients.primary as any}
+                                    style={styles.doneButtonGradient}
+                                >
+                                    <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+                                    <MaterialCommunityIcons name="check" size={20} color="#FFF" />
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </Animated.View>
+                </Animated.View>
+            )}
         </SafeAreaView>
     );
 }
@@ -405,6 +706,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: Spacing.sm,
         paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
     },
     stepDot: {
         width: 8,
@@ -439,6 +741,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: 1.2,
         opacity: 0.5,
+        marginBottom: 4,
     },
     input: {
         borderRadius: BorderRadius.lg,
@@ -450,6 +753,25 @@ const styles = StyleSheet.create({
     textArea: {
         height: 120,
         textAlignVertical: 'top',
+    },
+    articleTextArea: {
+        height: 300,
+        textAlignVertical: 'top',
+    },
+    albumGrid: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 8,
+    },
+    albumChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    albumText: {
+        fontSize: 14,
+        fontWeight: '700',
     },
     categoryGrid: {
         flexDirection: 'row',
@@ -474,8 +796,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     catLabel: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
+        textAlign: 'center',
     },
     typeGrid: {
         flexDirection: 'row',
@@ -491,17 +814,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 4,
-        position: 'relative',
-    },
-    selectedCheck: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     typeTabText: {
         fontSize: 10,
@@ -521,9 +833,23 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
         gap: Spacing.sm,
     },
+    thumbnailBox: {
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderRadius: BorderRadius.lg,
+        height: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        gap: Spacing.xs,
+    },
     uploadText: {
         fontSize: 16,
         fontWeight: '700',
+    },
+    thumbnailText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     fileName: {
         fontSize: 12,
@@ -562,9 +888,16 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginBottom: 8,
     },
+    previewHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+    },
     previewTitle: {
         fontSize: 20,
         fontWeight: '800',
+        flex: 1,
     },
     previewMeta: {
         fontSize: 14,
@@ -581,9 +914,19 @@ const styles = StyleSheet.create({
         flex: 2,
         height: 56,
         borderRadius: BorderRadius.xl,
+        overflow: 'hidden',
+        ...PlatformStyles.shadow,
+    },
+    buttonGradient: {
+        flex: 1,
+        width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        ...PlatformStyles.shadow,
+    },
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     secondaryButton: {
         flex: 1,
@@ -597,5 +940,114 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: '800',
+    },
+    overlayContainer: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 9999,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    overlayBg: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    overlayCard: {
+        width: width * 0.85,
+        padding: 40,
+        borderRadius: 32,
+        alignItems: 'center',
+        ...PlatformStyles.premiumShadow,
+    },
+    loaderContainer: {
+        marginBottom: 24,
+        width: 80,
+        height: 80,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    overlayTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    overlaySubtitle: {
+        fontSize: 14,
+        opacity: 0.6,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    pulsingIcon: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    absoluteLoader: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.5,
+    },
+    successCard: {
+        width: width * 0.85,
+        padding: 40,
+        borderRadius: 32,
+        alignItems: 'center',
+        ...PlatformStyles.premiumShadow,
+    },
+    successIconContainer: {
+        marginBottom: 24,
+    },
+    successIconGradient: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successTextContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    successTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    successMessage: {
+        fontSize: 15,
+        opacity: 0.7,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    successActions: {
+        width: '100%',
+        gap: 12,
+    },
+    successButton: {
+        height: 56,
+        borderRadius: BorderRadius.xl,
+        overflow: 'hidden',
+    },
+    viewButton: {
+        borderWidth: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    viewButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    doneButtonGradient: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    doneButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFF',
     }
 });

@@ -3,27 +3,40 @@
  * Enhanced UI with dynamic categories based on existing topics
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORIES, CATEGORY_LIST } from '@/app/constants/categories';
-import { checkEscalation } from '@/app/constants/escalation';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { useDebounce } from '@/app/hooks/use-debounce';
-import { PostCategory } from '@/app/types';
-import { containsIdentifyingInfo, generatePseudonym, sanitizeContent } from '@/app/utils/anonymization';
-import { createInputStyle, getCursorStyle } from '@/app/utils/platform-styles';
-import { getPseudonym, savePseudonym } from '@/app/utils/storage';
-import { analyzePost } from '@/lib/ai-utils';
-import { createPost as createPostDB, getCurrentUser, getTopicStats } from '@/lib/database';
-import { supabase } from '@/lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useHeaderHeight } from '@react-navigation/elements';
-import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { ThemedText } from "@/app/components/themed-text";
+import { ThemedView } from "@/app/components/themed-view";
+import { CATEGORIES, CATEGORY_LIST } from "@/app/constants/categories";
+import { checkEscalation } from "@/app/constants/escalation";
+import {
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
+} from "@/app/constants/theme";
+import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { useDebounce } from "@/app/hooks/use-debounce";
+import { PostCategory } from "@/app/types";
+import {
+  containsIdentifyingInfo,
+  generatePseudonym,
+  sanitizeContent,
+} from "@/app/utils/anonymization";
+import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
+import { getPseudonym, savePseudonym } from "@/app/utils/storage";
+import { analyzePost } from "@/lib/ai-utils";
+import {
+  createPost as createPostDB,
+  getCurrentUser,
+  getTopicStats,
+} from "@/lib/database";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useHeaderHeight } from "@react-navigation/elements";
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -36,29 +49,32 @@ import {
   Switch,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Markdown from 'react-native-markdown-display';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
+import Markdown from "react-native-markdown-display";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
-const DRAFT_KEY = 'post_draft';
+const DRAFT_KEY = "post_draft";
 
 // Icon mapping for categories
 const getCategoryIcon = (category: PostCategory): string => {
   const iconMap: Record<PostCategory, string> = {
-    'mental-health': 'leaf-outline',
-    'crisis': 'pulse-outline',
-    'substance-abuse': 'fitness-outline',
-    'sexual-health': 'heart-circle-outline',
-    'stis-hiv': 'shield-outline',
-    'family-home': 'home-outline',
-    'academic': 'school-outline',
-    'social': 'people-circle-outline',
-    'relationships': 'infinite-outline',
-    'campus': 'business-outline',
-    'general': 'chatbubbles-outline',
+    "mental-health": "leaf-outline",
+    crisis: "pulse-outline",
+    "substance-abuse": "fitness-outline",
+    "sexual-health": "heart-circle-outline",
+    "stis-hiv": "shield-outline",
+    "family-home": "home-outline",
+    academic: "school-outline",
+    social: "people-circle-outline",
+    relationships: "infinite-outline",
+    campus: "business-outline",
+    general: "chatbubbles-outline",
   };
-  return iconMap[category] || 'help-circle-outline';
+  return iconMap[category] || "help-circle-outline";
 };
 
 export default function CreatePostScreen() {
@@ -66,14 +82,18 @@ export default function CreatePostScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const contentInputRef = useRef<TextInput>(null);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [availableCategories, setAvailableCategories] = useState<PostCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<PostCategory>('mental-health');
-  const [suggestedCategory, setSuggestedCategory] = useState<PostCategory | null>(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<
+    PostCategory[]
+  >([]);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PostCategory>("mental-health");
+  const [suggestedCategory, setSuggestedCategory] =
+    useState<PostCategory | null>(null);
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -85,10 +105,13 @@ export default function CreatePostScreen() {
   const [categoryConfidence, setCategoryConfidence] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
+  const [contentSelection, setContentSelection] = useState({
+    start: 0,
+    end: 0,
+  });
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
@@ -96,7 +119,8 @@ export default function CreatePostScreen() {
   // Helper function to insert text at cursor position
   const insertTextAtCursor = (textToInsert: string) => {
     const { start, end } = contentSelection;
-    const newContent = content.substring(0, start) + textToInsert + content.substring(end);
+    const newContent =
+      content.substring(0, start) + textToInsert + content.substring(end);
     setContent(newContent);
 
     // Update cursor position after insertion
@@ -117,13 +141,16 @@ export default function CreatePostScreen() {
       // Wrap selected text
       const newContent =
         content.substring(0, start) +
-        before + selectedText + after +
+        before +
+        selectedText +
+        after +
         content.substring(end);
       setContent(newContent);
 
       // Update cursor position
       setTimeout(() => {
-        const newCursorPos = start + before.length + selectedText.length + after.length;
+        const newCursorPos =
+          start + before.length + selectedText.length + after.length;
         contentInputRef.current?.setNativeProps({
           selection: { start: newCursorPos, end: newCursorPos },
         });
@@ -142,11 +169,11 @@ export default function CreatePostScreen() {
   };
 
   const handleBold = () => {
-    wrapTextWithMarkdown('**', '**');
+    wrapTextWithMarkdown("**", "**");
   };
 
   const handleItalic = () => {
-    wrapTextWithMarkdown('*', '*');
+    wrapTextWithMarkdown("*", "*");
   };
 
   const handleLink = () => {
@@ -154,32 +181,36 @@ export default function CreatePostScreen() {
   };
 
   const handleList = () => {
-    wrapTextWithMarkdown('- ', '');
+    wrapTextWithMarkdown("- ", "");
   };
 
   const handleQuote = () => {
-    wrapTextWithMarkdown('> ', '');
+    wrapTextWithMarkdown("> ", "");
   };
 
   const insertLink = () => {
     if (!linkUrl.trim()) {
-      Alert.alert('Error', 'Please enter a URL');
+      Alert.alert("Error", "Please enter a URL");
       return;
     }
 
     const linkMarkdown = `[${linkText.trim() || linkUrl.trim()}](${linkUrl.trim()})`;
     insertTextAtCursor(linkMarkdown);
     setShowLinkModal(false);
-    setLinkUrl('');
-    setLinkText('');
+    setLinkUrl("");
+    setLinkText("");
   };
 
   const handleImage = async () => {
     try {
       // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please grant permission to access your photos.');
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to access your photos.",
+        );
         return;
       }
 
@@ -198,8 +229,8 @@ export default function CreatePostScreen() {
       const imageUri = result.assets[0].uri;
       await uploadAndInsertImage(imageUri);
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
@@ -208,53 +239,61 @@ export default function CreatePostScreen() {
     try {
       const user = await getCurrentUser();
       if (!user) {
-        Alert.alert('Error', 'Please log in to upload images.');
+        Alert.alert("Error", "Please log in to upload images.");
         setUploadingImage(false);
         return;
       }
 
-      // Read the image file
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
       // Generate unique filename with proper extension
-      const uriParts = imageUri.split('.');
-      const fileExt = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      const filePath = `post-images/${fileName}`;
+      const fileExt =
+        imageUri.split(".").pop()?.split("?")[0].toLowerCase() || "jpg";
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
       // Determine content type
-      const contentType = fileExt === 'png' ? 'image/png' :
-        fileExt === 'gif' ? 'image/gif' :
-          fileExt === 'webp' ? 'image/webp' : 'image/jpeg';
+      const contentType =
+        fileExt === "png"
+          ? "image/png"
+          : fileExt === "gif"
+            ? "image/gif"
+            : fileExt === "webp"
+              ? "image/webp"
+              : "image/jpeg";
 
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, blob, {
+      // Upload to Supabase Storage using FormData (Native standard)
+      const fileName = filePath.split('/').pop() || `${Date.now()}.jpg`;
+      const formData = new FormData();
+      formData.append('file', {
+        uri: imageUri,
+        name: fileName,
+        type: contentType,
+      } as any);
+
+      const { error: uploadError } = await supabase.storage
+        .from("post-images")
+        .upload(filePath, formData, {
           contentType: contentType,
           upsert: false,
         });
 
       if (uploadError) {
         // If bucket doesn't exist, create it or use public URL
-        console.error('Upload error:', uploadError);
-        Alert.alert('Error', 'Failed to upload image. Please try again.');
+        console.error("Upload error:", uploadError);
+        Alert.alert("Error", "Failed to upload image. Please try again.");
         setUploadingImage(false);
         return;
       }
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('post-images')
+        .from("post-images")
         .getPublicUrl(filePath);
 
       const imageUrl = urlData.publicUrl;
       const imageMarkdown = `![Image](${imageUrl})`;
       insertTextAtCursor(imageMarkdown);
     } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      console.error("Error uploading image:", error);
+      Alert.alert("Error", "Failed to upload image. Please try again.");
     } finally {
       setUploadingImage(false);
     }
@@ -268,7 +307,10 @@ export default function CreatePostScreen() {
 
   useEffect(() => {
     // Set category from params if provided
-    if (params.category && availableCategories.includes(params.category as PostCategory)) {
+    if (
+      params.category &&
+      availableCategories.includes(params.category as PostCategory)
+    ) {
       setSelectedCategory(params.category as PostCategory);
     }
   }, [params.category, availableCategories]);
@@ -280,7 +322,10 @@ export default function CreatePostScreen() {
 
   useEffect(() => {
     // Analyze content for category and tag suggestions
-    if ((debouncedTitle.trim() || debouncedContent.trim()) && debouncedContent.trim().length > 10) {
+    if (
+      (debouncedTitle.trim() || debouncedContent.trim()) &&
+      debouncedContent.trim().length > 10
+    ) {
       analyzeContent();
     }
   }, [debouncedTitle, debouncedContent]);
@@ -294,17 +339,19 @@ export default function CreatePostScreen() {
       // Filter to only categories that have at least 1 post
       // Always include 'general' as a fallback option
       const categoriesWithPosts = stats
-        .filter(stat => stat.recentPostCount > 0 || stat.category === 'general')
-        .map(stat => stat.category)
+        .filter(
+          (stat) => stat.recentPostCount > 0 || stat.category === "general",
+        )
+        .map((stat) => stat.category)
         .sort((a, b) => {
-          const statA = stats.find(s => s.category === a);
-          const statB = stats.find(s => s.category === b);
+          const statA = stats.find((s) => s.category === a);
+          const statB = stats.find((s) => s.category === b);
           return (statB?.recentPostCount || 0) - (statA?.recentPostCount || 0);
         });
 
       // If no categories have posts yet, show all categories
       if (categoriesWithPosts.length === 0) {
-        setAvailableCategories(CATEGORY_LIST.map(c => c.id));
+        setAvailableCategories(CATEGORY_LIST.map((c) => c.id));
       } else {
         setAvailableCategories(categoriesWithPosts);
       }
@@ -314,9 +361,9 @@ export default function CreatePostScreen() {
         setSelectedCategory(categoriesWithPosts[0]);
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error("Error loading categories:", error);
       // Fallback to all categories
-      setAvailableCategories(CATEGORY_LIST.map(c => c.id));
+      setAvailableCategories(CATEGORY_LIST.map((c) => c.id));
     } finally {
       setLoadingCategories(false);
     }
@@ -336,15 +383,15 @@ export default function CreatePostScreen() {
       const draftJson = await AsyncStorage.getItem(DRAFT_KEY);
       if (draftJson) {
         const draft = JSON.parse(draftJson);
-        setTitle(draft.title || '');
-        setContent(draft.content || '');
+        setTitle(draft.title || "");
+        setContent(draft.content || "");
         if (draft.category && availableCategories.includes(draft.category)) {
           setSelectedCategory(draft.category);
         }
         setSelectedTags(draft.tags || []);
       }
     } catch (error) {
-      console.error('Error loading draft:', error);
+      console.error("Error loading draft:", error);
     }
   };
 
@@ -359,7 +406,7 @@ export default function CreatePostScreen() {
       };
       await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error("Error saving draft:", error);
     }
   };
 
@@ -367,7 +414,7 @@ export default function CreatePostScreen() {
     try {
       await AsyncStorage.removeItem(DRAFT_KEY);
     } catch (error) {
-      console.error('Error clearing draft:', error);
+      console.error("Error clearing draft:", error);
     }
   };
 
@@ -378,7 +425,10 @@ export default function CreatePostScreen() {
       const analysis = analyzePost(title, content, selectedCategory);
 
       // Update suggested category if confidence is high and category is available
-      if (analysis.categorization.confidence > 0.6 && availableCategories.includes(analysis.categorization.category)) {
+      if (
+        analysis.categorization.confidence > 0.6 &&
+        availableCategories.includes(analysis.categorization.category)
+      ) {
         setSuggestedCategory(analysis.categorization.category);
         setCategoryConfidence(analysis.categorization.confidence);
 
@@ -393,13 +443,16 @@ export default function CreatePostScreen() {
         setSuggestedTags(analysis.suggestedTags.slice(0, 5));
       }
     } catch (error) {
-      console.error('Error analyzing content:', error);
+      console.error("Error analyzing content:", error);
     }
   };
 
   const handlePostButton = () => {
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Missing Information', 'Please provide both a title and content for your post.');
+      Alert.alert(
+        "Missing Information",
+        "Please provide both a title and content for your post.",
+      );
       return;
     }
 
@@ -412,12 +465,16 @@ export default function CreatePostScreen() {
   const handleSubmitFromReview = async () => {
     if (containsIdentifyingInfo(content)) {
       Alert.alert(
-        'Privacy Warning',
-        'Your post may contain identifying information. Please review and remove any personal details like email, phone numbers, or student IDs to protect your anonymity.',
+        "Privacy Warning",
+        "Your post may contain identifying information. Please review and remove any personal details like email, phone numbers, or student IDs to protect your anonymity.",
         [
-          { text: 'Edit', style: 'cancel', onPress: () => setShowReview(false) },
-          { text: 'Post Anyway', onPress: () => submitPost() },
-        ]
+          {
+            text: "Edit",
+            style: "cancel",
+            onPress: () => setShowReview(false),
+          },
+          { text: "Post Anyway", onPress: () => submitPost() },
+        ],
       );
       return;
     }
@@ -430,7 +487,7 @@ export default function CreatePostScreen() {
     try {
       const user = await getCurrentUser();
       if (!user) {
-        Alert.alert('Error', 'Please log in to create a post.');
+        Alert.alert("Error", "Please log in to create a post.");
         setIsSubmitting(false);
         return;
       }
@@ -454,46 +511,52 @@ export default function CreatePostScreen() {
       // Clear draft after successful post
       await clearDraft();
 
-      if (escalation.level !== 'none') {
+      if (escalation.level !== "none") {
         Alert.alert(
-          'Support Team Notified',
-          'Your post has been flagged for immediate attention. A counselor or support team member will reach out soon. If this is an emergency, please call 10111 or the crisis helpline.',
+          "Support Team Notified",
+          "Your post has been flagged for immediate attention. A counselor or support team member will reach out soon. If this is an emergency, please call 10111 or the crisis helpline.",
           [
             {
-              text: 'OK',
+              text: "OK",
               onPress: () => {
                 router.back();
-                router.push('/(tabs)/forum');
+                router.push("/(tabs)/forum");
               },
             },
-          ]
+          ],
         );
       } else {
-        Alert.alert('Post Created', 'Your post has been shared with the community.', [
-          {
-            text: 'OK',
-            onPress: () => {
-              router.back();
-              router.push(`/topic/${selectedCategory}` as any);
+        Alert.alert(
+          "Post Created",
+          "Your post has been shared with the community.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                router.back();
+                router.push(`/topic/${selectedCategory}` as any);
+              },
             },
-          },
-        ]);
+          ],
+        );
       }
     } catch (error) {
-      console.error('Error creating post:', error);
-      Alert.alert('Error', 'Failed to create post. Please try again.');
+      console.error("Error creating post:", error);
+      Alert.alert("Error", "Failed to create post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeAreaTop}>
-      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+    <SafeAreaView edges={["top"]} style={styles.safeAreaTop}>
+      <StatusBar
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+      />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
       >
         <ThemedView style={styles.container}>
           {/* Header with X, Title, and Post Button */}
@@ -504,7 +567,10 @@ export default function CreatePostScreen() {
             >
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
-            <ThemedText type="h2" style={[styles.headerTitle, { color: colors.text }]}>
+            <ThemedText
+              type="h2"
+              style={[styles.headerTitle, { color: colors.text }]}
+            >
               Create Post
             </ThemedText>
             <TouchableOpacity
@@ -512,11 +578,12 @@ export default function CreatePostScreen() {
                 styles.postButton,
                 {
                   backgroundColor: colors.primary,
-                  opacity: (!title.trim() || !content.trim() || isSubmitting) ? 0.5 : 1,
+                  opacity:
+                    !title.trim() || !content.trim() || isSubmitting ? 0.5 : 1,
                   shadowColor: colors.primary,
                   shadowOpacity: 0.3,
                   shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 4 }
+                  shadowOffset: { width: 0, height: 4 },
                 },
               ]}
               onPress={handlePostButton}
@@ -545,7 +612,10 @@ export default function CreatePostScreen() {
           >
             {/* Topic Selection Section */}
             <View style={styles.section}>
-              <ThemedText type="small" style={[styles.topicLabel, { color: colors.icon }]}>
+              <ThemedText
+                type="small"
+                style={[styles.topicLabel, { color: colors.icon }]}
+              >
                 SELECT TOPIC
               </ThemedText>
               {loadingCategories ? (
@@ -572,8 +642,12 @@ export default function CreatePostScreen() {
                         style={[
                           styles.topicButton,
                           {
-                            backgroundColor: isSelected ? colors.primary + '15' : colors.surface,
-                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected
+                              ? colors.primary + "15"
+                              : colors.surface,
+                            borderColor: isSelected
+                              ? colors.primary
+                              : colors.border,
                             borderWidth: isSelected ? 2 : 1.5,
                           },
                         ]}
@@ -590,11 +664,11 @@ export default function CreatePostScreen() {
                             styles.topicButtonText,
                             {
                               color: isSelected ? colors.primary : colors.text,
-                              fontWeight: isSelected ? '800' : '600',
+                              fontWeight: isSelected ? "800" : "600",
                             },
                           ]}
                         >
-                          {category?.name?.split(' ')[0] || categoryId}
+                          {category?.name?.split(" ")[0] || categoryId}
                         </ThemedText>
                       </TouchableOpacity>
                     );
@@ -606,7 +680,10 @@ export default function CreatePostScreen() {
             {/* Tag Suggestions */}
             {suggestedTags.length > 0 && (
               <View style={styles.section}>
-                <ThemedText type="h3" style={[styles.sectionTitle, { color: colors.text }]}>
+                <ThemedText
+                  type="h3"
+                  style={[styles.sectionTitle, { color: colors.text }]}
+                >
                   Suggested Tags
                 </ThemedText>
                 <View style={styles.tagsContainer}>
@@ -618,13 +695,19 @@ export default function CreatePostScreen() {
                         style={[
                           styles.tagChip,
                           {
-                            backgroundColor: isSelected ? colors.primary : colors.surface,
-                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected
+                              ? colors.primary
+                              : colors.surface,
+                            borderColor: isSelected
+                              ? colors.primary
+                              : colors.border,
                           },
                         ]}
                         onPress={() => {
                           if (isSelected) {
-                            setSelectedTags(selectedTags.filter(t => t !== tag));
+                            setSelectedTags(
+                              selectedTags.filter((t) => t !== tag),
+                            );
                           } else {
                             setSelectedTags([...selectedTags, tag]);
                           }
@@ -634,8 +717,8 @@ export default function CreatePostScreen() {
                         <ThemedText
                           type="small"
                           style={{
-                            color: isSelected ? '#FFFFFF' : colors.text,
-                            fontWeight: '600',
+                            color: isSelected ? "#FFFFFF" : colors.text,
+                            fontWeight: "600",
                           }}
                         >
                           {tag}
@@ -654,7 +737,7 @@ export default function CreatePostScreen() {
                   styles.titleInput,
                   createInputStyle(),
                   {
-                    backgroundColor: 'transparent',
+                    backgroundColor: "transparent",
                     color: colors.text,
                   },
                 ]}
@@ -664,7 +747,13 @@ export default function CreatePostScreen() {
                 onChangeText={setTitle}
                 maxLength={100}
               />
-              <ThemedText type="small" style={[styles.charCount, { color: title.length > 90 ? colors.danger : colors.icon }]}>
+              <ThemedText
+                type="small"
+                style={[
+                  styles.charCount,
+                  { color: title.length > 90 ? colors.danger : colors.icon },
+                ]}
+              >
                 {title.length}/100
               </ThemedText>
             </View>
@@ -677,7 +766,7 @@ export default function CreatePostScreen() {
                   styles.contentInput,
                   createInputStyle(),
                   {
-                    backgroundColor: 'transparent',
+                    backgroundColor: "transparent",
                     color: colors.text,
                     paddingBottom: 40,
                   },
@@ -697,7 +786,10 @@ export default function CreatePostScreen() {
                 textAlignVertical="top"
               />
               <View style={styles.contentFooter}>
-                <ThemedText type="small" style={[styles.charCount, { color: colors.icon }]}>
+                <ThemedText
+                  type="small"
+                  style={[styles.charCount, { color: colors.icon }]}
+                >
                   {content.length} characters
                 </ThemedText>
               </View>
@@ -706,12 +798,23 @@ export default function CreatePostScreen() {
             {/* Post Anonymously Toggle */}
             <View style={styles.anonymousSection}>
               <View style={styles.anonymousLeft}>
-                <Ionicons name="eye-off-outline" size={24} color={colors.text} style={styles.eyeIcon} />
+                <Ionicons
+                  name="eye-off-outline"
+                  size={24}
+                  color={colors.text}
+                  style={styles.eyeIcon}
+                />
                 <View>
-                  <ThemedText type="body" style={[styles.anonymousTitle, { color: colors.text }]}>
+                  <ThemedText
+                    type="body"
+                    style={[styles.anonymousTitle, { color: colors.text }]}
+                  >
                     Post Anonymously
                   </ThemedText>
-                  <ThemedText type="small" style={[styles.anonymousSubtitle, { color: colors.icon }]}>
+                  <ThemedText
+                    type="small"
+                    style={[styles.anonymousSubtitle, { color: colors.icon }]}
+                  >
                     Hide your username
                   </ThemedText>
                 </View>
@@ -726,14 +829,19 @@ export default function CreatePostScreen() {
             </View>
 
             {/* Formatting Toolbar */}
-            <View style={[
-              styles.toolbar,
-              {
-                backgroundColor: colors.background,
-                borderTopColor: colors.border,
-                paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, Spacing.md) : Spacing.md,
-              }
-            ]}>
+            <View
+              style={[
+                styles.toolbar,
+                {
+                  backgroundColor: colors.background,
+                  borderTopColor: colors.border,
+                  paddingBottom:
+                    Platform.OS === "ios"
+                      ? Math.max(insets.bottom, Spacing.md)
+                      : Spacing.md,
+                },
+              ]}
+            >
               <View style={styles.toolbarLeft}>
                 <TouchableOpacity
                   style={styles.toolbarButton}
@@ -744,7 +852,12 @@ export default function CreatePostScreen() {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="text" size={20} color={colors.text} />
-                  <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]} />
+                  <View
+                    style={[
+                      styles.activeIndicator,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
@@ -754,7 +867,11 @@ export default function CreatePostScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="pencil-outline" size={20} color={colors.text} />
+                  <Ionicons
+                    name="pencil-outline"
+                    size={20}
+                    color={colors.text}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
@@ -784,7 +901,11 @@ export default function CreatePostScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="chatbox-outline" size={18} color={colors.text} />
+                  <Ionicons
+                    name="chatbox-outline"
+                    size={18}
+                    color={colors.text}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
@@ -798,18 +919,26 @@ export default function CreatePostScreen() {
                   {uploadingImage ? (
                     <ActivityIndicator size="small" color={colors.text} />
                   ) : (
-                    <Ionicons name="image-outline" size={20} color={colors.text} />
+                    <Ionicons
+                      name="image-outline"
+                      size={20}
+                      color={colors.text}
+                    />
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.toolbarButton}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    insertTextAtCursor('\n\n--- \n\n');
+                    insertTextAtCursor("\n\n--- \n\n");
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="remove-outline" size={20} color={colors.text} />
+                  <Ionicons
+                    name="remove-outline"
+                    size={20}
+                    color={colors.text}
+                  />
                 </TouchableOpacity>
               </View>
               <View style={styles.toolbarSeparator} />
@@ -817,19 +946,25 @@ export default function CreatePostScreen() {
                 style={[
                   styles.triggerWarningButton,
                   {
-                    backgroundColor: hasTriggerWarning ? '#FF6B35' : 'transparent',
-                    borderColor: '#FF6B35',
+                    backgroundColor: hasTriggerWarning
+                      ? "#FF6B35"
+                      : "transparent",
+                    borderColor: "#FF6B35",
                   },
                 ]}
                 onPress={() => setHasTriggerWarning(!hasTriggerWarning)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="warning-outline" size={16} color={hasTriggerWarning ? '#FFFFFF' : '#FF6B35'} />
+                <Ionicons
+                  name="warning-outline"
+                  size={16}
+                  color={hasTriggerWarning ? "#FFFFFF" : "#FF6B35"}
+                />
                 <ThemedText
                   type="small"
                   style={[
                     styles.triggerWarningText,
-                    { color: hasTriggerWarning ? '#FFFFFF' : '#FF6B35' },
+                    { color: hasTriggerWarning ? "#FFFFFF" : "#FF6B35" },
                   ]}
                 >
                   TW
@@ -840,9 +975,17 @@ export default function CreatePostScreen() {
             {/* Review/Preview Modal */}
             {showReview && (
               <View style={styles.reviewOverlay}>
-                <View style={[styles.reviewContainer, { backgroundColor: colors.background }]}>
+                <View
+                  style={[
+                    styles.reviewContainer,
+                    { backgroundColor: colors.background },
+                  ]}
+                >
                   <View style={styles.reviewHeader}>
-                    <ThemedText type="h2" style={[styles.reviewTitle, { color: colors.text }]}>
+                    <ThemedText
+                      type="h2"
+                      style={[styles.reviewTitle, { color: colors.text }]}
+                    >
                       Review Your Post
                     </ThemedText>
                     <TouchableOpacity
@@ -853,34 +996,61 @@ export default function CreatePostScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView style={styles.reviewScroll} showsVerticalScrollIndicator={false}>
+                  <ScrollView
+                    style={styles.reviewScroll}
+                    showsVerticalScrollIndicator={false}
+                  >
                     <View style={styles.reviewContent}>
                       <View style={styles.reviewHeaderInfo}>
-                        <View style={[styles.reviewAvatar, { backgroundColor: colors.primary }]}>
-                          <ThemedText style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                            {pseudonym?.[0]?.toUpperCase() || 'A'}
+                        <View
+                          style={[
+                            styles.reviewAvatar,
+                            { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <ThemedText
+                            style={{ color: "#FFFFFF", fontWeight: "700" }}
+                          >
+                            {pseudonym?.[0]?.toUpperCase() || "A"}
                           </ThemedText>
                         </View>
                         <View style={styles.reviewUserInfo}>
-                          <ThemedText type="body" style={{ fontWeight: '600', color: colors.text }}>
-                            {isAnonymous ? pseudonym || 'Anonymous' : 'You'}
+                          <ThemedText
+                            type="body"
+                            style={{ fontWeight: "600", color: colors.text }}
+                          >
+                            {isAnonymous ? pseudonym || "Anonymous" : "You"}
                           </ThemedText>
-                          <ThemedText type="small" style={{ color: colors.icon }}>
+                          <ThemedText
+                            type="small"
+                            style={{ color: colors.icon }}
+                          >
                             {CATEGORIES[selectedCategory].name}
                           </ThemedText>
                         </View>
                       </View>
 
                       {hasTriggerWarning && (
-                        <View style={[styles.triggerWarningBanner, { backgroundColor: '#FF6B3520' }]}>
+                        <View
+                          style={[
+                            styles.triggerWarningBanner,
+                            { backgroundColor: "#FF6B3520" },
+                          ]}
+                        >
                           <Ionicons name="warning" size={20} color="#FF6B35" />
-                          <ThemedText type="small" style={{ color: '#FF6B35', marginLeft: Spacing.xs }}>
+                          <ThemedText
+                            type="small"
+                            style={{ color: "#FF6B35", marginLeft: Spacing.xs }}
+                          >
                             This post contains a trigger warning
                           </ThemedText>
                         </View>
                       )}
 
-                      <ThemedText type="h3" style={[styles.reviewPostTitle, { color: colors.text }]}>
+                      <ThemedText
+                        type="h3"
+                        style={[styles.reviewPostTitle, { color: colors.text }]}
+                      >
                         {title}
                       </ThemedText>
                       <Markdown
@@ -904,8 +1074,17 @@ export default function CreatePostScreen() {
                       {selectedTags.length > 0 && (
                         <View style={styles.reviewTags}>
                           {selectedTags.map((tag, index) => (
-                            <View key={index} style={[styles.reviewTag, { backgroundColor: colors.surface }]}>
-                              <ThemedText type="small" style={{ color: colors.primary }}>
+                            <View
+                              key={index}
+                              style={[
+                                styles.reviewTag,
+                                { backgroundColor: colors.surface },
+                              ]}
+                            >
+                              <ThemedText
+                                type="small"
+                                style={{ color: colors.primary }}
+                              >
                                 #{tag}
                               </ThemedText>
                             </View>
@@ -917,11 +1096,17 @@ export default function CreatePostScreen() {
 
                   <View style={styles.reviewActions}>
                     <TouchableOpacity
-                      style={[styles.reviewEditButton, { borderColor: colors.border }]}
+                      style={[
+                        styles.reviewEditButton,
+                        { borderColor: colors.border },
+                      ]}
                       onPress={() => setShowReview(false)}
                       activeOpacity={0.7}
                     >
-                      <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                      <ThemedText
+                        type="body"
+                        style={{ color: colors.text, fontWeight: "600" }}
+                      >
                         Edit
                       </ThemedText>
                     </TouchableOpacity>
@@ -940,7 +1125,10 @@ export default function CreatePostScreen() {
                       {isSubmitting ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                        <ThemedText
+                          type="body"
+                          style={{ color: "#FFFFFF", fontWeight: "700" }}
+                        >
                           Post
                         </ThemedText>
                       )}
@@ -950,9 +1138,13 @@ export default function CreatePostScreen() {
               </View>
             )}
 
-            <ThemedText type="small" style={[styles.disclaimer, { color: colors.icon }]}>
-              By posting, you agree that this is a supportive community space. In case of
-              emergencies, please contact emergency services immediately.
+            <ThemedText
+              type="small"
+              style={[styles.disclaimer, { color: colors.icon }]}
+            >
+              By posting, you agree that this is a supportive community space.
+              In case of emergencies, please contact emergency services
+              immediately.
             </ThemedText>
           </ScrollView>
 
@@ -964,9 +1156,17 @@ export default function CreatePostScreen() {
             onRequestClose={() => setShowLinkModal(false)}
           >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+              <View
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: colors.background },
+                ]}
+              >
                 <View style={styles.modalHeader}>
-                  <ThemedText type="h2" style={[styles.modalTitle, { color: colors.text }]}>
+                  <ThemedText
+                    type="h2"
+                    style={[styles.modalTitle, { color: colors.text }]}
+                  >
                     Insert Link
                   </ThemedText>
                   <TouchableOpacity
@@ -979,7 +1179,10 @@ export default function CreatePostScreen() {
 
                 <View style={styles.modalBody}>
                   <View style={styles.modalInputContainer}>
-                    <ThemedText type="body" style={[styles.modalLabel, { color: colors.text }]}>
+                    <ThemedText
+                      type="body"
+                      style={[styles.modalLabel, { color: colors.text }]}
+                    >
                       Link Text (optional)
                     </ThemedText>
                     <TextInput
@@ -999,7 +1202,10 @@ export default function CreatePostScreen() {
                   </View>
 
                   <View style={styles.modalInputContainer}>
-                    <ThemedText type="body" style={[styles.modalLabel, { color: colors.text }]}>
+                    <ThemedText
+                      type="body"
+                      style={[styles.modalLabel, { color: colors.text }]}
+                    >
                       URL *
                     </ThemedText>
                     <TextInput
@@ -1030,11 +1236,14 @@ export default function CreatePostScreen() {
                     ]}
                     onPress={() => {
                       setShowLinkModal(false);
-                      setLinkUrl('');
-                      setLinkText('');
+                      setLinkUrl("");
+                      setLinkText("");
                     }}
                   >
-                    <ThemedText type="body" style={{ color: colors.text, fontWeight: '600' }}>
+                    <ThemedText
+                      type="body"
+                      style={{ color: colors.text, fontWeight: "600" }}
+                    >
                       Cancel
                     </ThemedText>
                   </TouchableOpacity>
@@ -1049,7 +1258,10 @@ export default function CreatePostScreen() {
                     onPress={insertLink}
                     disabled={!linkUrl.trim()}
                   >
-                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                    <ThemedText
+                      type="body"
+                      style={{ color: "#FFFFFF", fontWeight: "700" }}
+                    >
                       Insert
                     </ThemedText>
                   </TouchableOpacity>
@@ -1071,9 +1283,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     height: 72,
@@ -1082,12 +1294,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -0.5,
   },
   postButton: {
@@ -1096,8 +1308,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
   },
   postButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
+    color: "#FFFFFF",
+    fontWeight: "900",
     fontSize: 15,
   },
   scrollView: {
@@ -1111,17 +1323,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontWeight: '800',
+    fontWeight: "800",
     fontSize: 18,
     marginBottom: Spacing.md,
     letterSpacing: -0.3,
   },
   topicLabel: {
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 1.5,
     marginBottom: Spacing.md,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     opacity: 0.6,
   },
   topicScrollContent: {
@@ -1133,18 +1345,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1.5,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   topicButtonText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   charCount: {
-    textAlign: 'right',
+    textAlign: "right",
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: -8,
     opacity: 0.6,
   },
@@ -1153,26 +1365,26 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   postButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   loadingCategories: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: Spacing.lg,
   },
   suggestionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   tagChip: {
@@ -1183,7 +1395,7 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: "900",
     paddingVertical: Spacing.sm,
     minHeight: 60,
     letterSpacing: -0.5,
@@ -1193,59 +1405,58 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     minHeight: 250,
     lineHeight: 26,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   anonymousSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: Spacing.lg,
     borderRadius: 20,
     marginBottom: Spacing.xl,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: "rgba(0,0,0,0.03)",
   },
   anonymousLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     gap: 12,
   },
-  eyeIcon: {
-  },
+  eyeIcon: {},
   anonymousTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   anonymousSubtitle: {
     fontSize: 12,
     opacity: 0.6,
   },
   toolbar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
   },
   toolbarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     gap: 8,
   },
   toolbarButton: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 12,
   },
   activeIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 4,
     width: 4,
     height: 4,
@@ -1255,12 +1466,12 @@ const styles = StyleSheet.create({
   toolbarSeparator: {
     width: 1,
     height: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
     marginHorizontal: Spacing.xs,
   },
   triggerWarningButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
@@ -1268,33 +1479,33 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   triggerWarningText: {
-    fontWeight: '900',
+    fontWeight: "900",
     fontSize: 11,
   },
   reviewOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "flex-end",
     zIndex: 1000,
   },
   reviewContainer: {
-    height: '92%',
+    height: "92%",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingTop: Spacing.xl,
     paddingBottom: 40,
   },
   reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   reviewTitle: {
-    fontWeight: '900',
+    fontWeight: "900",
     fontSize: 24,
     letterSpacing: -0.5,
   },
@@ -1308,8 +1519,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   reviewHeaderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: Spacing.xl,
     gap: 12,
   },
@@ -1317,22 +1528,22 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   reviewUserInfo: {
     flex: 1,
   },
   triggerWarningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.lg,
     borderRadius: 16,
     marginBottom: Spacing.xl,
   },
   reviewPostTitle: {
     marginBottom: Spacing.md,
-    fontWeight: '900',
+    fontWeight: "900",
     fontSize: 22,
     letterSpacing: -0.3,
   },
@@ -1342,8 +1553,8 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   reviewTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: Spacing.md,
   },
@@ -1351,33 +1562,33 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   reviewActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.md,
     padding: Spacing.xl,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
+    borderTopColor: "rgba(0, 0, 0, 0.05)",
   },
   reviewEditButton: {
     flex: 1,
     height: 56,
     borderRadius: BorderRadius.xl,
     borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   reviewPostButton: {
     flex: 2,
     height: 56,
     borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     ...PlatformStyles.premiumShadow,
   },
   disclaimer: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
     marginTop: Spacing.lg,
@@ -1386,8 +1597,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
     padding: Spacing.xl,
   },
   modalContent: {
@@ -1396,13 +1607,13 @@ const styles = StyleSheet.create({
     ...PlatformStyles.premiumShadow,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: Spacing.xl,
   },
   modalTitle: {
-    fontWeight: '900',
+    fontWeight: "900",
     fontSize: 22,
   },
   modalCloseButton: {
@@ -1416,7 +1627,7 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: Spacing.sm,
   },
   modalInput: {
@@ -1427,7 +1638,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   modalCancelButton: {
@@ -1435,14 +1646,14 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 14,
     borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalInsertButton: {
     flex: 1,
     height: 50,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

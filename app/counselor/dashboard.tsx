@@ -29,7 +29,10 @@ export default function CounselorDashboardScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { user, loading: authLoading } = useRoleGuard(['counselor', 'life-coach', 'admin'], '/(tabs)');
+  const { user, loading: authLoading } = useRoleGuard(
+    ['counselor', 'life-coach', 'peer-educator-executive', 'admin'],
+    '/(tabs)',
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [escalations, setEscalations] = useState<Escalation[]>([]);
