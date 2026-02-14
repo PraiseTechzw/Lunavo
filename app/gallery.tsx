@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useCurrentUser } from "@/hooks/use-auth-guard";
 import { getGalleryImages } from "@/lib/database";
 
 const { width } = Dimensions.get("window");
@@ -70,6 +71,9 @@ export default function GalleryScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? "light";
     const colors = Colors[colorScheme];
+
+    const { user } = useCurrentUser();
+    const isPrivileged = user?.role === 'peer-educator-executive' || user?.role === 'admin';
 
     const [items, setItems] = useState<any[]>(FALLBACK_ITEMS);
     const [loading, setLoading] = useState(true);
@@ -134,7 +138,16 @@ export default function GalleryScreen() {
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <ThemedText type="h2" style={styles.headerTitle}>Gallery</ThemedText>
-                    <View style={{ width: 40 }} />
+                    {isPrivileged ? (
+                        <TouchableOpacity
+                            onPress={() => router.push({ pathname: '/executive/new-resource', params: { category: 'gallery' } })}
+                            style={styles.addButton}
+                        >
+                            <MaterialCommunityIcons name="plus" size={26} color={colors.primary} />
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={{ width: 40 }} />
+                    )}
                 </View>
 
                 <View style={styles.filterContainer}>

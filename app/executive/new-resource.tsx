@@ -55,6 +55,7 @@ export default function NewResourceScreen() {
     // Role Guard
     const { user, loading: authLoading } = useRoleGuard(['peer-educator-executive', 'admin'], '/peer-educator/dashboard');
 
+    const params = useLocalSearchParams<{ category?: string }>();
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -62,8 +63,8 @@ export default function NewResourceScreen() {
     const [form, setForm] = useState({
         title: '',
         description: '',
-        category: 'general' as PostCategory,
-        resourceType: 'article' as any,
+        category: (params.category as PostCategory) || 'general',
+        resourceType: (params.category === 'gallery' ? 'image' : 'article') as any,
         url: '',
         tags: '',
         localUri: null as string | null,
