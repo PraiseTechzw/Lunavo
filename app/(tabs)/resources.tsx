@@ -571,7 +571,7 @@ export default function ResourcesScreen() {
                   createInputStyle(),
                   { color: colors.text },
                 ]}
-                placeholder="Search for articles, videos..."
+                placeholder="Search resources, tips, guides..."
                 placeholderTextColor={colors.icon}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -639,6 +639,67 @@ export default function ResourcesScreen() {
                 {showFavoritesOnly ? "Show All" : "Show Favorites"}
               </ThemedText>
             </TouchableOpacity>
+
+            {/* Type Filters: All / Articles / Videos / Toolkits */}
+            <View style={styles.typeFiltersRow}>
+              {["All", "Articles", "Videos", "Toolkits"].map((label) => {
+                const mapped =
+                  label === "Toolkits" ? "PDFs" : (label as string);
+                const active = selectedCategory === mapped;
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    style={[
+                      styles.typeFilterChip,
+                      {
+                        backgroundColor: active
+                          ? colors.primary
+                          : colors.surface,
+                        borderColor: colors.border,
+                      },
+                      active ? createShadow(2, colors.primary, 0.25) : null,
+                    ]}
+                    onPress={() => setSelectedCategory(mapped)}
+                    activeOpacity={0.8}
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: active ? "#FFFFFF" : colors.text,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {label}
+                    </ThemedText>
+                    {label !== "All" && (
+                      <View
+                        style={[
+                          styles.typeFilterBadge,
+                          {
+                            backgroundColor: active
+                              ? "#FFFFFF22"
+                              : colors.surface,
+                            borderWidth: 1,
+                            borderColor: active ? "transparent" : colors.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: active ? "#FFFFFF" : colors.icon,
+                            fontSize: 10,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {getCategoryCount(mapped)}
+                        </ThemedText>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
             {/* Filters */}
             <View style={styles.filtersContainer}>
@@ -739,100 +800,243 @@ export default function ResourcesScreen() {
 
           {/* Content */}
           {viewMode === "library" ? (
-            <View style={styles.section}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                {showFavoritesOnly ? "Favorite Resources" : "All Resources"} (
-                {filteredResources.length})
-              </ThemedText>
-
-              {loading ? (
-                <View>
-                  <View style={styles.row}>
-                    {[0, 1].map((i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.resourceCard,
-                          {
-                            backgroundColor: colors.card,
-                            marginRight: i === 0 ? ITEM_SPACING : 0,
-                          },
-                          createShadow(2, "#000", 0.08),
-                        ]}
+            <>
+              {/* Featured */}
+              {!showFavoritesOnly && (
+                <View style={styles.section}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <ThemedText type="h3" style={styles.sectionTitle}>
+                      Featured
+                    </ThemedText>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/resource/list",
+                          params: { q: "featured", cat: "All" },
+                        })
+                      }
+                    >
+                      <ThemedText
+                        type="small"
+                        style={{ color: colors.primary, fontWeight: "700" }}
                       >
-                        <Skeleton
-                          width="100%"
-                          height={120}
-                          borderRadius={BorderRadius.md}
-                        />
-                        <View style={styles.resourceContent}>
-                          <Skeleton width="80%" height={16} />
-                          <Skeleton
-                            width="50%"
-                            height={12}
-                            style={{ marginTop: Spacing.xs }}
-                          />
-                        </View>
-                      </View>
-                    ))}
+                        See All
+                      </ThemedText>
+                    </TouchableOpacity>
                   </View>
 
-                  <View style={styles.row}>
-                    {[0, 1].map((i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.resourceCard,
-                          {
-                            backgroundColor: colors.card,
-                            marginRight: i === 0 ? ITEM_SPACING : 0,
-                          },
-                          createShadow(2, "#000", 0.08),
-                        ]}
-                      >
-                        <Skeleton
-                          width="100%"
-                          height={120}
-                          borderRadius={BorderRadius.md}
-                        />
-                        <View style={styles.resourceContent}>
-                          <Skeleton width="85%" height={16} />
-                          <Skeleton
-                            width="40%"
-                            height={12}
-                            style={{ marginTop: Spacing.xs }}
-                          />
-                        </View>
-                      </View>
-                    ))}
-                  </View>
+                  <FlatList
+                    horizontal
+                    data={resources
+                      .filter(
+                        (r) =>
+                          (Array.isArray((r as any).tags) &&
+                            ((r as any).tags.includes("featured") ||
+                              (r as any).tags.includes("editor-pick"))) ||
+                          r.resourceType === "video",
+                      )
+                      .slice(0, 5)}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) =>
+                      renderResourceCard({ item, index })
+                    }
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingRight: Spacing.md }}
+                  />
                 </View>
-              ) : filteredResources.length > 0 ? (
+              )}
+
+              {/* All/Filtered Resources */}
+              <View style={styles.section}>
+                <ThemedText type="h3" style={styles.sectionTitle}>
+                  {showFavoritesOnly ? "Favorite Resources" : "All Resources"} (
+                  {filteredResources.length})
+                </ThemedText>
+
+                {loading ? (
+                  <View>
+                    <View style={styles.row}>
+                      {[0, 1].map((i) => (
+                        <View
+                          key={i}
+                          style={[
+                            styles.resourceCard,
+                            {
+                              backgroundColor: colors.card,
+                              marginRight: i === 0 ? ITEM_SPACING : 0,
+                            },
+                            createShadow(2, "#000", 0.08),
+                          ]}
+                        >
+                          <Skeleton
+                            width="100%"
+                            height={120}
+                            borderRadius={BorderRadius.md}
+                          />
+                          <View style={styles.resourceContent}>
+                            <Skeleton width="80%" height={16} />
+                            <Skeleton
+                              width="50%"
+                              height={12}
+                              style={{ marginTop: Spacing.xs }}
+                            />
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+
+                    <View style={styles.row}>
+                      {[0, 1].map((i) => (
+                        <View
+                          key={i}
+                          style={[
+                            styles.resourceCard,
+                            {
+                              backgroundColor: colors.card,
+                              marginRight: i === 0 ? ITEM_SPACING : 0,
+                            },
+                            createShadow(2, "#000", 0.08),
+                          ]}
+                        >
+                          <Skeleton
+                            width="100%"
+                            height={120}
+                            borderRadius={BorderRadius.md}
+                          />
+                          <View style={styles.resourceContent}>
+                            <Skeleton width="85%" height={16} />
+                            <Skeleton
+                              width="40%"
+                              height={12}
+                              style={{ marginTop: Spacing.xs }}
+                            />
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : filteredResources.length > 0 ? (
+                  <FlatList
+                    data={filteredResources}
+                    renderItem={({ item, index }) =>
+                      renderResourceCard({ item, index })
+                    }
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled={false}
+                    numColumns={2}
+                    columnWrapperStyle={styles.row}
+                    contentContainerStyle={styles.gridList}
+                  />
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <MaterialIcons name="inbox" size={48} color={colors.icon} />
+                    <ThemedText
+                      type="body"
+                      style={{ color: colors.icon, marginTop: Spacing.md }}
+                    >
+                      {showFavoritesOnly
+                        ? "No favorite resources yet"
+                        : "No resources found"}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+
+              {/* Academic Success */}
+              <View style={styles.section}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <ThemedText type="h3" style={styles.sectionTitle}>
+                    Academic Success
+                  </ThemedText>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/resource/list",
+                        params: { cat: "Academic" },
+                      })
+                    }
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{ color: colors.primary, fontWeight: "700" }}
+                    >
+                      View More
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+
                 <FlatList
-                  data={filteredResources}
+                  data={resources
+                    .filter((r) => r.category === "academic")
+                    .slice(0, 4)}
                   renderItem={({ item, index }) =>
                     renderResourceCard({ item, index })
                   }
                   keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
                   numColumns={2}
+                  scrollEnabled={false}
                   columnWrapperStyle={styles.row}
-                  contentContainerStyle={styles.gridList}
                 />
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <MaterialIcons name="inbox" size={48} color={colors.icon} />
-                  <ThemedText
-                    type="body"
-                    style={{ color: colors.icon, marginTop: Spacing.md }}
-                  >
-                    {showFavoritesOnly
-                      ? "No favorite resources yet"
-                      : "No resources found"}
+              </View>
+
+              {/* Mental Health */}
+              <View style={styles.section}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <ThemedText type="h3" style={styles.sectionTitle}>
+                    Mental Health
                   </ThemedText>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/resource/list",
+                        params: { cat: "Mental Health" },
+                      })
+                    }
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{ color: colors.primary, fontWeight: "700" }}
+                    >
+                      View More
+                    </ThemedText>
+                  </TouchableOpacity>
                 </View>
-              )}
-            </View>
+
+                <FlatList
+                  data={resources
+                    .filter((r) => r.category === "mental-health")
+                    .slice(0, 4)}
+                  renderItem={({ item, index }) =>
+                    renderResourceCard({ item, index })
+                  }
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  columnWrapperStyle={styles.row}
+                />
+              </View>
+            </>
           ) : (
             <View style={styles.section}>
               <ThemedText type="h3" style={styles.sectionTitle}>
@@ -1055,6 +1259,27 @@ const styles = StyleSheet.create({
 
   filtersContainer: { marginBottom: Spacing.lg },
   filtersContent: { gap: Spacing.sm },
+
+  // Inspiration: top content-type chips (All, Articles, Videos, Toolkits)
+  typeFiltersRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  typeFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  typeFilterBadge: {
+    marginLeft: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
 
   filterChip: {
     flexDirection: "row",
