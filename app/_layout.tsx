@@ -108,7 +108,8 @@ export default function RootLayout() {
       navGroup === "onboarding" ||
       navGroup === "web-required" ||
       navGroup === "privacy" ||
-      navGroup === "help";
+      navGroup === "help" ||
+      navGroup === "about";
 
     // 1. Mandatory Onboarding Check
     if (isOnboardingComplete === false && navGroup !== "onboarding") {

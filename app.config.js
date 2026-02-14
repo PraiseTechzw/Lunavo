@@ -11,6 +11,7 @@ module.exports = ({ config }) => {
     ...config,
     expo: {
       ...expo,
+      scheme: expo.scheme || "peace",
       owner: "camusmarketzw",
       extra: {
         ...(expo.extra || {}),
