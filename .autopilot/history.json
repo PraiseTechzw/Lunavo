@@ -1,6 +1,16 @@
 {
   "commits": [
     {
+      "hash": "66f2483e56bf83a7731b3ce2c9b8da65b420879e",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5e29a93a0aac71a1b740ef0784ec9f54bbd608becd511b735829242e46aed906",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "app/resource/[id].tsx"
+      ],
+      "timestamp": "2026-02-14T19:23:35.252Z"
+    },
+    {
       "hash": "a44d900f049f42f40f01c80f4262f8d4a0520d03",
       "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: fd7ee3412bdd20fb8df62bee9781dec1ee4ebe6c6526be4aa941d11b09f9777e",
       "files": [
@@ -1038,20 +1048,6 @@
         "app/feedback.tsx"
       ],
       "timestamp": "2026-02-13T06:08:41.174Z"
-    },
-    {
-      "hash": "f153b2a74bcbf6b0f1d74f5dc906deb1b3ee44d3",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: fcb1e8ba5c967657b7313f4897ad33b7958c1c0414d6bfd02b833e3d6db582a5",
-      "files": [
-        "autopilot/history.json",
-        "app/(tabs)/index.tsx",
-        "app/auth/login.tsx",
-        "app/auth/verify-email.tsx",
-        "app/executive/new-resource.tsx",
-        "app/feedback.tsx",
-        "app/meetings/[id].tsx"
-      ],
-      "timestamp": "2026-02-13T06:02:48.856Z"
     }
   ]
 }

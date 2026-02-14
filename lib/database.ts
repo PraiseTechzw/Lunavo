@@ -1646,6 +1646,66 @@ export async function getResource(resourceId: string): Promise<any | null> {
   return data;
 }
 
+export async function incrementResourceViews(resourceId: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_resource_views', {
+    resource_id: resourceId
+  });
+
+  if (error) {
+    console.error('Error incrementing views:', error);
+    // Fallback: manual increment if RPC doesn't exist
+    const { data: resource } = await supabase
+      .from('resources')
+      .select('views')
+      .eq('id', resourceId)
+      .single();
+
+    if (resource) {
+      await supabase
+        .from('resources')
+        .update({ views: (resource.views || 0) + 1 })
+        .eq('id', resourceId);
+    }
+  }
+}
+
+export async function addResourceRating(
+  resourceId: string,
+  userId: string,
+  rating: number
+): Promise<void> {
+  // Store individual rating
+  const { error: ratingError } = await supabase
+    .from('resource_ratings')
+    .upsert({
+      resource_id: resourceId,
+      user_id: userId,
+      rating: rating,
+      created_at: new Date().toISOString()
+    }, {
+      onConflict: 'resource_id,user_id'
+    });
+
+  if (ratingError) {
+    console.error('Error saving rating:', ratingError);
+    throw ratingError;
+  }
+
+  // Calculate new average rating
+  const { data: ratings } = await supabase
+    .from('resource_ratings')
+    .select('rating')
+    .eq('resource_id', resourceId);
+
+  if (ratings && ratings.length > 0) {
+    const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    await supabase
+      .from('resources')
+      .update({ rating: avgRating })
+      .eq('id', resourceId);
+  }
+}
+
 export async function getGalleryImages(): Promise<any[]> {
   const { data, error } = await supabase
     .from("resources")

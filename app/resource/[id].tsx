@@ -4,7 +4,7 @@ import { Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Resource } from '@/app/types';
 import { createShadow } from '@/app/utils/platform-styles';
-import { getResource } from '@/lib/database';
+import { getResource, incrementResourceViews } from '@/lib/database';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
@@ -15,12 +15,13 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  ImageBackground,
   Linking,
   ScrollView,
   Share,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -43,6 +44,7 @@ export default function ResourceDetailScreen() {
   const loadResource = useCallback(async () => {
     try {
       if (!id) return;
+      incrementResourceViews(id).catch(err => console.log('View increment failed', err));
       const resourceData = await getResource(id);
       setResource(resourceData);
     } catch (error) {
@@ -208,10 +210,27 @@ export default function ResourceDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
         {/* Immersive Header */}
         <View style={styles.heroSection}>
-          <LinearGradient
-            colors={[accentColor, accentColor + '80', colors.background]}
-            style={styles.heroGradient}
-          />
+          {resource.filePath || (resource.url && (resource.url.includes('.jpg') || resource.url.includes('.png'))) ? (
+            <ImageBackground
+              source={{
+                uri: resource.filePath ?
+                  `https://gqdpylrhlzpsjxjxymcn.supabase.co/storage/v1/object/public/system-resources/${resource.filePath}` :
+                  resource.url
+              }}
+              style={styles.heroBackground}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={[accentColor + '90', accentColor + '60', colors.background]}
+                style={styles.heroGradient}
+              />
+            </ImageBackground>
+          ) : (
+            <LinearGradient
+              colors={[accentColor, accentColor + '80', colors.background]}
+              style={styles.heroGradient}
+            />
+          )}
           <SafeAreaView edges={['top']} style={styles.navHeader}>
             <TouchableOpacity style={styles.circleBtn} onPress={() => router.back()}>
               <MaterialIcons name="arrow-back" size={24} color="#FFF" />
