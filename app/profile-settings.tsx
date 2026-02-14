@@ -5,27 +5,29 @@
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
 import { getPseudonym } from "@/app/utils/storage";
 import { useCurrentUser } from "@/hooks/use-auth-guard";
+import { signOut } from "@/lib/auth";
 import { getRoleMetadata } from "@/lib/permissions";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -60,7 +62,17 @@ export default function ProfileSettingsScreen() {
       {
         text: "Log Out",
         style: "destructive",
-        onPress: () => router.replace("/onboarding"),
+        onPress: async () => {
+          try {
+            await signOut();
+            await AsyncStorage.removeItem("@lunavo:pseudonym");
+            // Ensure auth stack is shown after sign out
+            router.replace("/auth/login");
+          } catch (e) {
+            console.error("Logout failed:", e);
+            router.replace("/auth/login");
+          }
+        },
       },
     ]);
   };
