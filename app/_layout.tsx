@@ -190,7 +190,10 @@ export default function RootLayout() {
         if (
           segments[0] === "auth" ||
           segments[0] === "onboarding" ||
-          segments[0] === "web-required"
+          segments[0] === "web-required" ||
+          segments[0] === "privacy" ||
+          segments[0] === "help" ||
+          segments[0] === "about"
         ) {
           return;
         }

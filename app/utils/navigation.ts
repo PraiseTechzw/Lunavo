@@ -121,48 +121,8 @@ export const ROUTE_ACCESS: Record<UserRole, {
     ],
   },
   'peer-educator-executive': {
-    mobile: [
-      '/(tabs)',
-      '/peer-educator',
-      '/executive',
-      '/create-post',
-      '/post',
-      '/topic',
-      '/check-in',
-      '/badges',
-      '/rewards',
-      '/leaderboard',
-      '/search',
-      '/notifications',
-      '/report',
-      '/urgent-support',
-      '/chat',
-      '/resource',
-      '/profile-settings',
-      '/accessibility-settings',
-      '/create-channel',
-    ],
-    web: [
-      '/(tabs)',
-      '/peer-educator',
-      '/executive', // Explicit executive access
-      '/create-post',
-      '/post',
-      '/topic',
-      '/check-in',
-      '/badges',
-      '/rewards',
-      '/leaderboard',
-      '/search',
-      '/notifications',
-      '/report',
-      '/urgent-support',
-      '/chat',
-      '/resource',
-      '/profile-settings',
-      '/accessibility-settings',
-      '/create-channel',
-    ],
+    mobile: ['/executive'],
+    web: ['/executive'],
     blocked: [
       '/admin',
       '/counselor',
@@ -412,8 +372,9 @@ export function getDefaultRoute(role: UserRole, platform: 'mobile' | 'web' = isM
     case 'student':
       return '/(tabs)';
     case 'peer-educator':
-    case 'peer-educator-executive':
       return '/(tabs)';
+    case 'peer-educator-executive':
+      return '/executive';
     case 'moderator':
       return '/(tabs)';
     case 'counselor':
