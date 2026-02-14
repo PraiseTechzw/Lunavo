@@ -39,6 +39,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SupportSession } from "@/app/types";
 import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
+declare const styles: any;
+
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
