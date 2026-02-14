@@ -1,6 +1,28 @@
 {
   "commits": [
     {
+      "hash": "06aff3473e9a9d324b90b31d07b15cf76702c6ba",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2f724d449d7f9ac7d8b333439cfc5cb717b94eb23c23f0ef0ab4926048076e65",
+      "files": [
+        "autopilot/state.json",
+        ".autopilotrc.json",
+        "app.config.js",
+        "app.json",
+        "app/(tabs)/chat.tsx",
+        "app/auth/forgot-password.tsx",
+        "app/auth/reset-password.tsx",
+        "lib/auth.ts",
+        "lib/supabase.ts",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json",
+        ".eslintignore",
+        "supabase/functions/reset-password-code/",
+        "supabase/migrations/027_password_reset_codes.sql"
+      ],
+      "timestamp": "2026-02-14T10:25:02.440Z"
+    },
+    {
       "hash": "2b389a2edc9dc1cda10bce157450edd3df97d53b",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 88f5647ae779e0a3cfdb69bdfc53f3caa7269d6434577c1ca6031b226d5a642c",
       "files": [

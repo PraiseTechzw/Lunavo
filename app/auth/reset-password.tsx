@@ -46,8 +46,8 @@ export default function ResetPasswordScreen() {
       Alert.alert("Mismatch", "Passwords do not match.");
       return;
     }
-    if (!email || !code || code.length !== 8) {
-      Alert.alert("Invalid", "Enter the 8-digit code sent to your email.");
+    if (!email || !code || code.length !== 6) {
+      Alert.alert("Invalid", "Enter the 6-digit code sent to your email.");
       return;
     }
     setLoading(true);
@@ -119,7 +119,7 @@ export default function ResetPasswordScreen() {
                 New Protocol
               </ThemedText>
               <ThemedText style={styles.subtitle}>
-                Enter the 8-digit code sent to {email || "your email"} and set a
+                Enter the 6-digit code sent to {email || "your email"} and set a
                 new password.
               </ThemedText>
             </View>
@@ -129,17 +129,17 @@ export default function ResetPasswordScreen() {
               style={[styles.card, { backgroundColor: colors.card }]}
             >
               <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>8-Digit Code</ThemedText>
+                <ThemedText style={styles.label}>6-Digit Code</ThemedText>
                 <View
                   style={[styles.inputWrapper, { borderColor: colors.border }]}
                 >
                   <Ionicons name="key-outline" size={20} color={colors.icon} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder="00000000"
+                    placeholder="000000"
                     placeholderTextColor={colors.icon}
                     keyboardType="number-pad"
-                    maxLength={8}
+                    maxLength={6}
                     value={code}
                     onChangeText={setCode}
                   />
