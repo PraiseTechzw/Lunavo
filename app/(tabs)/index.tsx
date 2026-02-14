@@ -10,16 +10,15 @@ import {
   BorderRadius,
   Colors,
   PlatformStyles,
-  Spacing,
+  Spacing
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Announcement, UserRole } from "@/app/types";
 import { getCheckInStreak, getPosts, getPseudonym } from "@/app/utils/storage";
 import { getAnnouncements, getCurrentUser } from "@/lib/database";
 import {
-  Ionicons,
   MaterialCommunityIcons,
-  MaterialIcons,
+  MaterialIcons
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,7 +29,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -206,454 +205,171 @@ export default function HomeScreen() {
                   end={{ x: 1, y: 1 }}
                   style={[styles.alertCard, PlatformStyles.premiumShadow]}
                 >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: 12,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: "rgba(255,255,255,0.2)",
-                        padding: 8,
-                        borderRadius: 12,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="alert-decagram"
-                        size={24}
-                        color="#FFF"
-                      />
+                  <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                    <View style={{ backgroundColor: "rgba(255,255,255,0.2)", padding: 8, borderRadius: 12 }}>
+                      <MaterialCommunityIcons name="alert-decagram" size={24} color="#FFF" />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <ThemedText
-                        style={{
-                          color: "#FFF",
-                          fontWeight: "800",
-                          fontSize: 16,
-                          marginBottom: 4,
-                        }}
-                      >
+                      <ThemedText style={{ color: "#FFF", fontWeight: "800", fontSize: 16, marginBottom: 4 }}>
                         {alert.title}
                       </ThemedText>
-                      <ThemedText
-                        style={{
-                          color: "rgba(255,255,255,0.9)",
-                          fontSize: 13,
-                          lineHeight: 18,
-                        }}
-                      >
+                      <ThemedText style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, lineHeight: 18 }}>
                         {alert.content}
                       </ThemedText>
-                      {alert.actionLink && (
-                        <TouchableOpacity
-                          style={{
-                            marginTop: 12,
-                            backgroundColor: "#FFF",
-                            alignSelf: "flex-start",
-                            paddingHorizontal: 16,
-                            paddingVertical: 8,
-                            borderRadius: 20,
-                          }}
-                        >
-                          <ThemedText
-                            style={{
-                              color: colors.danger,
-                              fontWeight: "700",
-                              fontSize: 12,
-                            }}
-                          >
-                            {alert.actionLabel || "View Details"}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      )}
                     </View>
                   </View>
                 </LinearGradient>
               </Animated.View>
             ))}
 
-          {/* Featured/Spotlight Announcements */}
-          {announcements.filter(
-            (a) => a.type === "spotlight" && a.priority !== "critical",
-          ).length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 20 }}
-              >
-                {announcements
-                  .filter(
-                    (a) => a.type === "spotlight" && a.priority !== "critical",
-                  )
-                  .map((spotlight, index) => (
-                    <TouchableOpacity
-                      key={spotlight.id}
-                      style={[
-                        styles.spotlightCard,
-                        { backgroundColor: colors.card, marginRight: 16 },
-                        PlatformStyles.premiumShadow,
-                      ]}
-                      activeOpacity={0.9}
-                    >
-                      {spotlight.imageUrl ? (
-                        <View
-                          style={{
-                            height: 120,
-                            backgroundColor: "#EEE",
-                            borderRadius: 16,
-                            marginBottom: 12,
-                            overflow: "hidden",
-                          }}
-                        >
-                          {/* Image would go here, using a placeholder for now if no Image component */}
-                          <View
-                            style={{
-                              flex: 1,
-                              justifyContent: "center",
-                              alignItems: "center",
-                              backgroundColor: colors.primary,
-                            }}
-                          >
-                            <MaterialIcons name="image" size={40} color="#FFF" />
-                          </View>
-                        </View>
-                      ) : (
-                        <LinearGradient
-                          colors={[colors.primary, "#4338CA"]}
-                          style={{
-                            height: 80,
-                            borderRadius: 16,
-                            marginBottom: 12,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <MaterialCommunityIcons
-                            name="bullhorn"
-                            size={32}
-                            color="#FFF"
-                          />
-                        </LinearGradient>
-                      )}
-                      <View style={{ paddingHorizontal: 4 }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            marginBottom: 4,
-                          }}
-                        >
-                          <ThemedText
-                            style={{
-                              color: colors.primary,
-                              fontSize: 10,
-                              fontWeight: "700",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            {spotlight.type}
-                          </ThemedText>
-                          {spotlight.priority === "high" && (
-                            <View
-                              style={{
-                                backgroundColor: colors.warning + "20",
-                                paddingHorizontal: 6,
-                                borderRadius: 4,
-                              }}
-                            >
-                              <ThemedText
-                                style={{
-                                  color: colors.warning,
-                                  fontSize: 10,
-                                  fontWeight: "700",
-                                }}
-                              >
-                                HIGH
-                              </ThemedText>
-                            </View>
-                          )}
-                        </View>
-                        <ThemedText
-                          style={{
-                            fontWeight: "700",
-                            fontSize: 16,
-                            marginBottom: 4,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {spotlight.title}
-                        </ThemedText>
-                        <ThemedText
-                          style={{ fontSize: 12, color: colors.icon }}
-                          numberOfLines={2}
-                        >
-                          {spotlight.content}
-                        </ThemedText>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-              </ScrollView>
-            )}
-
-          {/* Updates & Events Marquee (if any general ones exist) */}
-          {announcements.some(
-            (a) => a.type === "general" || a.type === "event",
-          ) && (
-              <View style={{ marginBottom: 20 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 12,
-                    paddingHorizontal: 4,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="newspaper-variant-outline"
-                    size={20}
-                    color={colors.text}
-                    style={{ marginRight: 8 }}
-                  />
-                  <ThemedText
-                    type="body"
-                    style={{ fontWeight: "600", fontSize: 16 }}
-                  >
-                    Latest Updates
-                  </ThemedText>
-                </View>
-                {announcements
-                  .filter(
-                    (a) =>
-                      (a.type === "general" || a.type === "event") &&
-                      a.priority !== "critical",
-                  )
-                  .slice(0, 3)
-                  .map((news) => (
-                    <View
-                      key={news.id}
-                      style={{
-                        backgroundColor: colors.card,
-                        padding: 16,
-                        borderRadius: 16,
-                        marginBottom: 10,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        borderWidth: 1,
-                        borderColor: "rgba(0,0,0,0.03)",
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
-                          backgroundColor:
-                            news.type === "event" ? "#ECFDF5" : "#EFF6FF",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          marginRight: 12,
-                        }}
-                      >
-                        <MaterialCommunityIcons
-                          name={
-                            news.type === "event"
-                              ? "calendar-star"
-                              : "information-variant"
-                          }
-                          size={20}
-                          color={news.type === "event" ? "#059669" : "#2563EB"}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <ThemedText
-                          style={{ fontWeight: "600", marginBottom: 2 }}
-                        >
-                          {news.title}
-                        </ThemedText>
-                        <ThemedText
-                          style={{ fontSize: 12, color: colors.icon }}
-                          numberOfLines={1}
-                        >
-                          {news.content}
-                        </ThemedText>
-                      </View>
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={20}
-                        color={colors.icon}
-                      />
-                    </View>
-                  ))}
-              </View>
-            )}
-
-          {/* Welcome Dashboard Card - Premium Redesign */}
+          {/* Premium Hero Section */}
           <Animated.View entering={FadeInDown.duration(800)}>
             <LinearGradient
-              colors={["#4F46E5", "#7C3AED", "#DB2777"]} // Indigo -> Purple -> Pink
+              colors={colorScheme === 'dark' ? ['#4F46E5', '#7C3AED'] : ['#6366F1', '#8B5CF6']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={[styles.heroCard, PlatformStyles.premiumShadow]}
+              style={styles.heroCard}
             >
-              {/* Unique 'Crafted' Background */}
               <View style={styles.patternCircle1} />
               <View style={styles.patternCircle2} />
-              <MaterialCommunityIcons
-                name="meditation"
-                size={140}
-                color="rgba(255,255,255,0.08)"
-                style={styles.bgIcon}
-              />
 
               <View style={styles.heroContent}>
                 <View style={styles.badgeContainer}>
-                  <MaterialCommunityIcons
-                    name="target-variant"
-                    size={16}
-                    color="#FFF"
-                  />
-                  <ThemedText style={styles.badgeText}>
-                    Daily Mission
-                  </ThemedText>
+                  <MaterialCommunityIcons name="star-face" size={16} color="#FFF" />
+                  <ThemedText style={styles.badgeText}>COMMUNITY MEMBER</ThemedText>
                 </View>
 
-                <ThemedText type="h1" style={styles.heroTitle}>
-                  Mission: Wellness
-                </ThemedText>
-                <ThemedText style={styles.heroSubtitle}>
+                <ThemedText style={styles.heroTitle}>{getGreeting()},</ThemedText>
+                <ThemedText style={styles.heroName}>{userName}</ThemedText>
+
+                <ThemedText style={styles.heroQuote} numberOfLines={2}>
                   &quot;{currentQuote}&quot;
                 </ThemedText>
 
                 <View style={styles.glassStatsContainer}>
                   <View style={styles.heroStat}>
-                    <ThemedText style={styles.statNumber}>
-                      {checkInStreak}
-                    </ThemedText>
-                    <ThemedText style={styles.statLabel}>
-                      Day Streak 🔥
-                    </ThemedText>
+                    <ThemedText style={styles.statNumber}>{checkInStreak}</ThemedText>
+                    <ThemedText style={styles.statLabel}>Day Streak</ThemedText>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.heroStat}>
-                    <ThemedText style={styles.statNumber}>
-                      {postCount}
-                    </ThemedText>
-                    <ThemedText style={styles.statLabel}>
-                      Community 🌍
-                    </ThemedText>
+                    <ThemedText style={styles.statNumber}>{postCount}</ThemedText>
+                    <ThemedText style={styles.statLabel}>Contributions</ThemedText>
                   </View>
                 </View>
               </View>
+
+              <MaterialCommunityIcons name="creation" size={120} color="rgba(255,255,255,0.1)" style={styles.bgIcon} />
             </LinearGradient>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(100)}>
-            <View style={styles.quickActions}>
-              {[
-                {
-                  label: "Check In",
-                  icon: "heart-pulse",
-                  color: colors.primary,
-                  route: "/check-in",
-                },
-                {
-                  label: "Resources",
-                  icon: "book-open-variant",
-                  color: colors.success,
-                  route: "/(tabs)/resources",
-                },
-                {
-                  label: "Mentorship",
-                  icon: "handshake-outline",
-                  color: colors.secondary,
-                  route: "/mentorship",
-                },
-                {
-                  label: "Counseling",
-                  icon: "hand-heart-outline",
-                  color: colors.warning,
-                  route: "/book-counsellor",
-                },
-              ].map((a, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[
-                    styles.quickChip,
-                    {
-                      borderColor: a.color + "40",
-                      backgroundColor: a.color + "10",
-                    },
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(a.route as any);
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <MaterialCommunityIcons
-                    name={a.icon as any}
-                    size={18}
-                    color={a.color}
-                  />
-                  <ThemedText style={[styles.quickLabel, { color: a.color }]}>
-                    {a.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Animated.View>
-
-          {/* Urgent Support Quick Access */}
-          <Animated.View entering={FadeInDown.delay(200).duration(800)}>
-            <TouchableOpacity
-              style={[
-                styles.glassCard,
-                {
-                  backgroundColor: colors.danger + "10",
-                  borderColor: colors.danger + "30",
-                },
-              ]}
-              onPress={() => {
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Warning,
-                );
-                router.push("/urgent-support");
-              }}
-              activeOpacity={0.8}
-            >
-              <View
-                style={[
-                  styles.cardIconBox,
-                  { backgroundColor: colors.danger + "20" },
-                ]}
+          {/* Featured Announcements - Horizontal Glass Scroller */}
+          {announcements.filter(a => a.priority !== 'critical').length > 0 && (
+            <View style={{ marginBottom: Spacing.xl }}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="h3">Latest Updates</ThemedText>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: Spacing.md }}
               >
-                <MaterialCommunityIcons
-                  name="alert-octagon"
-                  size={28}
-                  color={colors.danger}
-                />
-              </View>
-              <View style={styles.cardInfo}>
-                <ThemedText type="h3" style={{ color: colors.danger }}>
-                  Crisis Support
-                </ThemedText>
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Immediate help is available 24/7.
-                </ThemedText>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.danger}
-              />
-            </TouchableOpacity>
-          </Animated.View>
+                {announcements.filter(a => a.priority !== 'critical').map((ann, idx) => (
+                  <Animated.View
+                    key={ann.id}
+                    entering={FadeInRight.delay(200 + idx * 100)}
+                    style={[
+                      styles.annCard,
+                      { backgroundColor: colorScheme === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255, 255, 255, 0.8)' }
+                    ]}
+                  >
+                    <View style={[styles.annTypeBadge, { backgroundColor: ann.priority === 'high' ? colors.warning : colors.primary }]}>
+                      <MaterialCommunityIcons name="bullhorn-variant" size={14} color="#FFF" />
+                    </View>
+                    <ThemedText style={styles.annTitle} numberOfLines={1}>{ann.title}</ThemedText>
+                    <ThemedText style={styles.annDesc} numberOfLines={2}>{ann.content}</ThemedText>
+                  </Animated.View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
-          {/* Mood Check-in Section */}
+          {/* Safe Spaces Grid */}
           <View style={styles.sectionHeader}>
-            <ThemedText type="h2">How are you feeling?</ThemedText>
+            <ThemedText type="h3">Safe Spaces</ThemedText>
+            <ThemedText type="small" style={{ opacity: 0.6 }}>How would you like to engage today?</ThemedText>
+          </View>
+
+          <View style={styles.gridContainer}>
+            <Animated.View entering={FadeInDown.delay(600)} style={styles.gridItem}>
+              <TouchableOpacity
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/(tabs)/forum");
+                }}
+              >
+                <LinearGradient colors={["#818CF8", "#4F46E5"]} style={styles.craftedIconBox}>
+                  <MaterialCommunityIcons name="account-group" size={28} color="#FFF" />
+                </LinearGradient>
+                <ThemedText type="h3" style={styles.cardTitle}>Forum</ThemedText>
+                <ThemedText type="small" style={styles.actionDesc}>Talk with others</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(700)} style={styles.gridItem}>
+              <TouchableOpacity
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/(tabs)/resources");
+                }}
+              >
+                <LinearGradient colors={["#34D399", "#10B981"]} style={styles.craftedIconBox}>
+                  <MaterialCommunityIcons name="book-open" size={28} color="#FFF" />
+                </LinearGradient>
+                <ThemedText type="h3" style={styles.cardTitle}>Resources</ThemedText>
+                <ThemedText type="small" style={styles.actionDesc}>Learn & grow</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(800)} style={styles.gridItem}>
+              <TouchableOpacity
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/(tabs)/support");
+                }}
+              >
+                <LinearGradient colors={["#F472B6", "#DB2777"]} style={styles.craftedIconBox}>
+                  <MaterialCommunityIcons name="chat-processing" size={28} color="#FFF" />
+                </LinearGradient>
+                <ThemedText type="h3" style={styles.cardTitle}>Support</ThemedText>
+                <ThemedText type="small" style={styles.actionDesc}>Peer support</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(900)} style={styles.gridItem}>
+              <TouchableOpacity
+                style={[styles.actionCard, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/book-counsellor");
+                }}
+              >
+                <LinearGradient colors={["#FBBF24", "#D97706"]} style={styles.craftedIconBox}>
+                  <MaterialCommunityIcons name="hand-heart" size={28} color="#FFF" />
+                </LinearGradient>
+                <ThemedText type="h3" style={styles.cardTitle}>Counseling</ThemedText>
+                <ThemedText type="small" style={styles.actionDesc}>Get expert help</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+
+          {/* Mood Check-in */}
+          <View style={[styles.sectionHeader, { marginTop: Spacing.xl }]}>
+            <ThemedText type="h3">Mood Check-in</ThemedText>
+            <ThemedText type="small" style={{ opacity: 0.6 }}>Take a moment to center yourself</ThemedText>
           </View>
 
           <ScrollView
@@ -661,212 +377,40 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodScroll}
           >
-            {moods.map((mood, index) => (
-              <Animated.View
+            {moods.map((mood) => (
+              <TouchableOpacity
                 key={mood.id}
-                entering={FadeInRight.delay(400 + index * 100)}
+                style={[
+                  styles.moodItem,
+                  {
+                    backgroundColor: selectedMood === mood.id ? mood.color + '20' : colors.card,
+                    borderColor: selectedMood === mood.id ? mood.color : colors.border,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSelectedMood(mood.id);
+                  router.push(`/check-in-summary?mood=${mood.id}` as any);
+                }}
               >
-                <TouchableOpacity
+                <MaterialIcons
+                  name={mood.iconName as any}
+                  size={32}
+                  color={selectedMood === mood.id ? mood.color : colors.icon}
+                />
+                <ThemedText
                   style={[
-                    styles.moodItem,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                    selectedMood === mood.id && {
-                      borderColor: mood.color,
-                      backgroundColor: mood.color + "10",
-                      borderWidth: 2,
-                    },
+                    styles.moodLabel,
+                    { color: selectedMood === mood.id ? mood.color : colors.text },
                   ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setSelectedMood(mood.id);
-                    router.push("/check-in");
-                  }}
-                  activeOpacity={0.7}
                 >
-                  <MaterialIcons
-                    name={mood.iconName as any}
-                    size={32}
-                    color={mood.color}
-                  />
-                  <ThemedText style={[styles.moodLabel, { color: mood.color }]}>
-                    {mood.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              </Animated.View>
+                  {mood.label}
+                </ThemedText>
+              </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {/* Main Action Grid - Premium Crafted Icons */}
-          <View style={styles.gridContainer}>
-            <Animated.View
-              entering={FadeInDown.delay(600)}
-              style={styles.gridItem}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.card },
-                  PlatformStyles.premiumShadow,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/(tabs)/forum");
-                }}
-              >
-                <LinearGradient
-                  colors={["#818CF8", "#4F46E5"]}
-                  style={styles.craftedIconBox}
-                >
-                  <MaterialCommunityIcons
-                    name="account-group"
-                    size={28}
-                    color="#FFF"
-                  />
-                </LinearGradient>
-                <ThemedText type="h3">Forum</ThemedText>
-                <ThemedText type="small" style={styles.actionDesc}>
-                  PEACE Community
-                </ThemedText>
-              </TouchableOpacity>
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeInDown.delay(700)}
-              style={styles.gridItem}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.card },
-                  PlatformStyles.premiumShadow,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/(tabs)/chat");
-                }}
-              >
-                <LinearGradient
-                  colors={["#F472B6", "#DB2777"]}
-                  style={styles.craftedIconBox}
-                >
-                  <MaterialCommunityIcons
-                    name="forum-outline"
-                    size={28}
-                    color="#FFF"
-                  />
-                </LinearGradient>
-                <ThemedText type="h3">Chat</ThemedText>
-                <ThemedText type="small" style={styles.actionDesc}>
-                  Anonymous Talk
-                </ThemedText>
-              </TouchableOpacity>
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeInDown.delay(800)}
-              style={styles.gridItem}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.card },
-                  PlatformStyles.premiumShadow,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/(tabs)/resources");
-                }}
-              >
-                <LinearGradient
-                  colors={["#34D399", "#059669"]}
-                  style={styles.craftedIconBox}
-                >
-                  <MaterialCommunityIcons
-                    name="book-open-page-variant"
-                    size={28}
-                    color="#FFF"
-                  />
-                </LinearGradient>
-                <ThemedText type="h3">Resources</ThemedText>
-                <ThemedText type="small" style={styles.actionDesc}>
-                  Wellness Library
-                </ThemedText>
-              </TouchableOpacity>
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeInDown.delay(900)}
-              style={styles.gridItem}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.card },
-                  PlatformStyles.premiumShadow,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/book-counsellor");
-                }}
-              >
-                <LinearGradient
-                  colors={["#FBBF24", "#D97706"]}
-                  style={styles.craftedIconBox}
-                >
-                  <MaterialCommunityIcons
-                    name="hand-heart"
-                    size={28}
-                    color="#FFF"
-                  />
-                </LinearGradient>
-                <ThemedText type="h3">Counseling</ThemedText>
-                <ThemedText type="small" style={styles.actionDesc}>
-                  Seek Counseling
-                </ThemedText>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          {/* Peer Educator Special Access */}
-          {(userRole === "peer-educator" ||
-            userRole === "peer-educator-executive" ||
-            userRole === "moderator") && (
-              <Animated.View entering={FadeInDown.delay(1000)}>
-                <TouchableOpacity
-                  style={[styles.mentorCard, { backgroundColor: colors.primary }]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    router.push("/peer-educator/dashboard" as any);
-                  }}
-                >
-                  <View style={styles.mentorInfo}>
-                    <ThemedText type="h3" style={{ color: "#FFF" }}>
-                      Educator Dashboard
-                    </ThemedText>
-                    <ThemedText style={{ color: "rgba(255,255,255,0.8)" }}>
-                      Manage support and responses
-                    </ThemedText>
-                  </View>
-                  <View
-                    style={[
-                      styles.mentorBadge,
-                      { backgroundColor: "rgba(255,255,255,0.2)" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="shield-account"
-                      size={28}
-                      color="#FFF"
-                    />
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-
-          <View style={{ height: 100 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
 
         <DrawerMenu
@@ -874,40 +418,6 @@ export default function HomeScreen() {
           onClose={() => setDrawerVisible(false)}
           role={userRole || undefined}
         />
-
-        {/* Role Navigation Bar (Floating Command Bar) */}
-        {(userRole === "peer-educator" || userRole === "peer-educator-executive" || userRole === "admin" || userRole === "moderator") && (
-          <View style={styles.commandBarContainer}>
-            <LinearGradient
-              colors={colorScheme === 'dark' ? ['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.95)'] : ['rgba(255, 255, 255, 0.95)', 'rgba(248, 250, 252, 0.95)']}
-              style={[styles.commandBar, PlatformStyles.premiumShadow]}
-            >
-              <View style={styles.commandItemActive}>
-                <LinearGradient colors={['#4F46E5', '#6366F1']} style={styles.activeGradient}>
-                  <MaterialCommunityIcons name="account" size={24} color="#FFF" />
-                </LinearGradient>
-                <ThemedText style={[styles.commandLabel, { color: colors.primary, fontWeight: '800' }]}>Student</ThemedText>
-              </View>
-
-              <TouchableOpacity onPress={() => router.replace('/peer-educator/dashboard')} style={styles.commandItem}>
-                <MaterialCommunityIcons name="view-dashboard" size={22} color={colors.icon} />
-                <ThemedText style={styles.commandLabel}>Educator</ThemedText>
-              </TouchableOpacity>
-
-              {userRole === 'peer-educator-executive' || userRole === 'admin' ? (
-                <TouchableOpacity onPress={() => router.replace('/executive')} style={styles.commandItem}>
-                  <MaterialCommunityIcons name="shield-crown" size={22} color={colors.icon} />
-                  <ThemedText style={styles.commandLabel}>Executive</ThemedText>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={[styles.commandItem, { opacity: 0.3 }]} disabled>
-                  <MaterialCommunityIcons name="lock" size={22} color={colors.icon} />
-                  <ThemedText style={styles.commandLabel}>Locked</ThemedText>
-                </TouchableOpacity>
-              )}
-            </LinearGradient>
-          </View>
-        )}
       </ThemedView>
     </SafeAreaView>
   );
