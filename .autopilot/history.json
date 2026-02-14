@@ -1,6 +1,22 @@
 {
   "commits": [
     {
+      "hash": "8736eaf6b37d2f25482ad8d0ac97c09ac0e28ba0",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 5342a0be2180dc901dbcf52f46b2e290e509c995aae643827418933f1a7e40d4",
+      "files": [
+        "autopilot/history.json",
+        "app/(tabs)/index.tsx",
+        "app/book-counsellor.tsx",
+        "app/check-in.tsx",
+        "app/components/navigation/drawer-menu.tsx",
+        "app/counselor/dashboard.tsx",
+        "app/utils/navigation.ts",
+        "lib/database.ts",
+        "supabase/migrations/031_counseling_providers_rls.sql"
+      ],
+      "timestamp": "2026-02-14T18:24:38.903Z"
+    },
+    {
       "hash": "2d8a0a4a84c994d1dd97ee8c582a8daa9bcd689f",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 40b54f3445b88ecf65c8d8fe46ebeed4bdd2535a4bf5604a1841cb18a15a5c89",
       "files": [

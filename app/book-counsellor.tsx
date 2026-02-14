@@ -1,25 +1,27 @@
-/**
- * Book a Counsellor Screen
- */
-
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
+import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { User } from "@/app/types";
-import { createShadow } from "@/app/utils/platform-styles";
 import { getCounsellingProviders } from "@/lib/database";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import Animated, { FadeInDown, FadeInRight, ZoomIn } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
 
 const timeSlots = [
   "10:00 AM",
@@ -42,7 +44,7 @@ export default function BookCounsellorScreen() {
   const [selectedCounsellor, setSelectedCounsellor] = useState<string | null>(
     null,
   );
-  const [selectedDate, setSelectedDate] = useState(9);
+  const [selectedDate, setSelectedDate] = useState(new Date().getDate());
   const [selectedTime, setSelectedTime] = useState("11:30 AM");
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function BookCounsellorScreen() {
           (p.role === "life-coach"
             ? "Life Coaching"
             : "Peer Executive Support"),
-        iconName: p.role === "life-coach" ? "heart-outline" : "people-outline",
+        iconName: p.role === "life-coach" ? "heart" : "account-heart",
         color: p.role === "life-coach" ? "#10B981" : "#6366F1",
         avatarUrl: p.avatarUrl,
       })),
@@ -80,419 +82,457 @@ export default function BookCounsellorScreen() {
 
   const handleConfirm = () => {
     if (!selectedCounsellor) {
-      Alert.alert("Select Counsellor", "Please select a counsellor first.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert("Selection Required", "Please choose a professional who resonates with you.");
       return;
     }
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const selected = counsellors.find((c) => c.id === selectedCounsellor);
     Alert.alert(
-      "Booking Confirmed",
-      `Your appointment with ${selected?.name} is confirmed for ${selectedTime}.`,
+      "Appointment Scheduled",
+      `Your session with ${selected?.name} has been successfully booked for tomorrow at ${selectedTime}.`,
       [
         {
-          text: "OK",
+          text: "Wonderful",
           onPress: () => router.back(),
         },
       ],
     );
   };
 
-  const renderCounsellor = (counsellor: (typeof counsellors)[0]) => {
+  const renderCounsellor = (counsellor: (typeof counsellors)[0], index: number) => {
     const isSelected = selectedCounsellor === counsellor.id;
     return (
-      <TouchableOpacity
+      <Animated.View
         key={counsellor.id}
-        style={[
-          styles.counsellorCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: isSelected ? colors.primary : colors.border,
-            borderWidth: isSelected ? 2 : 1,
-          },
-          createShadow(1, "#000", 0.05),
-        ]}
-        onPress={() => setSelectedCounsellor(counsellor.id)}
-        activeOpacity={0.7}
+        entering={FadeInRight.delay(200 + index * 100)}
       >
-        <View
+        <TouchableOpacity
           style={[
-            styles.counsellorAvatar,
-            { backgroundColor: counsellor.color + "20" },
+            styles.counsellorCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: isSelected ? colors.primary : "transparent",
+              borderWidth: 2,
+            },
+            PlatformStyles.premiumShadow,
           ]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            setSelectedCounsellor(counsellor.id);
+          }}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name={counsellor.iconName as any}
-            size={32}
-            color={counsellor.color}
-          />
-        </View>
-        <View style={styles.counsellorInfo}>
-          <ThemedText type="body" style={styles.counsellorName}>
-            {counsellor.name}
-          </ThemedText>
-          <ThemedText type="small" style={styles.counsellorSpecialty}>
-            {counsellor.specialty}
-          </ThemedText>
-        </View>
-      </TouchableOpacity>
+          {isSelected && (
+            <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
+              <Ionicons name="checkmark" size={12} color="#FFF" />
+            </View>
+          )}
+          <View
+            style={[
+              styles.counsellorAvatar,
+              { backgroundColor: counsellor.color + "15" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={counsellor.iconName as any}
+              size={32}
+              color={counsellor.color}
+            />
+          </View>
+          <View style={styles.counsellorInfo}>
+            <ThemedText style={styles.counsellorName} numberOfLines={1}>
+              {counsellor.name}
+            </ThemedText>
+            <ThemedText style={styles.counsellorSpecialty}>
+              {counsellor.specialty}
+            </ThemedText>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Meeting Type */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            How would you like to meet?
-          </ThemedText>
-          <View style={styles.segmentedControl}>
-            <TouchableOpacity
-              style={[
-                styles.segment,
-                {
-                  backgroundColor:
-                    meetingType === "online" ? colors.primary : colors.surface,
-                },
-              ]}
-              onPress={() => setMeetingType("online")}
-              activeOpacity={0.7}
-            >
-              <ThemedText
-                type="body"
-                style={{
-                  color: meetingType === "online" ? "#FFFFFF" : colors.text,
-                  fontWeight: "600",
-                }}
-              >
-                Online
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.segment,
-                {
-                  backgroundColor:
-                    meetingType === "in-person"
-                      ? colors.primary
-                      : colors.surface,
-                },
-              ]}
-              onPress={() => setMeetingType("in-person")}
-              activeOpacity={0.7}
-            >
-              <ThemedText
-                type="body"
-                style={{
-                  color: meetingType === "in-person" ? "#FFFFFF" : colors.text,
-                  fontWeight: "600",
-                }}
-              >
-                In-person
-              </ThemedText>
-            </TouchableOpacity>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        {/* Premium Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.card }, PlatformStyles.premiumShadow]}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <ThemedText type="h2">Book Support</ThemedText>
+            <ThemedText type="small" style={{ opacity: 0.6 }}>Expert care on your terms</ThemedText>
           </View>
+          <View style={{ width: 44 }} />
         </View>
 
-        {/* Choose Counsellor */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Choose a Counsellor
-          </ThemedText>
-          {loadingProviders ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={colors.primary} />
-              <ThemedText type="small" style={{ opacity: 0.7 }}>
-                Loading counselors...
-              </ThemedText>
-            </View>
-          ) : counsellors.length === 0 ? (
-            <View
-              style={[
-                styles.emptyBox,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color={colors.icon}
-              />
-              <ThemedText type="body" style={{ textAlign: "center" }}>
-                No counselors available right now.
-              </ThemedText>
-              <ThemedText
-                type="small"
-                style={{ opacity: 0.7, textAlign: "center" }}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Meeting Type */}
+          <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Engagement Preference
+            </ThemedText>
+            <View style={[styles.segmentedWrapper, { backgroundColor: colors.surface }]}>
+              <TouchableOpacity
+                style={[
+                  styles.segment,
+                  meetingType === "online" && { backgroundColor: colors.card },
+                  meetingType === "online" && PlatformStyles.premiumShadow,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setMeetingType("online");
+                }}
               >
-                Peer Executive Team and Life Coaches will appear here once
-                added.
-              </ThemedText>
-            </View>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.counsellorsContainer}>
-                {counsellors.map(renderCounsellor)}
-              </View>
-            </ScrollView>
-          )}
-        </View>
-
-        {/* Date & Time */}
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Select a Date & Time
-          </ThemedText>
-
-          {/* Calendar */}
-          <View style={[styles.calendar, { backgroundColor: colors.surface }]}>
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity>
-                <Ionicons name="chevron-back" size={20} color={colors.text} />
-              </TouchableOpacity>
-              <ThemedText type="body" style={styles.calendarMonth}>
-                October 2024
-              </ThemedText>
-              <TouchableOpacity>
                 <Ionicons
-                  name="chevron-forward"
+                  name="videocam"
                   size={20}
-                  color={colors.text}
+                  color={meetingType === "online" ? colors.primary : colors.icon}
                 />
+                <ThemedText style={[styles.segmentText, { color: meetingType === "online" ? colors.text : colors.icon }]}>
+                  Virtual Session
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.segment,
+                  meetingType === "in-person" && { backgroundColor: colors.card },
+                  meetingType === "in-person" && PlatformStyles.premiumShadow,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setMeetingType("in-person");
+                }}
+              >
+                <Ionicons
+                  name="people"
+                  size={20}
+                  color={meetingType === "in-person" ? colors.primary : colors.icon}
+                />
+                <ThemedText style={[styles.segmentText, { color: meetingType === "in-person" ? colors.text : colors.icon }]}>
+                  Meet In-Person
+                </ThemedText>
               </TouchableOpacity>
             </View>
-            <View style={styles.calendarGrid}>
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                <ThemedText key={day} type="small" style={styles.calendarDay}>
-                  {day}
+          </Animated.View>
+
+          {/* Choose Counsellor */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <ThemedText type="h3" style={styles.sectionTitle}>Professional Guidance</ThemedText>
+              <ThemedText type="small" style={{ color: colors.primary }}>View All</ThemedText>
+            </View>
+
+            {loadingProviders ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={colors.primary} />
+                <ThemedText type="small" style={{ opacity: 0.7 }}>Discovery in progress...</ThemedText>
+              </View>
+            ) : counsellors.length === 0 ? (
+              <Animated.View
+                entering={ZoomIn}
+                style={[styles.emptyBox, { backgroundColor: colors.surface }]}
+              >
+                <MaterialCommunityIcons name="account-search-outline" size={48} color={colors.icon} />
+                <ThemedText style={{ textAlign: "center", fontWeight: '600' }}>No professionals available today</ThemedText>
+                <ThemedText type="small" style={{ opacity: 0.6, textAlign: "center" }}>
+                  Please check back later or try a different session type.
                 </ThemedText>
-              ))}
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => {
-                const isSelected = selectedDate === date;
-                const isDisabled = date < 9;
+              </Animated.View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalScroll}
+                snapToInterval={200 + Spacing.md}
+                decelerationRate="fast"
+              >
+                {counsellors.map(renderCounsellor)}
+              </ScrollView>
+            )}
+          </View>
+
+          {/* Date & Time Selection */}
+          <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
+            <ThemedText type="h3" style={styles.sectionTitle}>Choose Your Slot</ThemedText>
+
+            {/* Horizontal Mini Calendar */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dateScroll}
+            >
+              {Array.from({ length: 7 }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                const day = date.getDate();
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const isSelected = selectedDate === day;
+
                 return (
                   <TouchableOpacity
-                    key={date}
+                    key={i}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSelectedDate(day);
+                    }}
                     style={[
-                      styles.calendarDate,
-                      {
-                        backgroundColor: isSelected
-                          ? colors.primary
-                          : "transparent",
-                        opacity: isDisabled ? 0.3 : 1,
-                      },
+                      styles.dateCard,
+                      { backgroundColor: isSelected ? colors.primary : colors.card },
+                      isSelected && PlatformStyles.premiumShadow
                     ]}
-                    onPress={() => !isDisabled && setSelectedDate(date)}
-                    disabled={isDisabled}
-                    activeOpacity={0.7}
+                  >
+                    <ThemedText style={[styles.dateDay, { color: isSelected ? "#FFF" : colors.icon }]}>{dayName}</ThemedText>
+                    <ThemedText style={[styles.dateNumber, { color: isSelected ? "#FFF" : colors.text }]}>{day}</ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Time Grid */}
+            <View style={styles.timeGrid}>
+              {timeSlots.map((time, index) => {
+                const isSelected = selectedTime === time;
+                const isUnavailable = time === "04:00 PM";
+                return (
+                  <TouchableOpacity
+                    key={time}
+                    style={[
+                      styles.timeSlot,
+                      {
+                        backgroundColor: isSelected ? colors.primary + "15" : colors.card,
+                        borderColor: isSelected ? colors.primary : "transparent",
+                        borderWidth: 1,
+                        opacity: isUnavailable ? 0.4 : 1,
+                      },
+                      !isUnavailable && PlatformStyles.premiumShadow,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      !isUnavailable && setSelectedTime(time);
+                    }}
+                    disabled={isUnavailable}
                   >
                     <ThemedText
-                      type="small"
-                      style={{
-                        color: isSelected ? "#FFFFFF" : colors.text,
-                        fontWeight: isSelected ? "600" : "400",
-                      }}
+                      style={[
+                        styles.timeText,
+                        { color: isSelected ? colors.primary : colors.text, fontWeight: isSelected ? "800" : "500" }
+                      ]}
                     >
-                      {date}
+                      {time}
                     </ThemedText>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
 
-          {/* Time Slots */}
-          <View style={styles.timeSlots}>
-            {timeSlots.map((time) => {
-              const isSelected = selectedTime === time;
-              const isUnavailable = time === "04:00 PM";
-              return (
-                <TouchableOpacity
-                  key={time}
-                  style={[
-                    styles.timeSlot,
-                    {
-                      backgroundColor: isSelected
-                        ? colors.primary
-                        : isUnavailable
-                          ? colors.surface
-                          : colors.card,
-                    },
-                    createShadow(1, "#000", 0.05),
-                  ]}
-                  onPress={() => !isUnavailable && setSelectedTime(time)}
-                  disabled={isUnavailable}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText
-                    type="small"
-                    style={{
-                      color: isSelected
-                        ? "#FFFFFF"
-                        : isUnavailable
-                          ? colors.icon
-                          : colors.text,
-                      fontWeight: isSelected ? "600" : "400",
-                    }}
-                  >
-                    {time}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-        {/* Confirm Button */}
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            { backgroundColor: colors.primary },
-            createShadow(3, colors.primary, 0.3),
-          ]}
-          onPress={handleConfirm}
-          activeOpacity={0.8}
-        >
-          <ThemedText
-            type="body"
-            style={[styles.confirmButtonText, { color: "#FFFFFF" }]}
+        {/* Floating Action Button */}
+        <SafeAreaView edges={["bottom"]} style={styles.fabContainer}>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            activeOpacity={0.9}
+            style={styles.confirmWrapper}
           >
-            Confirm Booking
-          </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
-    </ThemedView>
+            <LinearGradient
+              colors={["#4F46E5", "#7C3AED"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.confirmButton, PlatformStyles.premiumShadow]}
+            >
+              <ThemedText style={styles.confirmText}>Reserve My Session</ThemedText>
+              <Ionicons name="arrow-forward" size={20} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xl,
+    padding: Spacing.lg,
   },
   section: {
     marginBottom: Spacing.xl,
   },
-  sectionTitle: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
-    fontWeight: "600",
   },
-  segmentedControl: {
+  sectionTitle: {
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  segmentedWrapper: {
     flexDirection: "row",
-    backgroundColor: "#F5F5F5",
-    borderRadius: BorderRadius.md,
-    padding: 4,
+    borderRadius: BorderRadius.xl,
+    padding: 6,
     gap: 4,
   },
   segment: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-  },
-  counsellorsContainer: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: Spacing.md,
-  },
-  emptyBox: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    gap: 8,
-    alignItems: "center",
-  },
-  counsellorCard: {
-    width: 180,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-  },
-  counsellorAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderRadius: BorderRadius.lg,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.sm,
+    gap: 8,
+  },
+  segmentText: {
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  horizontalScroll: {
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  counsellorCard: {
+    width: 200,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xxl,
+    alignItems: "center",
+    position: 'relative',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  counsellorAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
   },
   counsellorInfo: {
     alignItems: "center",
   },
   counsellorName: {
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
+    fontWeight: "800",
+    fontSize: 16,
+    marginBottom: 4,
   },
   counsellorSpecialty: {
-    opacity: 0.7,
+    fontSize: 12,
+    opacity: 0.6,
+    textAlign: 'center',
   },
-  calendar: {
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  calendarHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  emptyBox: {
+    padding: Spacing.xxl,
+    borderRadius: BorderRadius.xxl,
+    gap: 12,
     alignItems: "center",
-    marginBottom: Spacing.md,
   },
-  calendarMonth: {
-    fontWeight: "600",
+  dateScroll: {
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  dateCard: {
+    width: 60,
+    height: 80,
+    borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 4,
   },
-  calendarDay: {
-    width: "13%",
-    textAlign: "center",
-    fontWeight: "600",
-    opacity: 0.6,
-    marginBottom: Spacing.xs,
+  dateDay: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
-  calendarDate: {
-    width: "13%",
-    aspectRatio: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BorderRadius.sm,
+  dateNumber: {
+    fontSize: 20,
+    fontWeight: '900',
   },
-  timeSlots: {
+  timeGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   timeSlot: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    minWidth: 100,
+    width: (width - Spacing.lg * 2 - Spacing.md * 2) / 3,
+    paddingVertical: 16,
+    borderRadius: BorderRadius.xl,
     alignItems: "center",
+  },
+  timeText: {
+    fontSize: 13,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.lg,
+  },
+  confirmWrapper: {
+    width: '100%',
   },
   confirmButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    flexDirection: 'row',
+    height: 64,
+    borderRadius: BorderRadius.xxl,
     alignItems: "center",
-    marginTop: Spacing.md,
+    justifyContent: "center",
+    gap: 12,
   },
-  confirmButtonText: {
-    fontWeight: "600",
+  confirmText: {
+    fontWeight: "900",
+    fontSize: 18,
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
   },
 });
+

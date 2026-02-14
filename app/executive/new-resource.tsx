@@ -47,6 +47,8 @@ const CATEGORIES: { id: PostCategory; label: string; icon: string; color: string
     { id: 'general', label: 'General / Other', icon: 'dots-grid', color: '#576574' },
 ];
 
+const GALLERY_ALBUMS = ['Team', 'Events', 'Club Life'];
+
 export default function NewResourceScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
@@ -67,8 +69,11 @@ export default function NewResourceScreen() {
         resourceType: (params.category === 'gallery' ? 'image' : 'article') as any,
         url: '',
         tags: '',
+        album: 'Events', // Specifically for gallery
         localUri: null as string | null,
     });
+
+    const isGallery = form.category === 'gallery';
 
     const handlePickFile = async () => {
         try {
@@ -128,19 +133,25 @@ export default function NewResourceScreen() {
                 setUploading(false);
             }
 
+            // For gallery, the album is the first tag
+            let tagsArray = form.tags.split(',').map(t => t.trim()).filter(Boolean);
+            if (isGallery) {
+                tagsArray = [form.album, ...tagsArray];
+            }
+
             await createResource({
                 title: form.title,
                 description: form.description,
                 category: form.category,
                 resourceType: form.resourceType,
                 url: finalUrl,
-                tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+                tags: tagsArray,
                 createdBy: user.id,
             });
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Resource Published', 'Your resource is now live in the library!', [
-                { text: 'View Library', onPress: () => router.push('/(tabs)/resources') },
+            Alert.alert('Published!', isGallery ? 'Your photo is now in the gallery.' : 'Your resource is now live.', [
+                { text: 'View', onPress: () => router.push(isGallery ? '/gallery' : '/(tabs)/resources') },
                 { text: 'Done', onPress: () => router.back() }
             ]);
         } catch (e) {
@@ -179,7 +190,7 @@ export default function NewResourceScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <MaterialCommunityIcons name="close" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <ThemedText style={styles.headerTitle}>New Resource</ThemedText>
+                    <ThemedText style={styles.headerTitle}>{isGallery ? 'Gallery Upload' : 'New Resource'}</ThemedText>
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -193,21 +204,46 @@ export default function NewResourceScreen() {
                             layout={Layout.springify()}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Let&apos;s start with basics</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>What are we sharing with the network today?</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {isGallery ? "Capture the moment" : "Let's start with basics"}
+                            </ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {isGallery ? "Give this memory a title and location." : "What are we sharing with the network today?"}
+                            </ThemedText>
 
                             <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>RESOURCE TITLE</ThemedText>
+                                <ThemedText style={styles.label}>{isGallery ? "ITEM TITLE" : "RESOURCE TITLE"}</ThemedText>
                                 <TextInput
                                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="e.g. Managing Exam Stress"
+                                    placeholder={isGallery ? "e.g. Wellness Workshop 2024" : "e.g. Managing Exam Stress"}
                                     placeholderTextColor={colors.icon}
                                     value={form.title}
                                     onChangeText={(t) => setForm({ ...form, title: t })}
                                 />
                             </View>
 
-                            <ThemedText style={styles.label}>CATEGORY</ThemedText>
+                            {isGallery && (
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={styles.label}>ALBUM / CATEGORY</ThemedText>
+                                    <View style={styles.albumGrid}>
+                                        {GALLERY_ALBUMS.map((album) => (
+                                            <TouchableOpacity
+                                                key={album}
+                                                style={[
+                                                    styles.albumChip,
+                                                    { backgroundColor: colors.surface, borderColor: colors.border },
+                                                    form.album === album && { backgroundColor: colors.primary, borderColor: colors.primary }
+                                                ]}
+                                                onPress={() => setForm({ ...form, album })}
+                                            >
+                                                <ThemedText style={[styles.albumText, form.album === album && { color: '#FFF' }]}>{album}</ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            <ThemedText style={styles.label}>MAIN CATEGORY</ThemedText>
                             <View style={styles.categoryGrid}>
                                 {CATEGORIES.map((cat) => (
                                     <TouchableOpacity
@@ -218,7 +254,11 @@ export default function NewResourceScreen() {
                                             form.category === cat.id && { borderColor: cat.color, borderWidth: 2 }
                                         ]}
                                         onPress={() => {
-                                            setForm({ ...form, category: cat.id });
+                                            setForm({
+                                                ...form,
+                                                category: cat.id,
+                                                resourceType: cat.id === 'gallery' ? 'image' : form.resourceType
+                                            });
                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                         }}
                                     >
@@ -232,37 +272,36 @@ export default function NewResourceScreen() {
                                 ))}
                             </View>
 
-                            <ThemedText style={styles.label}>RESOURCE TYPE</ThemedText>
-                            <View style={styles.typeGrid}>
-                                {RESOURCE_TYPES.map((type) => (
-                                    <TouchableOpacity
-                                        key={type.id}
-                                        style={[
-                                            styles.typeCardSmall,
-                                            { backgroundColor: colors.surface, borderColor: colors.border },
-                                            form.resourceType === type.id && { backgroundColor: colors.primary + '10', borderColor: colors.primary, borderWidth: 2 }
-                                        ]}
-                                        onPress={() => {
-                                            setForm({ ...form, resourceType: type.id as any });
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                        }}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name={type.icon as any}
-                                            size={24}
-                                            color={form.resourceType === type.id ? colors.primary : colors.icon}
-                                        />
-                                        <ThemedText style={[styles.typeTabText, form.resourceType === type.id && { color: colors.primary, fontWeight: '800' }]}>
-                                            {type.label}
-                                        </ThemedText>
-                                        {form.resourceType === type.id && (
-                                            <View style={[styles.selectedCheck, { backgroundColor: colors.primary }]}>
-                                                <MaterialCommunityIcons name="check" size={12} color="#FFF" />
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                            {!isGallery && (
+                                <>
+                                    <ThemedText style={styles.label}>RESOURCE TYPE</ThemedText>
+                                    <View style={styles.typeGrid}>
+                                        {RESOURCE_TYPES.map((type) => (
+                                            <TouchableOpacity
+                                                key={type.id}
+                                                style={[
+                                                    styles.typeCardSmall,
+                                                    { backgroundColor: colors.surface, borderColor: colors.border },
+                                                    form.resourceType === type.id && { backgroundColor: colors.primary + '10', borderColor: colors.primary, borderWidth: 2 }
+                                                ]}
+                                                onPress={() => {
+                                                    setForm({ ...form, resourceType: type.id as any });
+                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                }}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={type.icon as any}
+                                                    size={24}
+                                                    color={form.resourceType === type.id ? colors.primary : colors.icon}
+                                                />
+                                                <ThemedText style={[styles.typeTabText, form.resourceType === type.id && { color: colors.primary, fontWeight: '800' }]}>
+                                                    {type.label}
+                                                </ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
                         </Animated.View>
                     )}
 
@@ -272,8 +311,12 @@ export default function NewResourceScreen() {
                             exiting={FadeOutLeft}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Provide the content</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>Link an external resource or upload a file directly.</ThemedText>
+                            <ThemedText style={styles.stepTitle}>
+                                {isGallery ? "Upload the media" : "Provide the content"}
+                            </ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {isGallery ? "Pick a high-quality photo or video from your gallery." : "Link an external resource or upload a file directly."}
+                            </ThemedText>
 
                             <View style={styles.sourceChoiceContainer}>
                                 <TouchableOpacity
@@ -281,34 +324,38 @@ export default function NewResourceScreen() {
                                     onPress={handlePickFile}
                                 >
                                     <MaterialCommunityIcons
-                                        name={form.localUri ? "check-circle" : "cloud-upload-outline"}
+                                        name={form.localUri ? "check-circle" : (isGallery ? "image-plus" : "cloud-upload-outline")}
                                         size={48}
                                         color={form.localUri ? colors.primary : colors.icon}
                                     />
                                     <ThemedText style={styles.uploadText}>
-                                        {form.localUri ? "File Selected!" : "Upload from Gallery"}
+                                        {form.localUri ? "File Selected!" : (isGallery ? "Select Photo/Video" : "Upload from Gallery")}
                                     </ThemedText>
                                     {form.localUri && (
                                         <ThemedText style={styles.fileName} numberOfLines={1}>{form.localUri.split('/').pop()}</ThemedText>
                                     )}
                                 </TouchableOpacity>
 
-                                <View style={styles.orDivider}>
-                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                    <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
-                                    <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                                </View>
+                                {!isGallery && (
+                                    <>
+                                        <View style={styles.orDivider}>
+                                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                            <ThemedText style={styles.orText}>OR LINK IT</ThemedText>
+                                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                                        </View>
 
-                                <View style={styles.inputGroup}>
-                                    <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                        placeholder="https://..."
-                                        placeholderTextColor={colors.icon}
-                                        value={form.url}
-                                        onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
-                                    />
-                                </View>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>RESOURCE URL</ThemedText>
+                                            <TextInput
+                                                style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                placeholder="https://..."
+                                                placeholderTextColor={colors.icon}
+                                                value={form.url}
+                                                onChangeText={(t) => setForm({ ...form, url: t, localUri: null })}
+                                            />
+                                        </View>
+                                    </>
+                                )}
                             </View>
                         </Animated.View>
                     )}
@@ -319,14 +366,16 @@ export default function NewResourceScreen() {
                             exiting={FadeOutLeft}
                             style={styles.stepContainer}
                         >
-                            <ThemedText style={styles.stepTitle}>Final Enrichment</ThemedText>
-                            <ThemedText style={styles.stepSubtitle}>Add a description and tags to help students find it.</ThemedText>
+                            <ThemedText style={styles.stepTitle}>{isGallery ? "Add Context" : "Final Enrichment"}</ThemedText>
+                            <ThemedText style={styles.stepSubtitle}>
+                                {isGallery ? "Tell others what was happening in this moment." : "Add a description and tags to help students find it."}
+                            </ThemedText>
 
                             <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>DESCRIPTION</ThemedText>
+                                <ThemedText style={styles.label}>DESCRIPTION / CAPTION</ThemedText>
                                 <TextInput
                                     style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="Briefly explain what this resource covers..."
+                                    placeholder={isGallery ? "Describe this memory..." : "Briefly explain what this resource covers..."}
                                     placeholderTextColor={colors.icon}
                                     multiline
                                     numberOfLines={4}
@@ -336,10 +385,10 @@ export default function NewResourceScreen() {
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <ThemedText style={styles.label}>TAGS (COMMA SEPARATED)</ThemedText>
+                                <ThemedText style={styles.label}>ADDITIONAL TAGS (OPTIONAL)</ThemedText>
                                 <TextInput
                                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                    placeholder="wellness, exam-prep, mentalhealth"
+                                    placeholder="memories, fun, community"
                                     placeholderTextColor={colors.icon}
                                     value={form.tags}
                                     onChangeText={(t) => setForm({ ...form, tags: t })}
@@ -348,8 +397,10 @@ export default function NewResourceScreen() {
 
                             <View style={[styles.previewCard, { backgroundColor: colors.surface, borderLeftColor: CATEGORIES.find(c => c.id === form.category)?.color || colors.primary }]}>
                                 <ThemedText style={styles.previewTag}>PREVIEW</ThemedText>
-                                <ThemedText style={styles.previewTitle}>{form.title || 'Untitled Resource'}</ThemedText>
-                                <ThemedText style={styles.previewMeta}>{form.category} • {form.resourceType}</ThemedText>
+                                <ThemedText style={styles.previewTitle}>{form.title || 'Untitled'}</ThemedText>
+                                <ThemedText style={styles.previewMeta}>
+                                    {isGallery ? `Album: ${form.album}` : `${form.category} • ${form.resourceType}`}
+                                </ThemedText>
                             </View>
                         </Animated.View>
                     )}
@@ -379,7 +430,7 @@ export default function NewResourceScreen() {
                             <ActivityIndicator color="#FFF" />
                         ) : (
                             <ThemedText style={styles.buttonText}>
-                                {step === 3 ? "Publish Resource" : "Next Step"}
+                                {step === 3 ? "Publish Now" : "Continue"}
                             </ThemedText>
                         )}
                     </TouchableOpacity>
@@ -411,6 +462,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: Spacing.sm,
         paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
     },
     stepDot: {
         width: 8,
@@ -445,6 +497,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: 1.2,
         opacity: 0.5,
+        marginBottom: 4,
     },
     input: {
         borderRadius: BorderRadius.lg,
@@ -456,6 +509,21 @@ const styles = StyleSheet.create({
     textArea: {
         height: 120,
         textAlignVertical: 'top',
+    },
+    albumGrid: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 8,
+    },
+    albumChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    albumText: {
+        fontSize: 14,
+        fontWeight: '700',
     },
     categoryGrid: {
         flexDirection: 'row',
@@ -480,8 +548,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     catLabel: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
+        textAlign: 'center',
     },
     typeGrid: {
         flexDirection: 'row',
@@ -497,17 +566,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 4,
-        position: 'relative',
-    },
-    selectedCheck: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     typeTabText: {
         fontSize: 10,
