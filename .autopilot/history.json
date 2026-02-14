@@ -1,6 +1,18 @@
 {
   "commits": [
     {
+      "hash": "bec150d303c1fe15cd15c355ae9fc01a1c968537",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f1dc58dddf5c26aa77de0970d0d595c1c2c2ab4987c6bb559dce860ea1e527eb",
+      "files": [
+        "autopilot/history.json",
+        "app/create-post.tsx",
+        "app/gallery.tsx",
+        "app/resource/[id].tsx",
+        "app/resource/category/[slug].tsx"
+      ],
+      "timestamp": "2026-02-14T16:44:32.274Z"
+    },
+    {
       "hash": "4906291fc4794fdc8e2082303027e806e92f6687",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: e9432a8c7bfab6bcbe5cf94af6478e5d5fa063c44173fdbd173754d9280eb0ec",
       "files": [

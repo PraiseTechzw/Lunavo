@@ -44,6 +44,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
     ],
     web: [
@@ -66,6 +67,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
     ],
     blocked: [
@@ -97,6 +99,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
       "/peer-educator",
       "/meetings",
@@ -121,6 +124,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
       "/peer-educator",
       "/meetings",
@@ -148,6 +152,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
       "/executive",
       "/peer-educator",
@@ -173,6 +178,7 @@ export const ROUTE_ACCESS: Record<
       "/accessibility-settings",
       "/chat",
       "/resource",
+      "/gallery",
       "/create-channel",
       "/executive",
       "/peer-educator",
@@ -181,8 +187,8 @@ export const ROUTE_ACCESS: Record<
     blocked: ["/admin", "/counselor", "/student-affairs"],
   },
   moderator: {
-    mobile: ["/admin/moderation", "/admin/reports"],
-    web: ["/admin/moderation", "/admin/reports"],
+    mobile: ["/admin/moderation", "/admin/reports", "/resource", "/gallery"],
+    web: ["/admin/moderation", "/admin/reports", "/resource", "/gallery"],
     blocked: [
       "/admin/dashboard",
       "/admin/analytics",
@@ -200,6 +206,8 @@ export const ROUTE_ACCESS: Record<
       "/chat",
       "/profile-settings",
       "/accessibility-settings",
+      "/resource",
+      "/gallery",
     ],
     web: [
       "/counselor",
@@ -209,6 +217,8 @@ export const ROUTE_ACCESS: Record<
       "/chat",
       "/profile-settings",
       "/accessibility-settings",
+      "/resource",
+      "/gallery",
     ],
     blocked: [
       "/(tabs)/forum", // No general forum
@@ -228,6 +238,8 @@ export const ROUTE_ACCESS: Record<
       "/chat",
       "/profile-settings",
       "/accessibility-settings",
+      "/resource",
+      "/gallery",
     ],
     web: [
       "/counselor",
@@ -237,6 +249,8 @@ export const ROUTE_ACCESS: Record<
       "/chat",
       "/profile-settings",
       "/accessibility-settings",
+      "/resource",
+      "/gallery",
     ],
     blocked: [
       "/(tabs)/forum", // No general forum
@@ -254,6 +268,7 @@ export const ROUTE_ACCESS: Record<
       "/(tabs)/resources",
       "/(tabs)/profile",
       "/resource",
+      "/gallery",
       "/profile-settings",
       "/accessibility-settings",
     ],
@@ -285,6 +300,7 @@ export const ROUTE_ACCESS: Record<
       "/notifications",
       "/chat",
       "/resource",
+      "/gallery",
       "/profile-settings",
       "/accessibility-settings",
       "/create-channel",
@@ -306,6 +322,7 @@ export const ROUTE_ACCESS: Record<
       "/notifications",
       "/chat",
       "/resource",
+      "/gallery",
       "/profile-settings",
       "/accessibility-settings",
       "/create-channel",
