@@ -253,7 +253,11 @@ export default function ResourceDetailScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <ThemedText style={styles.statValue}>{format(new Date(resource.createdAt), 'MMM yyyy')}</ThemedText>
+              <ThemedText style={styles.statValue}>
+                {resource.createdAt && !isNaN(new Date(resource.createdAt).getTime())
+                  ? format(new Date(resource.createdAt), 'MMM yyyy')
+                  : 'N/A'}
+              </ThemedText>
               <ThemedText style={styles.statLabel}>Published</ThemedText>
             </View>
             <View style={styles.statDivider} />
@@ -290,7 +294,11 @@ export default function ResourceDetailScreen() {
             </View>
             <View style={styles.infoRow衡}>
               <MaterialCommunityIcons name="update" size={20} color={colors.primary} />
-              <ThemedText style={styles.infoText衡}>Last updated {format(new Date(resource.updatedAt), 'PP')}</ThemedText>
+              <ThemedText style={styles.infoText衡}>
+                Last updated {resource.updatedAt && !isNaN(new Date(resource.updatedAt).getTime())
+                  ? format(new Date(resource.updatedAt), 'PP')
+                  : 'recently'}
+              </ThemedText>
             </View>
           </View>
 

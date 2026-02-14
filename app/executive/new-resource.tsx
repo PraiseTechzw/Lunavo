@@ -611,6 +611,75 @@ export default function NewResourceScreen() {
                     </Animated.View>
                 </Animated.View>
             )}
+
+            {/* Success Celebration Modal */}
+            {showSuccess && (
+                <Animated.View
+                    entering={FadeIn.duration(300)}
+                    exiting={FadeOut.duration(300)}
+                    style={styles.overlayContainer}
+                >
+                    <View style={styles.overlayBg} />
+                    <Animated.View
+                        entering={ZoomIn.springify().delay(200)}
+                        style={[styles.successCard, { backgroundColor: colors.card }]}
+                    >
+                        <Animated.View entering={ZoomIn.springify().delay(400)} style={styles.successIconContainer}>
+                            <LinearGradient
+                                colors={['#10B981', '#059669']}
+                                style={styles.successIconGradient}
+                            >
+                                <MaterialCommunityIcons name="check-circle" size={64} color="#FFF" />
+                            </LinearGradient>
+                        </Animated.View>
+
+                        <Animated.View entering={FadeIn.delay(600)} style={styles.successTextContainer}>
+                            <ThemedText style={styles.successTitle}>
+                                {isGallery ? "Memory Shared! 📸" :
+                                    form.resourceType === 'article' ? "Article Published! ✍️" :
+                                        form.resourceType === 'tool' ? "Tool Added! 🛠️" :
+                                            "Resource Live! 🎉"}
+                            </ThemedText>
+                            <ThemedText style={styles.successMessage}>
+                                {isGallery ? "Your photo is now in the gallery for everyone to see." :
+                                    form.resourceType === 'article' ? "Your article is now available to help students." :
+                                        "Your resource is now live and ready to support the community."}
+                            </ThemedText>
+                        </Animated.View>
+
+                        <Animated.View entering={FadeIn.delay(800)} style={styles.successActions}>
+                            <TouchableOpacity
+                                style={[styles.successButton, styles.viewButton, { borderColor: colors.primary }]}
+                                onPress={() => {
+                                    setShowSuccess(false);
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    router.push(isGallery ? '/gallery' : '/(tabs)/resources');
+                                }}
+                            >
+                                <MaterialCommunityIcons name="eye-outline" size={20} color={colors.primary} />
+                                <ThemedText style={[styles.viewButtonText, { color: colors.primary }]}>View Now</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.successButton}
+                                onPress={() => {
+                                    setShowSuccess(false);
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    router.back();
+                                }}
+                            >
+                                <LinearGradient
+                                    colors={colors.gradients.primary as any}
+                                    style={styles.doneButtonGradient}
+                                >
+                                    <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+                                    <MaterialCommunityIcons name="check" size={20} color="#FFF" />
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </Animated.View>
+                </Animated.View>
+            )}
         </SafeAreaView>
     );
 }
@@ -915,5 +984,70 @@ const styles = StyleSheet.create({
     absoluteLoader: {
         ...StyleSheet.absoluteFillObject,
         opacity: 0.5,
+    },
+    successCard: {
+        width: width * 0.85,
+        padding: 40,
+        borderRadius: 32,
+        alignItems: 'center',
+        ...PlatformStyles.premiumShadow,
+    },
+    successIconContainer: {
+        marginBottom: 24,
+    },
+    successIconGradient: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successTextContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    successTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    successMessage: {
+        fontSize: 15,
+        opacity: 0.7,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    successActions: {
+        width: '100%',
+        gap: 12,
+    },
+    successButton: {
+        height: 56,
+        borderRadius: BorderRadius.xl,
+        overflow: 'hidden',
+    },
+    viewButton: {
+        borderWidth: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    viewButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    doneButtonGradient: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    doneButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFF',
     }
 });
