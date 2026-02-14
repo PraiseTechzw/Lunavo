@@ -13,6 +13,7 @@ import {
   getCurrentUser,
   getSupportMessages,
   sendSupportMessage,
+  getUser,
 } from "@/lib/database";
 import {
   sendReaction,
@@ -67,6 +68,7 @@ export default function ChatDetailScreen() {
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
   const [session, setSession] = useState<SupportSession | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [educator, setEducator] = useState<any | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -79,6 +81,12 @@ export default function ChatDetailScreen() {
         const all = await getSupportSessions();
         const meta = (all || []).find((s) => s.id === (id as string)) || null;
         setSession(meta);
+        if (meta?.educator_id) {
+          const edu = await getUser(meta.educator_id);
+          setEducator(edu || null);
+        } else {
+          setEducator(null);
+        }
       } catch (error) {
         console.error("Error loading messages:", error);
       } finally {
@@ -248,6 +256,15 @@ export default function ChatDetailScreen() {
     index: number;
   }) => {
     const isMine = item.sender_id === userId;
+    const showIncomingLabel = !!item.sender_id && item.sender_id !== userId;
+    const supporterLabel =
+      educator?.role === "counselor"
+        ? "Counselor"
+        : educator?.role === "peer-educator" || educator?.role === "peer-educator-executive"
+        ? "Peer Educator"
+        : educator?.role === "life-coach"
+        ? "Life Coach"
+        : "Supporter";
     const showDateDivider =
       index === 0 ||
       new Date(messages[index - 1].created_at).toDateString() !==
@@ -266,9 +283,9 @@ export default function ChatDetailScreen() {
         <View
           style={[styles.messageRow, isMine ? styles.mineRow : styles.theirRow]}
         >
-          {!isMine && (
+          {!isMine && showIncomingLabel && (
             <View style={styles.labelWrap}>
-              <ThemedText style={styles.labelText}>Supporter</ThemedText>
+              <ThemedText style={styles.labelText}>{supporterLabel}</ThemedText>
             </View>
           )}
           <TouchableOpacity
@@ -384,6 +401,13 @@ export default function ChatDetailScreen() {
   const last = messages[messages.length - 1];
   const isOnline =
     !!last && Date.now() - new Date(last.created_at).getTime() < 2 * 60 * 1000;
+  const counterpartName =
+    role === "student"
+      ? educator?.pseudonym || "Supporter"
+      : session?.student_pseudonym || "Anonymous Chat";
+  const secondaryLabel =
+    (session?.category ? String(session.category).toUpperCase() : "PERSONAL") +
+    ` • ${messages.length} MSGS`;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -405,14 +429,11 @@ export default function ChatDetailScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
             <ThemedText type="h2" style={styles.headerTitle}>
-              {session?.student_pseudonym || "Anonymous Chat"}
+              {counterpartName}
             </ThemedText>
-            {session?.category ? (
-              <ThemedText type="small" style={{ opacity: 0.6 }}>
-                {String(session.category).toUpperCase()} • {messages.length}{" "}
-                msgs
-              </ThemedText>
-            ) : null}
+            <ThemedText type="small" style={{ opacity: 0.6 }}>
+              {secondaryLabel}
+            </ThemedText>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View
@@ -441,7 +462,7 @@ export default function ChatDetailScreen() {
                   fontWeight: "700",
                 }}
               >
-                {session.priority}
+                {String(session.priority).toUpperCase()}
               </ThemedText>
             </View>
           )}
@@ -619,6 +640,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "#00000008",
     ...PlatformStyles.shadow,
   },
   messageRow: {

@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "a1cc022079ca5cc301070e687ec7ab67f0e08b3d",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ffd887a756861d52ccb05d4c7e0db8d85b2fe71f6c811fbfaeb9256268733699",
+      "files": [
+        "autopilot/history.json",
+        "app/profile-settings.tsx"
+      ],
+      "timestamp": "2026-02-14T14:47:36.205Z"
+    },
+    {
       "hash": "e15c41dca1410cdfd206f979569d3ade24ad499d",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 19830d1d63ab1b1aed8b61b0439c6e1f7ce6d3c5cfbde90b617709912232c2dc",
       "files": [
