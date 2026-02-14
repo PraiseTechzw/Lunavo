@@ -129,34 +129,34 @@ export default function HomeScreen() {
 
   const moods = [
     {
-      id: "happy",
+      id: "awesome",
       iconName: "sentiment-very-satisfied",
-      label: "Happy",
-      color: "#FBBF24",
+      label: "Great",
+      color: "#10B981",
     },
     {
-      id: "calm",
+      id: "good",
       iconName: "sentiment-satisfied",
-      label: "Calm",
-      color: colors.success,
+      label: "Good",
+      color: "#84CC16",
     },
     {
       id: "okay",
       iconName: "sentiment-neutral",
-      label: "Okay",
-      color: colors.warning,
+      label: "Fine",
+      color: "#FBBF24",
     },
     {
-      id: "sad",
+      id: "bad",
       iconName: "sentiment-dissatisfied",
-      label: "Sad",
-      color: colors.info,
+      label: "Down",
+      color: "#F97316",
     },
     {
-      id: "anxious",
+      id: "terrible",
       iconName: "sentiment-very-dissatisfied",
-      label: "Anxious",
-      color: colors.secondary,
+      label: "Awful",
+      color: "#EF4444",
     },
   ];
 
@@ -221,6 +221,52 @@ export default function HomeScreen() {
                 </LinearGradient>
               </Animated.View>
             ))}
+
+          {/* Mood Check-in - On Top for Daily Habits */}
+          <Animated.View entering={FadeInDown.delay(400)}>
+            <View style={[styles.sectionHeader, { marginBottom: Spacing.md }]}>
+              <ThemedText type="h3">How are you feeling today?</ThemedText>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.moodScroll, { marginBottom: Spacing.xl }]}
+            >
+              {moods.map((mood) => (
+                <TouchableOpacity
+                  key={mood.id}
+                  style={[
+                    styles.moodItem,
+                    {
+                      backgroundColor: selectedMood === mood.id ? mood.color + '20' : colors.card,
+                      borderColor: selectedMood === mood.id ? mood.color : colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedMood(mood.id);
+                    // Pass mood as query param to check-in screen
+                    router.push(`/check-in?mood=${mood.id}` as any);
+                  }}
+                >
+                  <MaterialIcons
+                    name={mood.iconName as any}
+                    size={32}
+                    color={selectedMood === mood.id ? mood.color : colors.icon}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.moodLabel,
+                      { color: selectedMood === mood.id ? mood.color : colors.text },
+                    ]}
+                  >
+                    {mood.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
 
           {/* Premium Hero Section */}
           <Animated.View entering={FadeInDown.duration(800)}>
@@ -365,50 +411,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Animated.View>
           </View>
-
-          {/* Mood Check-in */}
-          <View style={[styles.sectionHeader, { marginTop: Spacing.xl }]}>
-            <ThemedText type="h3">Mood Check-in</ThemedText>
-            <ThemedText type="small" style={{ opacity: 0.6 }}>Take a moment to center yourself</ThemedText>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.moodScroll}
-          >
-            {moods.map((mood) => (
-              <TouchableOpacity
-                key={mood.id}
-                style={[
-                  styles.moodItem,
-                  {
-                    backgroundColor: selectedMood === mood.id ? mood.color + '20' : colors.card,
-                    borderColor: selectedMood === mood.id ? mood.color : colors.border,
-                  },
-                ]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setSelectedMood(mood.id);
-                  router.push(`/check-in-summary?mood=${mood.id}` as any);
-                }}
-              >
-                <MaterialIcons
-                  name={mood.iconName as any}
-                  size={32}
-                  color={selectedMood === mood.id ? mood.color : colors.icon}
-                />
-                <ThemedText
-                  style={[
-                    styles.moodLabel,
-                    { color: selectedMood === mood.id ? mood.color : colors.text },
-                  ]}
-                >
-                  {mood.label}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
 
           <View style={{ height: 40 }} />
         </ScrollView>

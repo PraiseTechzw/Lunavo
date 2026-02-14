@@ -157,6 +157,7 @@ export const ROUTE_ACCESS: Record<
       "/executive",
       "/peer-educator",
       "/meetings",
+      "/counselor",
     ],
     web: [
       "/(tabs)",
@@ -183,8 +184,9 @@ export const ROUTE_ACCESS: Record<
       "/executive",
       "/peer-educator",
       "/meetings",
+      "/counselor",
     ],
-    blocked: ["/admin", "/counselor", "/student-affairs"],
+    blocked: ["/admin", "/student-affairs"],
   },
   moderator: {
     mobile: ["/admin/moderation", "/admin/reports", "/resource", "/gallery"],

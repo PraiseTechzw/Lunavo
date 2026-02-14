@@ -5,25 +5,25 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-  ActivityLog,
-  Announcement,
-  Category,
-  CheckIn,
-  Escalation,
-  EscalationLevel,
-  Meeting,
-  MeetingAttendance,
-  MeetingType,
-  Notification,
-  NotificationType,
-  Post,
-  PostCategory,
-  PostStatus,
-  Reply,
-  Report,
-  SupportMessage,
-  SupportSession,
-  User,
+    ActivityLog,
+    Announcement,
+    Category,
+    CheckIn,
+    Escalation,
+    EscalationLevel,
+    Meeting,
+    MeetingAttendance,
+    MeetingType,
+    Notification,
+    NotificationType,
+    Post,
+    PostCategory,
+    PostStatus,
+    Reply,
+    Report,
+    SupportMessage,
+    SupportSession,
+    User,
 } from "@/app/types";
 import * as ExpoFileSystem from "expo-file-system/legacy";
 import { checkAllBadges } from "./gamification";
@@ -140,14 +140,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-  | "student"
-  | "peer-educator"
-  | "peer-educator-executive"
-  | "moderator"
-  | "counselor"
-  | "life-coach"
-  | "student-affairs"
-  | "admin";
+    | "student"
+    | "peer-educator"
+    | "peer-educator-executive"
+    | "moderator"
+    | "counselor"
+    | "life-coach"
+    | "student-affairs"
+    | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -479,6 +479,20 @@ export async function getUsers(limit?: number): Promise<User[]> {
   }
 
   const { data, error } = await query;
+
+  if (error) throw error;
+
+  return (data || []).map(mapUserFromDB);
+}
+
+export async function getCounsellingProviders(): Promise<User[]> {
+  const { data, error } = await supabase
+    .from("users")
+    .select(
+      "id,email,pseudonym,username,is_anonymous,role,full_name,specialization,bio,interests,avatar_url,created_at,last_active,profile_data",
+    )
+    .in("role", ["life-coach", "peer-educator-executive"])
+    .order("full_name", { ascending: true });
 
   if (error) throw error;
 
@@ -1606,9 +1620,7 @@ export async function getResources(filters?: {
 }
 
 export async function getResourceStats(): Promise<Record<string, number>> {
-  const { data, error } = await supabase
-    .from("resources")
-    .select("category");
+  const { data, error } = await supabase.from("resources").select("category");
 
   if (error) throw error;
 
@@ -1815,13 +1827,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-        id: ub.badges.id,
-        name: ub.badges.name,
-        description: ub.badges.description,
-        icon: ub.badges.icon,
-        color: ub.badges.color,
-        category: ub.badges.category,
-      }
+          id: ub.badges.id,
+          name: ub.badges.name,
+          description: ub.badges.description,
+          icon: ub.badges.icon,
+          color: ub.badges.color,
+          category: ub.badges.category,
+        }
       : null,
   }));
 }

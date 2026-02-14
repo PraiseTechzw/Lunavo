@@ -17,7 +17,7 @@ import { awardCheckInPoints } from "@/lib/points-system"; // Direct Supabase for
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -125,7 +125,8 @@ export default function CheckInScreen() {
   const { width } = useWindowDimensions();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ mood?: string }>();
+  const [selectedMood, setSelectedMood] = useState<string | null>(params.mood || null);
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInsight, setShowInsight] = useState(false);
