@@ -1647,25 +1647,32 @@ export async function getResource(resourceId: string): Promise<any | null> {
 }
 
 export async function incrementResourceViews(resourceId: string): Promise<void> {
-  const { error } = await supabase.rpc('increment_resource_views', {
-    resource_id: resourceId
-  });
-
-  if (error) {
-    console.error('Error incrementing views:', error);
-    // Fallback: manual increment if RPC doesn't exist
-    const { data: resource } = await supabase
+  // Simple read-then-update approach to avoid RPC errors if function doesn't exist
+  // This is less atomic but prevents errors for now
+  try {
+    const { data: resource, error: fetchError } = await supabase
       .from('resources')
       .select('views')
       .eq('id', resourceId)
       .single();
 
+    if (fetchError) {
+      console.log('Could not fetch resource for view increment', fetchError);
+      return;
+    }
+
     if (resource) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('resources')
         .update({ views: (resource.views || 0) + 1 })
         .eq('id', resourceId);
+
+      if (updateError) {
+        console.log('Could not update resource views', updateError);
+      }
     }
+  } catch (e) {
+    console.log('Error incrementing views:', e);
   }
 }
 
