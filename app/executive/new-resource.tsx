@@ -46,6 +46,7 @@ const RESOURCE_TYPES = [
     { id: 'video', label: 'Video', icon: 'video-wireless' },
     { id: 'pdf', label: 'PDF / Doc', icon: 'file-pdf-box' },
     { id: 'link', label: 'External', icon: 'link-variant' },
+    { id: 'tool', label: 'Tool', icon: 'hammer-wrench' },
     { id: 'training', label: 'Training', icon: 'school' },
 ];
 
@@ -142,9 +143,22 @@ export default function NewResourceScreen() {
             Alert.alert('Missing Field', 'Please provide a title for the resource.');
             return;
         }
-        if (step === 2 && !form.url && !form.localUri) {
-            Alert.alert('Missing Source', 'Please provide a URL or upload a file.');
-            return;
+        if (step === 2) {
+            // Articles need content (description)
+            if (form.resourceType === 'article' && !form.description) {
+                Alert.alert('Missing Content', 'Please write your article content.');
+                return;
+            }
+            // Links need URL
+            if (form.resourceType === 'link' && !form.url) {
+                Alert.alert('Missing URL', 'Please provide the website address.');
+                return;
+            }
+            // Other types need URL or file
+            if (form.resourceType !== 'article' && form.resourceType !== 'link' && !form.url && !form.localUri) {
+                Alert.alert('Missing Source', 'Please provide a URL or upload a file.');
+                return;
+            }
         }
 
         Haptics.selectionAsync();
@@ -361,18 +375,51 @@ export default function NewResourceScreen() {
 
                             <View style={styles.sourceChoiceContainer}>
                                 {form.resourceType === 'article' ? (
-                                    <View style={styles.inputGroup}>
-                                        <ThemedText style={styles.label}>ARTICLE CONTENT</ThemedText>
-                                        <TextInput
-                                            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                                            placeholder="Write your article here..."
-                                            placeholderTextColor={colors.icon}
-                                            multiline
-                                            numberOfLines={12}
-                                            value={form.description}
-                                            onChangeText={(t) => setForm({ ...form, description: t })}
-                                        />
-                                    </View>
+                                    <>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>ARTICLE HEADLINE</ThemedText>
+                                            <TextInput
+                                                style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                placeholder="Give your article a compelling title..."
+                                                placeholderTextColor={colors.icon}
+                                                value={form.title}
+                                                onChangeText={(t) => setForm({ ...form, title: t })}
+                                            />
+                                        </View>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>ARTICLE CONTENT</ThemedText>
+                                            <TextInput
+                                                style={[styles.input, styles.articleTextArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                                                placeholder="Write your article content here. Share insights, guidance, or resources that will help students...\n\nYou can structure your content with clear sections and key takeaways."
+                                                placeholderTextColor={colors.icon}
+                                                multiline
+                                                numberOfLines={16}
+                                                value={form.description}
+                                                onChangeText={(t) => setForm({ ...form, description: t })}
+                                            />
+                                        </View>
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={styles.label}>THUMBNAIL IMAGE (OPTIONAL)</ThemedText>
+                                            <TouchableOpacity
+                                                style={[styles.thumbnailBox, { borderColor: form.localUri ? colors.primary : colors.border }]}
+                                                onPress={handlePickFile}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={form.localUri ? "image-check" : "image-plus-outline"}
+                                                    size={32}
+                                                    color={form.localUri ? colors.primary : colors.icon}
+                                                />
+                                                <ThemedText style={styles.thumbnailText}>
+                                                    {form.localUri ? "Thumbnail Selected" : "Add Cover Image"}
+                                                </ThemedText>
+                                                {form.localUri && (
+                                                    <ThemedText style={styles.fileName} numberOfLines={1}>
+                                                        {form.localUri.split('/').pop()}
+                                                    </ThemedText>
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
                                 ) : form.resourceType === 'link' ? (
                                     <View style={styles.inputGroup}>
                                         <ThemedText style={styles.label}>WEBSITE / RESOURCE URL</ThemedText>
@@ -640,6 +687,10 @@ const styles = StyleSheet.create({
         height: 120,
         textAlignVertical: 'top',
     },
+    articleTextArea: {
+        height: 300,
+        textAlignVertical: 'top',
+    },
     albumGrid: {
         flexDirection: 'row',
         gap: 8,
@@ -715,9 +766,23 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
         gap: Spacing.sm,
     },
+    thumbnailBox: {
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderRadius: BorderRadius.lg,
+        height: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        gap: Spacing.xs,
+    },
     uploadText: {
         fontSize: 16,
         fontWeight: '700',
+    },
+    thumbnailText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     fileName: {
         fontSize: 12,

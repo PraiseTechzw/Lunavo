@@ -1564,7 +1564,7 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image";
+  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image" | "tool";
   url?: string;
   filePath?: string;
   tags?: string[];
