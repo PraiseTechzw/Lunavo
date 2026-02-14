@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "a8a7d1e64e3834f704f1fd6d3afcf7e31dcdf46b",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: ebc21a7d72d14b7ef1c687d0e758ca72ad1c6fd9777294a07dcdc9c7da3b50c0",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/reset-sent.tsx"
+      ],
+      "timestamp": "2026-02-14T12:52:04.117Z"
+    },
+    {
       "hash": "079d6133839a4ed7052b3796dac52b7b11c25d51",
       "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: f52a4396251aad4d9d1310b8d0c5718ba85d722781409e9ad376747866ec9ba0",
       "files": [

@@ -8,6 +8,7 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -60,17 +61,53 @@ export default function ResetSentScreen() {
           style={[styles.card, { backgroundColor: colors.card }]}
         >
           <View style={{ gap: Spacing.md }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <ThemedText>Check inbox and spam for “PEACE Password Recovery”.</ThemedText>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: Spacing.md,
+              }}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={colors.success}
+              />
+              <ThemedText style={{ flex: 1, lineHeight: 22 }}>
+                Check inbox and spam for “PEACE Password Recovery”.
+              </ThemedText>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <ThemedText>Open the link on this device to set a new password.</ThemedText>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: Spacing.md,
+              }}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={colors.success}
+              />
+              <ThemedText style={{ flex: 1, lineHeight: 22 }}>
+                Open the link on this device to set a new password.
+              </ThemedText>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <ThemedText>Return to the PEACE app and sign in with the new password.</ThemedText>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: Spacing.md,
+              }}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={colors.success}
+              />
+              <ThemedText style={{ flex: 1, lineHeight: 22 }}>
+                Return to the PEACE app and sign in with the new password.
+              </ThemedText>
             </View>
           </View>
 
@@ -78,11 +115,23 @@ export default function ResetSentScreen() {
             onPress={() =>
               Linking.openURL("https://peace-club.praisetech.tech/reset")
             }
-            style={styles.secondaryBtnWrapper}
+            style={{ marginTop: 20 }}
           >
-            <ThemedText style={{ color: colors.primary, fontWeight: "700" }}>
-              Open Web Reset
-            </ThemedText>
+            <LinearGradient
+              colors={colors.gradients.primary as any}
+              style={{
+                height: 56,
+                borderRadius: BorderRadius.xl,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <ThemedText
+                style={{ color: "#FFF", fontWeight: "900", letterSpacing: 1 }}
+              >
+                OPEN WEB RESET
+              </ThemedText>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 
@@ -110,6 +159,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 22,
   },
+  emailPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: BorderRadius.xl,
+    marginTop: Spacing.md,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  emailText: { fontWeight: "600" },
   card: {
     padding: Spacing.xl,
     borderRadius: BorderRadius.xxl,
