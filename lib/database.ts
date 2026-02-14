@@ -5,25 +5,25 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-  ActivityLog,
-  Announcement,
-  Category,
-  CheckIn,
-  Escalation,
-  EscalationLevel,
-  Meeting,
-  MeetingAttendance,
-  MeetingType,
-  Notification,
-  NotificationType,
-  Post,
-  PostCategory,
-  PostStatus,
-  Reply,
-  Report,
-  SupportMessage,
-  SupportSession,
-  User,
+    ActivityLog,
+    Announcement,
+    Category,
+    CheckIn,
+    Escalation,
+    EscalationLevel,
+    Meeting,
+    MeetingAttendance,
+    MeetingType,
+    Notification,
+    NotificationType,
+    Post,
+    PostCategory,
+    PostStatus,
+    Reply,
+    Report,
+    SupportMessage,
+    SupportSession,
+    User,
 } from "@/app/types";
 import { checkAllBadges } from "./gamification";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
@@ -139,14 +139,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-  | "student"
-  | "peer-educator"
-  | "peer-educator-executive"
-  | "moderator"
-  | "counselor"
-  | "life-coach"
-  | "student-affairs"
-  | "admin";
+    | "student"
+    | "peer-educator"
+    | "peer-educator-executive"
+    | "moderator"
+    | "counselor"
+    | "life-coach"
+    | "student-affairs"
+    | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -1564,7 +1564,14 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image" | "tool";
+  resourceType:
+    | "article"
+    | "video"
+    | "pdf"
+    | "link"
+    | "training"
+    | "image"
+    | "tool";
   url?: string;
   filePath?: string;
   tags?: string[];
@@ -1646,7 +1653,9 @@ export async function getResource(resourceId: string): Promise<any | null> {
   return data;
 }
 
-export async function incrementResourceViews(resourceId: string): Promise<void> {
+export async function incrementResourceViews(
+  resourceId: string,
+): Promise<void> {
   try {
     const { error } = await supabase.rpc("increment_resource_views", {
       resource_id: resourceId,
@@ -1654,11 +1663,7 @@ export async function incrementResourceViews(resourceId: string): Promise<void> 
 
     if (!error) return;
 
-    if (error.code !== "PGRST202") {
-      console.log("Error incrementing views:", error);
-      return;
-    }
-
+    // Fallback if RPC fails
     const { data: resource, error: fetchError } = await supabase
       .from("resources")
       .select("views")
@@ -1679,37 +1684,39 @@ export async function incrementResourceViews(resourceId: string): Promise<void> 
 export async function addResourceRating(
   resourceId: string,
   userId: string,
-  rating: number
+  rating: number,
 ): Promise<void> {
   // Store individual rating
-  const { error: ratingError } = await supabase
-    .from('resource_ratings')
-    .upsert({
+  const { error: ratingError } = await supabase.from("resource_ratings").upsert(
+    {
       resource_id: resourceId,
       user_id: userId,
       rating: rating,
-      created_at: new Date().toISOString()
-    }, {
-      onConflict: 'resource_id,user_id'
-    });
+      created_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "resource_id,user_id",
+    },
+  );
 
   if (ratingError) {
-    console.error('Error saving rating:', ratingError);
+    console.error("Error saving rating:", ratingError);
     throw ratingError;
   }
 
   // Calculate new average rating
   const { data: ratings } = await supabase
-    .from('resource_ratings')
-    .select('rating')
-    .eq('resource_id', resourceId);
+    .from("resource_ratings")
+    .select("rating")
+    .eq("resource_id", resourceId);
 
   if (ratings && ratings.length > 0) {
-    const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    const avgRating =
+      ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
     await supabase
-      .from('resources')
+      .from("resources")
       .update({ rating: avgRating })
-      .eq('id', resourceId);
+      .eq("id", resourceId);
   }
 }
 
@@ -1768,16 +1775,21 @@ export async function uploadResourceFile(
     const filePath = `${userId}/${fileName}`;
 
     // Determine content type
-    let contentType = 'application/octet-stream';
-    if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
-    else if (fileExt === 'png') contentType = 'image/png';
-    else if (fileExt === 'gif') contentType = 'image/gif';
-    else if (fileExt === 'pdf') contentType = 'application/pdf';
+    let contentType = "application/octet-stream";
+    if (["jpg", "jpeg"].includes(fileExt)) contentType = "image/jpeg";
+    else if (fileExt === "png") contentType = "image/png";
+    else if (fileExt === "gif") contentType = "image/gif";
+    else if (fileExt === "pdf") contentType = "application/pdf";
 
-    console.log("Uploading via FormData to path:", filePath, "ContentType:", contentType);
+    console.log(
+      "Uploading via FormData to path:",
+      filePath,
+      "ContentType:",
+      contentType,
+    );
 
     const formData = new FormData();
-    formData.append('file', {
+    formData.append("file", {
       uri: uri,
       name: fileName,
       type: contentType,
@@ -1890,13 +1902,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-        id: ub.badges.id,
-        name: ub.badges.name,
-        description: ub.badges.description,
-        icon: ub.badges.icon,
-        color: ub.badges.color,
-        category: ub.badges.category,
-      }
+          id: ub.badges.id,
+          name: ub.badges.name,
+          description: ub.badges.description,
+          icon: ub.badges.icon,
+          color: ub.badges.color,
+          category: ub.badges.category,
+        }
       : null,
   }));
 }

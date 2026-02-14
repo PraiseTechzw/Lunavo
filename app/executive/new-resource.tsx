@@ -5,6 +5,7 @@ import { PostCategory } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { createResource, uploadResourceFile } from '@/lib/database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -115,23 +116,42 @@ export default function NewResourceScreen() {
 
     const handlePickFile = async () => {
         try {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert('Permission Denied', 'We need access to your gallery to upload resources.');
-                return;
-            }
+            if (['pdf', 'training', 'tool'].includes(form.resourceType)) {
+                // Pick Document
+                const result = await DocumentPicker.getDocumentAsync({
+                    type: form.resourceType === 'pdf' ? ['application/pdf'] : ['*/*'],
+                    copyToCacheDirectory: true,
+                });
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images', 'videos'],
-                quality: 0.8,
-            });
+                if (!result.canceled && result.assets && result.assets[0].uri) {
+                    setForm({ ...form, localUri: result.assets[0].uri });
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
+            } else {
+                // Pick Image/Video
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== 'granted') {
+                    Alert.alert('Permission Denied', 'We need access to your gallery to upload resources.');
+                    return;
+                }
 
-            if (!result.canceled && result.assets[0].uri) {
-                const asset = result.assets[0] as any;
-                const inferredType =
-                    asset?.type === 'video' ? 'video' : asset?.type === 'image' ? 'image' : form.resourceType;
-                setForm({ ...form, localUri: asset.uri, resourceType: inferredType });
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images', 'videos'],
+                    quality: 0.8,
+                });
+
+                if (!result.canceled && result.assets[0].uri) {
+                    const asset = result.assets[0] as any;
+                    // Only auto-switch type if we are in generic mode or gallery
+                    // If user explicitly chose 'video' or 'image', keep it, unless they picked the wrong type
+                    let inferredType: any = form.resourceType;
+                    if (isGallery || (form.resourceType !== 'video' && form.resourceType !== 'image')) {
+                        inferredType = asset?.type === 'video' ? 'video' : 'image';
+                    }
+
+                    setForm({ ...form, localUri: asset.uri, resourceType: inferredType });
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
             }
         } catch (error) {
             console.error('File pick error:', error);
