@@ -497,40 +497,41 @@ export default function PostDetailScreen() {
   const threadedReplies = buildReplyTree(replies);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0} // Managed by logic below or default behavior
-    >
-      <ThemedView style={styles.container}>
-        <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} />
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: "Discussion",
-            headerShadowVisible: false,
-            headerStyle: { backgroundColor: colors.background },
-            headerLeft: () => (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={[
-                  styles.backButton,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-            ),
-            headerRight: () => (
-              <TouchableOpacity onPress={() => handleReport('post', post.id)} style={{ marginRight: 8, padding: 4 }}>
-                <Ionicons name="flag-outline" size={20} color={colors.icon} />
-              </TouchableOpacity>
-            )
-          }}
-        />
+    <ThemedView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: "Discussion",
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={[
+                styles.backButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity onPress={() => handleReport('post', post.id)} style={{ marginRight: 8, padding: 4 }}>
+              <Ionicons name="flag-outline" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} />
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
 
         <ScrollView
           ref={scrollViewRef}
@@ -660,8 +661,8 @@ export default function PostDetailScreen() {
           </View>
         </View>
 
-      </ThemedView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
