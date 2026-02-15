@@ -4,7 +4,7 @@
  * Praisetechzw
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
+import { LunavoLogo } from "@/app/components/lunavo-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
@@ -32,15 +32,15 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
-const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
+const ONBOARDING_KEY = "@lunavo:onboarding_complete";
 
 const onboardingData = [
   {
-    title: "Welcome to PEACE",
-    subtitle: "Peer Education Club",
+    title: "Welcome to Lunavo",
+    subtitle: "Peer Education & Wellness",
     description:
       "Your digital community for health, mental wellness, and peer-to-peer support. Built by students, for students.",
-    icon: "heart-outline",
+    icon: "moon-outline",
     type: "logo",
     colors: ["#6366F1", "#8B5CF6"],
   },
@@ -48,7 +48,7 @@ const onboardingData = [
     title: "1. The Student",
     subtitle: "The Core Heart",
     description:
-      "The foundation of PEACE. Access a safe community, anonymous sharing, and instant resources whenever you need them.",
+      "The foundation of Lunavo. Access a safe community, anonymous sharing, and instant resources whenever you need them.",
     icon: "person-outline",
     illustration: require("@/assets/images/onboarding/welcome.png"),
     colors: ["#4CAF50", "#81C784"],
@@ -431,7 +431,7 @@ function OnboardingItem({ item, index, scrollX, colors }: any) {
           <View style={styles.imageWrapper}>
             {item.type === "logo" ? (
               <View style={styles.logoWrapper}>
-                <PEACELogo size={180} />
+                <LunavoLogo size={180} />
                 {item.type === "logo" && index === 0 && (
                   <View style={styles.founderBadge}>
                     <ThemedText style={styles.founderText}>

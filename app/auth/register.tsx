@@ -3,7 +3,6 @@
  * Overhauled with PEACE branding, Glassmorphism, and Blobs
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { CUT_SCHOOLS } from "@/app/constants/programs";
@@ -28,8 +27,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   Easing,
@@ -397,7 +396,7 @@ export default function RegisterScreen() {
                 isSmall ? { marginBottom: 20 } : null,
               ]}
             >
-              <PEACELogo size={isSmall ? 64 : 80} />
+              <LunavoLogo size={isSmall ? 64 : 80} />
               <ThemedText
                 type="h2"
                 style={[styles.stepTitle, isSmall ? { marginTop: 6 } : null]}
@@ -720,7 +719,7 @@ export default function RegisterScreen() {
                       Selected: Year {formData.year} (
                       {
                         ["First", "Second", "Third", "Fourth", "Fifth"][
-                          formData.year - 1
+                        formData.year - 1
                         ]
                       }
                       ) • Semester {formData.semester}
@@ -799,9 +798,9 @@ export default function RegisterScreen() {
                         {
                           backgroundColor:
                             formData.password.length >= 10 &&
-                            /[A-Z]/.test(formData.password) &&
-                            /[0-9]/.test(formData.password) &&
-                            /[^A-Za-z0-9]/.test(formData.password)
+                              /[A-Z]/.test(formData.password) &&
+                              /[0-9]/.test(formData.password) &&
+                              /[^A-Za-z0-9]/.test(formData.password)
                               ? colors.success
                               : formData.password.length >= 6
                                 ? colors.primary

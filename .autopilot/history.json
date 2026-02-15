@@ -1,6 +1,15 @@
 {
   "commits": [
     {
+      "hash": "ae2b4cc3cca7131e7a8fa115ede2d4eb107cdc14",
+      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2de813c3827fc453ebc3bc3845365211941f67ec0fcc3d91017f5144029748a0",
+      "files": [
+        "autopilot/history.json",
+        "app.json"
+      ],
+      "timestamp": "2026-02-15T07:02:58.976Z"
+    },
+    {
       "hash": "bf8656c5816f9dce4e41e20702eb1e9c54278989",
       "message": "[autopilot] chore(release): bump version to 1.1.0\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 755f54c298f69873c1e3fbae4181fbeefdcbb906aa41bf419e6fc8082e77f475",
       "files": [
@@ -1019,17 +1028,6 @@
         "lib/supabase.ts"
       ],
       "timestamp": "2026-02-13T06:35:34.333Z"
-    },
-    {
-      "hash": "92d9262e87f34ecf01e8aac87dab33b5129d5b0a",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2cd4a3067b803dd0aa4369930e76a931acd9eaa8b6d985ed37a68578d2e92776",
-      "files": [
-        "autopilot/history.json",
-        "app/admin/analytics.tsx",
-        "app/admin/escalations.tsx",
-        "app/admin/moderation.tsx"
-      ],
-      "timestamp": "2026-02-13T06:31:24.415Z"
     }
   ]
 }
