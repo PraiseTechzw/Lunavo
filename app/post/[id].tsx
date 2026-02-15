@@ -5,7 +5,7 @@
 import { CategoryBadge } from "@/app/components/category-badge";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
-import { Colors, Spacing } from "@/app/constants/theme";
+import { Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Post, Reply } from "@/app/types";
 import { sanitizeContent } from "@/app/utils/anonymization";
@@ -360,77 +360,126 @@ export default function PostDetailScreen() {
   const renderReply = (reply: ThreadedReply, depth = 0) => {
     const replyAvatarColor = getAvatarColor(reply.id);
     const isOP = reply.authorPseudonym === post?.authorPseudonym;
-    const maxDepth = 4;
+    const maxDepth = 5;
     const currentDepth = Math.min(depth, maxDepth);
     const isLiked = likedReplies.includes(reply.id);
 
     return (
-      <View key={reply.id} style={{ marginLeft: currentDepth > 0 ? 12 : 0 }}>
-        <View
-          style={[
-            styles.replyItem,
-            {
-              borderLeftColor: reply.isFromVolunteer ? colors.success : (currentDepth > 0 ? colors.border : 'transparent'),
-              borderLeftWidth: reply.isFromVolunteer ? 3 : (currentDepth > 0 ? 1 : 0),
-              backgroundColor: currentDepth > 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
-              marginTop: currentDepth > 0 ? 8 : 16,
-              paddingLeft: currentDepth > 0 ? 12 : 16,
-            }
-          ]}
-        >
-          <View style={styles.replyHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.avatarSmall, { backgroundColor: replyAvatarColor }]}>
-                <ThemedText style={styles.avatarTextSmall}>
-                  {reply.authorPseudonym?.[0]?.toUpperCase() || 'A'}
-                </ThemedText>
-              </View>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <ThemedText style={[styles.replyAuthor, { color: reply.isFromVolunteer ? colors.success : colors.text }]}>
-                    {reply.authorPseudonym}
+      <View key={reply.id} style={[
+        styles.threadWrapper,
+        currentDepth > 0 && { marginLeft: Spacing.sm }
+      ]}>
+        {/* Vertical Threading Line */}
+        {currentDepth > 0 && (
+          <View style={[
+            styles.threadLine,
+            { backgroundColor: colors.border }
+          ]} />
+        )}
+
+        <View style={styles.replyFullWidth}>
+          <View
+            style={[
+              styles.replyItem,
+              {
+                backgroundColor: currentDepth === 0 ? colors.card : 'transparent',
+                borderColor: currentDepth === 0 ? colors.border : 'transparent',
+                borderWidth: currentDepth === 0 ? 1 : 0,
+                paddingLeft: currentDepth > 0 ? 12 : 16,
+                marginTop: currentDepth > 0 ? 8 : 16,
+              },
+              reply.isFromVolunteer && { borderLeftColor: colors.success, borderLeftWidth: 3 },
+              currentDepth === 0 && PlatformStyles.shadow
+            ]}
+          >
+            <View style={styles.replyHeader}>
+              <View style={styles.replyAuthorRow}>
+                <View style={[styles.avatarSmall, { backgroundColor: replyAvatarColor }]}>
+                  <ThemedText style={styles.avatarTextSmall}>
+                    {reply.authorPseudonym?.[0]?.toUpperCase() || 'A'}
                   </ThemedText>
-                  {isOP && <View style={[styles.roleBadge, { backgroundColor: colors.primary + '20' }]}><ThemedText style={[styles.roleText, { color: colors.primary }]}>OP</ThemedText></View>}
-                  {reply.isFromVolunteer && <View style={[styles.roleBadge, { backgroundColor: colors.success + '20' }]}><ThemedText style={[styles.roleText, { color: colors.success }]}>VOLUNTEER</ThemedText></View>}
                 </View>
-                <ThemedText type="small" style={{ color: colors.icon, fontSize: 11 }}>
-                  {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                </ThemedText>
+                <View style={styles.replyMeta}>
+                  <View style={styles.authorBadgeRow}>
+                    <ThemedText style={[
+                      styles.replyAuthor,
+                      { color: reply.isFromVolunteer ? colors.success : colors.text }
+                    ]}>
+                      {reply.authorPseudonym}
+                    </ThemedText>
+                    {isOP && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.primary + '15' }]}>
+                        <ThemedText style={[styles.roleText, { color: colors.primary }]}>OP</ThemedText>
+                      </View>
+                    )}
+                    {reply.isFromVolunteer && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.success + '15' }]}>
+                        <ThemedText style={[styles.roleText, { color: colors.success }]}>MOD</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                  <ThemedText type="small" style={styles.replyTime}>
+                    {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                  </ThemedText>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.reportIcon}>
+                <Ionicons name="flag-outline" size={14} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.replyContentBody}>
+              <Markdown
+                style={{
+                  body: {
+                    color: colors.text,
+                    fontSize: 15,
+                    lineHeight: 22,
+                    fontFamily: PlatformStyles.fontFamily
+                  }
+                }}
+              >
+                {reply.content}
+              </Markdown>
+            </View>
+
+            <View style={styles.replyFooter}>
+              <View style={styles.footerActions}>
+                <TouchableOpacity
+                  onPress={() => handleLikeReply(reply.id)}
+                  style={[styles.actionBtn, isLiked && { backgroundColor: colors.danger + '10' }]}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={16}
+                    color={isLiked ? colors.danger : colors.icon}
+                  />
+                  <ThemedText type="small" style={[
+                    styles.actionText,
+                    { color: isLiked ? colors.danger : colors.icon, fontWeight: '700' }
+                  ]}>
+                    {reply.isHelpful || 0}
+                  </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleReplyTo(reply)}
+                  style={styles.actionBtn}
+                >
+                  <Ionicons name="chatbubble-outline" size={16} color={colors.icon} />
+                  <ThemedText type="small" style={styles.actionText}>Reply</ThemedText>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          <Markdown
-            style={{
-              body: { color: colors.text, fontSize: 15, lineHeight: 22 }
-            }}
-          >
-            {reply.content}
-          </Markdown>
-
-          <View style={styles.replyFooter}>
-            <TouchableOpacity onPress={() => handleLikeReply(reply.id)} style={styles.actionBtn}>
-              <Ionicons name={isLiked ? "heart" : "heart-outline"} size={14} color={isLiked ? colors.danger : colors.icon} />
-              <ThemedText type="small" style={{ color: isLiked ? colors.danger : colors.icon, fontWeight: '600' }}>
-                {reply.isHelpful || 0}
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleReplyTo(reply)} style={styles.actionBtn}>
-              <Ionicons name="arrow-undo-outline" size={14} color={colors.icon} />
-              <ThemedText type="small" style={{ color: colors.icon, fontWeight: '600' }}>Reply</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.actionBtn}>
-              <ThemedText type="small" style={{ color: colors.icon }}>Report</ThemedText>
-            </TouchableOpacity>
-          </View>
+          {reply.subReplies.length > 0 && (
+            <View style={styles.childRepliesWrapper}>
+              {reply.subReplies.map(sub => renderReply(sub, depth + 1))}
+            </View>
+          )}
         </View>
-        {reply.subReplies.length > 0 && (
-          <View style={styles.nestedContainer}>
-            {reply.subReplies.map(sub => renderReply(sub, depth + 1))}
-          </View>
-        )}
       </View>
     );
   };
@@ -831,7 +880,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   replyTime: {
-    color: Brand.slate[500],
+    color: '#64748B',
     fontSize: 12,
   },
   reportIcon: {
@@ -846,7 +895,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionText: {
-    color: Brand.slate[500],
+    color: '#64748B',
     fontWeight: '600',
     fontSize: 13,
   },
