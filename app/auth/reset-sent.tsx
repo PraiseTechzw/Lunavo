@@ -1,4 +1,4 @@
-import { PEACELogo } from "@/app/components/peace-logo";
+import { LunavoLogo } from "@/app/components/lunavo-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
@@ -39,14 +39,14 @@ export default function ResetSentScreen() {
           entering={FadeInDown.duration(800)}
           style={styles.logoSection}
         >
-          <PEACELogo size={88} />
+          <LunavoLogo size={88} />
           <ThemedText type="h1" style={styles.title}>
             Protocol Sent
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             We have sent a recovery link to{" "}
             {email ? String(email) : "your email"}. Use the web link to change
-            your password, then return to PEACE to sign in.
+            your password, then return to Lunavo to sign in.
           </ThemedText>
           {email ? (
             <View style={styles.emailPill}>
@@ -74,7 +74,7 @@ export default function ResetSentScreen() {
                 color={colors.success}
               />
               <ThemedText style={{ flex: 1, lineHeight: 22 }}>
-                Check inbox and spam for “PEACE Password Recovery”.
+                Check inbox and spam for “Lunavo Password Recovery”.
               </ThemedText>
             </View>
             <View
@@ -106,7 +106,7 @@ export default function ResetSentScreen() {
                 color={colors.success}
               />
               <ThemedText style={{ flex: 1, lineHeight: 22 }}>
-                Return to the PEACE app and sign in with the new password.
+                Return to the Lunavo app and sign in with the new password.
               </ThemedText>
             </View>
           </View>
