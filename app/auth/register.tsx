@@ -3,6 +3,7 @@
  * Overhauled with PEACE branding, Glassmorphism, and Blobs
  */
 
+import { LunavoLogo } from "@/app/components/lunavo-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { CUT_SCHOOLS } from "@/app/constants/programs";

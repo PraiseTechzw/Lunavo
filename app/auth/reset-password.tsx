@@ -2,7 +2,7 @@
  * Premium Reset Password Screen
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
+import { LunavoLogo } from "@/app/components/lunavo-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
@@ -101,7 +101,7 @@ export default function ResetPasswordScreen() {
             scrollEnabled={false}
           >
             <View style={styles.header}>
-              <PEACELogo size={80} />
+              <LunavoLogo size={80} />
               <ThemedText type="h1" style={styles.title}>
                 New Protocol
               </ThemedText>
@@ -160,7 +160,7 @@ export default function ResetPasswordScreen() {
 
               <TouchableOpacity
                 onPress={handleReset}
-                disabled={loading || !password || !code}
+                disabled={loading || !password}
                 style={styles.btnWrapper}
               >
                 <LinearGradient

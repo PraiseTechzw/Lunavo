@@ -1,12 +1,10 @@
-import { PEACELogo } from '@/app/components/peace-logo';
+import { LunavoLogo } from '@/app/components/lunavo-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   KeyboardAvoidingView,
   ScrollView,
@@ -14,6 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ConfirmSignup() {
   const colorScheme = useColorScheme();
@@ -31,9 +31,9 @@ export default function ConfirmSignup() {
             showsVerticalScrollIndicator={false}
           >
             <Animated.View entering={FadeInDown.delay(100).duration(800)} style={styles.logoSection}>
-              <PEACELogo size={88} />
-              <ThemedText type="h1" style={styles.title}>PEACE</ThemedText>
-              <ThemedText style={styles.subtitle}>Peer Education Club</ThemedText>
+              <LunavoLogo size={88} />
+              <ThemedText type="h1" style={styles.title}>LUNAVO</ThemedText>
+              <ThemedText style={styles.subtitle}>Peer Education & Wellness</ThemedText>
             </Animated.View>
 
             <Animated.View

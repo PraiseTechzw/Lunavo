@@ -1,6 +1,18 @@
 {
   "commits": [
     {
+      "hash": "9109554faf640074b5836c05996aa0ed948a7482",
+      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: d2e95beded5b471f9752be49e665274ae4235bee0215516de2a6a1b63c67b6c5",
+      "files": [
+        "autopilot/history.json",
+        "app/auth/login.tsx",
+        "app/auth/register.tsx",
+        "app/onboarding.tsx",
+        "app/components/lunavo-logo.tsx"
+      ],
+      "timestamp": "2026-02-15T07:06:05.198Z"
+    },
+    {
       "hash": "ae2b4cc3cca7131e7a8fa115ede2d4eb107cdc14",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2de813c3827fc453ebc3bc3845365211941f67ec0fcc3d91017f5144029748a0",
       "files": [
@@ -1018,16 +1030,6 @@
         "lib/supabase.ts"
       ],
       "timestamp": "2026-02-13T06:39:15.284Z"
-    },
-    {
-      "hash": "e07a0cee6b54c44bdb0f73a3ecbe0550a3792617",
-      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: df0390cc65b0772bcfbb6111c90bc6ac9adc726c26dae39c014cd17027443f21",
-      "files": [
-        "autopilot/history.json",
-        "app/admin/analytics.tsx",
-        "lib/supabase.ts"
-      ],
-      "timestamp": "2026-02-13T06:35:34.333Z"
     }
   ]
 }
