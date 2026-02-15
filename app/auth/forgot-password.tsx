@@ -2,6 +2,7 @@
  * Premium Forgot Password Screen
  */
 
+import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
@@ -89,13 +90,13 @@ export default function ForgotPasswordScreen() {
             </TouchableOpacity>
 
             <View style={styles.header}>
-              <LunavoLogo size={80} />
+              <PEACELogo size={80} />
               <ThemedText type="h1" style={styles.title}>
                 Restore Link
               </ThemedText>
               <ThemedText style={styles.subtitle}>
                 Lost your connection? Enter your academic email to restore your
-                Lunavo profile.
+                PEACE profile.
               </ThemedText>
             </View>
 

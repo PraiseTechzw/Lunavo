@@ -3,7 +3,7 @@
  * Uses Glassmorphism, Reanimated, and LinearGradients
  */
 
-import { LunavoLogo } from "@/app/components/lunavo-logo";
+import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import {
@@ -141,7 +141,7 @@ export default function LoginScreen() {
                     : null,
               ]}
             >
-              <LunavoLogo size={tinySmall ? 72 : isSmall ? 88 : 140} />
+              <PEACELogo size={tinySmall ? 72 : isSmall ? 88 : 140} />
               <ThemedText
                 type="h1"
                 style={[
@@ -153,7 +153,7 @@ export default function LoginScreen() {
                       : null,
                 ]}
               >
-                LUNAVO
+                PEACE
               </ThemedText>
               {!tinySmall && (
                 <ThemedText
@@ -162,7 +162,7 @@ export default function LoginScreen() {
                     isSmall ? { letterSpacing: 2 } : null,
                   ]}
                 >
-                  Peer Education & Wellness
+                  Peer Education Club
                 </ThemedText>
               )}
             </Animated.View>

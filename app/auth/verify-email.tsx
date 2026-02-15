@@ -2,7 +2,7 @@
  * Premium Email Verification Screen
  */
 
-import { LunavoLogo } from '@/app/components/lunavo-logo';
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
@@ -140,7 +140,7 @@ export default function VerifyEmailScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
-              <LunavoLogo size={100} />
+              <PEACELogo size={100} />
               <ThemedText type="h1" style={styles.title}>Secure Link</ThemedText>
               <ThemedText style={styles.subtitle}>Enter the 8-digit security protocol sent to</ThemedText>
               <ThemedText style={styles.emailText}>{email}</ThemedText>

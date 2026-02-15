@@ -3,7 +3,7 @@
  * Mobile secondary navigation with user profile and role-aware sections
  */
 
-import { LunavoLogo } from "@/app/components/lunavo-logo";
+import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import {
   BorderRadius,
@@ -87,7 +87,7 @@ const COMMON_ITEMS: DrawerItem[] = [
   },
   {
     id: "about",
-    label: "About Lunavo",
+    label: "About PEACE",
     icon: "information-outline",
     route: "/about",
     section: "about",
@@ -443,9 +443,9 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
 
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <LunavoLogo size={24} />
+            <PEACELogo size={24} />
             <ThemedText style={[styles.footerText, { color: colors.icon }]}>
-              Lunavo v1.0.0
+              PEACE v1.0.0
             </ThemedText>
           </View>
         </Animated.View>

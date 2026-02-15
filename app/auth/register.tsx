@@ -3,7 +3,7 @@
  * Overhauled with PEACE branding, Glassmorphism, and Blobs
  */
 
-import { LunavoLogo } from "@/app/components/lunavo-logo";
+import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import { ThemedView } from "@/app/components/themed-view";
 import { CUT_SCHOOLS } from "@/app/constants/programs";
@@ -397,7 +397,7 @@ export default function RegisterScreen() {
                 isSmall ? { marginBottom: 20 } : null,
               ]}
             >
-              <LunavoLogo size={isSmall ? 64 : 80} />
+              <PEACELogo size={isSmall ? 64 : 80} />
               <ThemedText
                 type="h2"
                 style={[styles.stepTitle, isSmall ? { marginTop: 6 } : null]}

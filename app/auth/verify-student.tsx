@@ -2,7 +2,7 @@
  * Premium CUT Student Verification Screen
  */
 
-import { LunavoLogo } from '@/app/components/lunavo-logo';
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
@@ -135,7 +135,7 @@ export default function VerifyStudentScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
 
             <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
-              <LunavoLogo size={90} />
+              <PEACELogo size={90} />
               <ThemedText type="h2" style={styles.title}>Academic Verification</ThemedText>
               <ThemedText style={styles.subtitle}>We need to verify you are a valid CUT student to maintain community integrity.</ThemedText>
             </Animated.View>

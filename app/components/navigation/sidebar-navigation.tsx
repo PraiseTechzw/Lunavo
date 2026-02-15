@@ -3,7 +3,7 @@
  * Web-optimized sidebar for Admin and Student Affairs
  */
 
-import { LunavoLogo } from '@/app/components/lunavo-logo';
+import { PEACELogo } from '@/app/components/peace-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
@@ -90,10 +90,10 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
       <View style={styles.header}>
         {!isCollapsed && (
           <View style={styles.logoRow}>
-            <LunavoLogo size={40} />
+            <PEACELogo size={40} />
             <View>
               <ThemedText type="h3" style={[styles.logo, { color: colors.text }]}>
-                Lunavo
+                PEACE
               </ThemedText>
               <ThemedText type="small" style={[styles.roleLabel, { color: colors.primary }]}>
                 {getRoleLabel(role)}
@@ -101,7 +101,7 @@ export function SidebarNavigation({ role, collapsed = false, onToggleCollapse }:
             </View>
           </View>
         )}
-        {isCollapsed && <LunavoLogo size={32} />}
+        {isCollapsed && <PEACELogo size={32} />}
         <TouchableOpacity
           onPress={handleToggle}
           style={[styles.toggleButton, { backgroundColor: colors.card }]}

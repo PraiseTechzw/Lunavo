@@ -54,7 +54,7 @@ export default function AssistantScreen() {
             color="#FFF"
           />
           <ThemedText type="h2" style={{ color: "#FFF", fontWeight: "900" }}>
-            Lunavo Assistant
+            PEACE Assistant
           </ThemedText>
           <ThemedText style={{ color: "rgba(255,255,255,0.85)" }}>
             Find help, resources, and actions faster

@@ -5,9 +5,9 @@ import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Resource } from "@/app/types";
 import { createShadow } from "@/app/utils/platform-styles";
 import {
-    addResourceRating,
-    getResource,
-    incrementResourceViews,
+  addResourceRating,
+  getResource,
+  incrementResourceViews,
 } from "@/lib/database";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,17 +16,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    ImageBackground,
-    Linking,
-    Modal,
-    ScrollView,
-    Share,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ImageBackground,
+  Linking,
+  Modal,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -274,9 +274,9 @@ export default function ResourceDetailScreen() {
         {/* Immersive Header */}
         <View style={styles.heroSection}>
           {resource.filePath &&
-          (resource.filePath.endsWith(".jpg") ||
-            resource.filePath.endsWith(".png") ||
-            resource.filePath.endsWith(".jpeg")) ? (
+            (resource.filePath.endsWith(".jpg") ||
+              resource.filePath.endsWith(".png") ||
+              resource.filePath.endsWith(".jpeg")) ? (
             <ImageBackground
               source={{
                 uri: `https://gqdpylrhlzpsjxjxymcn.supabase.co/storage/v1/object/public/system-resources/${resource.filePath}`,
@@ -388,7 +388,7 @@ export default function ResourceDetailScreen() {
             <View style={styles.statItem}>
               <ThemedText style={styles.statValue}>
                 {resource.createdAt &&
-                !isNaN(new Date(resource.createdAt).getTime())
+                  !isNaN(new Date(resource.createdAt).getTime())
                   ? format(new Date(resource.createdAt), "MMM yyyy")
                   : "N/A"}
               </ThemedText>
@@ -462,7 +462,7 @@ export default function ResourceDetailScreen() {
               <ThemedText style={styles.infoText衡}>
                 Last updated{" "}
                 {resource.updatedAt &&
-                !isNaN(new Date(resource.updatedAt).getTime())
+                  !isNaN(new Date(resource.updatedAt).getTime())
                   ? format(new Date(resource.updatedAt), "PP")
                   : "recently"}
               </ThemedText>

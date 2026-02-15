@@ -1,6 +1,21 @@
 {
   "commits": [
     {
+      "hash": "9058f92e0f10dbe766e655574be57e577bc73c55",
+      "message": "[autopilot] style(theme): update color variables\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 246648aaa6b3d3fb854e8c8ebd82bf7abe197dadb0bee6589f523ecc73dae9d7",
+      "files": [
+        "autopilot/history.json",
+        "app.json",
+        "app/(tabs)/resources.tsx",
+        "app/components/navigation/drawer-header.tsx",
+        "app/components/navigation/drawer-menu.tsx",
+        "app/components/navigation/sidebar-navigation.tsx",
+        "app/constants/theme.ts",
+        "app/web-required.tsx"
+      ],
+      "timestamp": "2026-02-15T07:22:09.613Z"
+    },
+    {
       "hash": "a01849293030f0a5ff3cd3219840b26b44eccf7e",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b0dd8c224d2cd5ceb64df5e9411e1046b9ed83e1a4639cdfa1615f5b3f311fcd",
       "files": [
@@ -1022,17 +1037,6 @@
         "app/auth/register.tsx"
       ],
       "timestamp": "2026-02-13T06:50:32.491Z"
-    },
-    {
-      "hash": "612ba15c269f64436c4dafc4e19c32600a58c685",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: c6f8de709dcb6a9fe3a5808887ccfc9d6841eb6cea130cbfe1dc80ffa9c82f9c",
-      "files": [
-        "autopilot/history.json",
-        "app/_layout.tsx",
-        "app/auth/login.tsx",
-        "app/auth/register.tsx"
-      ],
-      "timestamp": "2026-02-13T06:46:23.383Z"
     }
   ]
 }
