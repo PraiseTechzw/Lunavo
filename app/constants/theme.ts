@@ -1,5 +1,5 @@
 /**
- * Theme configuration for PEACE - Peer Education Club Platform
+ * Theme configuration for Lunavo
  * Modern, professional color palette designed for peer support and wellness
  */
 

@@ -3,13 +3,13 @@
  * Mobile secondary navigation with user profile and role-aware sections
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
+import { LunavoLogo } from "@/app/components/lunavo-logo";
 import { ThemedText } from "@/app/components/themed-text";
 import {
-    BorderRadius,
-    Colors,
-    PlatformStyles,
-    Spacing,
+  BorderRadius,
+  Colors,
+  PlatformStyles,
+  Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { UserRole } from "@/app/types";
@@ -22,13 +22,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { FadeInRight, SlideInRight } from "react-native-reanimated";
 
@@ -87,7 +87,7 @@ const COMMON_ITEMS: DrawerItem[] = [
   },
   {
     id: "about",
-    label: "About PEACE",
+    label: "About Lunavo",
     icon: "information-outline",
     route: "/about",
     section: "about",
@@ -443,9 +443,9 @@ export function DrawerMenu({ visible, onClose, role }: DrawerMenuProps) {
 
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <PEACELogo size={24} />
+            <LunavoLogo size={24} />
             <ThemedText style={[styles.footerText, { color: colors.icon }]}>
-              PEACE v1.0.0
+              Lunavo v1.0.0
             </ThemedText>
           </View>
         </Animated.View>

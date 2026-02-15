@@ -47,7 +47,7 @@ export default function WebRequiredScreen() {
             </View>
             <View style={styles.step}>
               <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-              <ThemedText style={styles.stepText}>Visit the PEACE Web Portal.</ThemedText>
+              <ThemedText style={styles.stepText}>Visit the Lunavo Web Portal.</ThemedText>
             </View>
             <View style={styles.step}>
               <View style={[styles.dot, { backgroundColor: colors.primary }]} />

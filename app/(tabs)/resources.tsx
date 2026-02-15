@@ -58,7 +58,7 @@ const QUICK_ACTIONS = [
     },
     {
         title: "Photo Gallery",
-        subtitle: "PEACE Events & Life",
+        subtitle: "Lunavo Events & Life",
         icon: "image-multiple-outline",
         route: "/gallery",
         color: "#EC4899",

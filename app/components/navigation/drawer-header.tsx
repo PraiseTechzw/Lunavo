@@ -3,7 +3,7 @@
  * Header with drawer menu button for mobile screens
  */
 
-import { PEACELogo } from '@/app/components/peace-logo';
+import { LunavoLogo } from '@/app/components/lunavo-logo';
 import { ThemedText } from '@/app/components/themed-text';
 import { Colors, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
@@ -39,7 +39,7 @@ export function DrawerHeader({ title, onMenuPress, rightAction }: DrawerHeaderPr
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>
-        <PEACELogo size={24} />
+        <LunavoLogo size={24} />
         <ThemedText type="h2" style={[styles.title, { color: colors.text }]}>
           {title}
         </ThemedText>
