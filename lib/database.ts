@@ -768,16 +768,78 @@ export async function deletePost(postId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function hasUserLikedPost(
+  userId: string,
+  postId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error checking post like:", error);
+    return false;
+  }
+
+  return !!data;
+}
+
+export async function togglePostLike(
+  userId: string,
+  postId: string,
+): Promise<{ liked: boolean; count: number }> {
+  // Check if already liked
+  const liked = await hasUserLikedPost(userId, postId);
+  let newCount = 0;
+
+  if (liked) {
+    // Unlike
+    const { error: deleteError } = await supabase
+      .from("post_likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (deleteError) throw deleteError;
+
+    // Decrement count manually (fallback if trigger doesn't exist)
+    // We fetch clean count to be sure
+    const post = await getPost(postId);
+    if (post) {
+      newCount = Math.max(0, post.upvotes - 1);
+      await supabase.from("posts").update({ upvotes: newCount }).eq("id", postId);
+    }
+
+    return { liked: false, count: newCount };
+  } else {
+    // Like
+    const { error: insertError } = await supabase
+      .from("post_likes")
+      .insert({ post_id: postId, user_id: userId });
+
+    if (insertError) throw insertError;
+
+    // Increment count manually (fallback)
+    const post = await getPost(postId);
+    if (post) {
+      newCount = post.upvotes + 1;
+      await supabase.from("posts").update({ upvotes: newCount }).eq("id", postId);
+    }
+
+    return { liked: true, count: newCount };
+  }
+}
+
+// Deprecated: use togglePostLike instead
 export async function upvotePost(postId: string): Promise<number> {
-  // Get current upvotes
-  const post = await getPost(postId);
-  if (!post) throw new Error("Post not found");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Must be logged in");
 
-  const newUpvotes = post.upvotes + 1;
-
-  await supabase.from("posts").update({ upvotes: newUpvotes }).eq("id", postId);
-
-  return newUpvotes;
+  const { count } = await togglePostLike(user.id, postId);
+  return count;
 }
 
 // ============================================
@@ -889,8 +951,10 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
   return reply;
 }
 
-export async function getReplies(postId: string): Promise<Reply[]> {
-  const { data, error } = await supabase
+export async function getReplies(
+  postIdOrFilters?: string | { postId?: string; authorId?: string },
+): Promise<Reply[]> {
+  let query = supabase
     .from("replies")
     .select(
       `
@@ -898,8 +962,26 @@ export async function getReplies(postId: string): Promise<Reply[]> {
       users!replies_author_id_fkey(pseudonym)
     `,
     )
-    .eq("post_id", postId)
     .order("created_at", { ascending: true });
+
+  const postId =
+    typeof postIdOrFilters === "string"
+      ? postIdOrFilters
+      : postIdOrFilters?.postId;
+  const authorId =
+    typeof postIdOrFilters === "object"
+      ? postIdOrFilters?.authorId
+      : undefined;
+
+  if (postId) {
+    query = query.eq("post_id", postId);
+  }
+
+  if (authorId) {
+    query = query.eq("author_id", authorId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 

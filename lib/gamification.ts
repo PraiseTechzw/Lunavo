@@ -2,11 +2,10 @@
  * Gamification System - Badges, Streaks, Points, and Achievements
  */
 
-import { supabase } from './supabase';
-import { getUserBadges, createUserBadge, getStreak, updateStreak, createStreak, getReplies, getPosts } from './database';
+import { createStreak, createUserBadge, getPosts, getReplies, getStreak, getUserBadges, updateStreak } from './database';
 import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
 import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
-import { User } from '@/app/types';
+import { supabase } from './supabase';
 
 // ============================================
 // BADGE DEFINITIONS
@@ -55,7 +54,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'check-in',
     criteria: { type: 'check_in_streak', value: 30, description: '30-day check-in streak' },
   },
-  
+
   // Helping Badges
   {
     id: 'first-response',
@@ -84,7 +83,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'helping',
     criteria: { type: 'response_count', value: 50, description: 'Give 50 helpful responses' },
   },
-  
+
   // Engagement Badges
   {
     id: 'active-member',
@@ -113,7 +112,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'engagement',
     criteria: { type: 'helpful_votes', value: 10, description: 'Get 10 helpful votes' },
   },
-  
+
   // Achievement Badges
   {
     id: 'streak-master',
@@ -524,8 +523,7 @@ async function getUserStats(userId: string) {
     .eq('user_id', userId);
 
   // Get replies
-  const allReplies = await getReplies(''); // Get all replies, then filter
-  const replies = allReplies.filter((r) => r.authorId === userId);
+  const replies = await getReplies({ authorId: userId });
 
   // Get posts
   const allPosts = await getPosts();
