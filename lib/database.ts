@@ -852,6 +852,7 @@ export interface CreateReplyData {
   content: string;
   isAnonymous: boolean;
   isFromVolunteer?: boolean;
+  parentReplyId?: string;
 }
 
 export async function createReply(replyData: CreateReplyData): Promise<Reply> {
@@ -863,6 +864,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
       content: replyData.content,
       is_anonymous: replyData.isAnonymous,
       is_from_volunteer: replyData.isFromVolunteer || false,
+      parent_reply_id: replyData.parentReplyId || null,
     })
     .select()
     .maybeSingle();
@@ -892,6 +894,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
       createdAt: new Date(),
       updatedAt: new Date(),
       reportedCount: 0,
+      parentReplyId: replyData.parentReplyId,
     };
   }
 
