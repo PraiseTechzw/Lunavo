@@ -998,20 +998,36 @@ export async function getUserReplyLikesForPost(
   userId: string,
   postId: string,
 ): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("reply_likes")
-    .select("reply_id")
-    .eq("user_id", userId)
-    .in("reply_id", (
-      supabase.from("replies").select("id").eq("post_id", postId) as any
-    ));
+  try {
+    // First get all reply IDs for this post
+    const { data: replyIdsData, error: repliesError } = await supabase
+      .from("replies")
+      .select("id")
+      .eq("post_id", postId);
 
-  if (error) {
-    console.error("Error fetching user reply likes:", error);
+    if (repliesError || !replyIdsData || replyIdsData.length === 0) {
+      return [];
+    }
+
+    const replyIds = replyIdsData.map(r => r.id);
+
+    // Then get likes for those replies
+    const { data, error } = await supabase
+      .from("reply_likes")
+      .select("reply_id")
+      .eq("user_id", userId)
+      .in("reply_id", replyIds);
+
+    if (error) {
+      console.error("Error fetching user reply likes:", error);
+      return [];
+    }
+
+    return (data || []).map((l: any) => l.reply_id);
+  } catch (e) {
+    console.error("Failed to fetch reply likes:", e);
     return [];
   }
-
-  return (data || []).map((l: any) => l.reply_id);
 }
 
 export async function hasUserLikedReply(

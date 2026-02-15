@@ -782,8 +782,10 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
   },
   nestedContainer: {
     borderLeftWidth: 1,
@@ -794,11 +796,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderBottomWidth: 0,
     marginBottom: -1,
+  },
+  threadWrapper: {
+    flexDirection: 'row',
+  },
+  threadLine: {
+    width: 2,
+    marginLeft: 4,
+    marginRight: 8,
+    borderRadius: 1,
+    opacity: 0.5,
+  },
+  replyFullWidth: {
+    flex: 1,
+  },
+  replyAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  replyMeta: {
+    flex: 1,
+  },
+  authorBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  replyTime: {
+    color: Brand.slate[500],
+    fontSize: 12,
+  },
+  reportIcon: {
+    padding: 4,
+  },
+  replyContentBody: {
+    marginVertical: 4,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionText: {
+    color: Brand.slate[500],
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  childRepliesWrapper: {
+    marginTop: 4,
   },
 });
