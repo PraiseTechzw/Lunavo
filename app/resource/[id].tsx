@@ -18,7 +18,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   ImageBackground,
   Linking,
   Modal,
@@ -26,12 +25,12 @@ import {
   Share,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+// const { width } = Dimensions.get("window");
 const FAVORITES_KEY = "resource_favorites";
 const DOWNLOADS_KEY = "resource_downloads";
 
