@@ -1,6 +1,17 @@
 {
   "commits": [
     {
+      "hash": "bf8656c5816f9dce4e41e20702eb1e9c54278989",
+      "message": "[autopilot] chore(release): bump version to 1.1.0\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 755f54c298f69873c1e3fbae4181fbeefdcbb906aa41bf419e6fc8082e77f475",
+      "files": [
+        "autopilot/history.json",
+        "app/executive/new-resource.tsx",
+        "package-lock.json",
+        "package.json"
+      ],
+      "timestamp": "2026-02-14T19:56:06.443Z"
+    },
+    {
       "hash": "bdf6a4361c4338d658cd913b09c0e39de809232d",
       "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: b6fbefba4dd260b2037352d51b77cd75867bfa0f91f120024ef324c307eb7bfc",
       "files": [
@@ -1019,19 +1030,6 @@
         "app/admin/moderation.tsx"
       ],
       "timestamp": "2026-02-13T06:31:24.415Z"
-    },
-    {
-      "hash": "e66bbe179d194770b83bb15c3f53ff0ba4c5ce59",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 96193e438bb172a462c5b5964c22081d6581aad038f296004b52c2a17f8fe395",
-      "files": [
-        "autopilot/history.json",
-        "app/admin/_layout.tsx",
-        "app/admin/analytics.tsx",
-        "app/admin/moderation.tsx",
-        "app/admin/reports.tsx",
-        "app/peer-educator/training.tsx"
-      ],
-      "timestamp": "2026-02-13T06:27:02.346Z"
     }
   ]
 }

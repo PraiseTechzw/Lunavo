@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PEACE",
-    "slug": "peace",
+    "name": "Lunavo",
+    "slug": "lunavo",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "peace",
@@ -29,7 +29,10 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": {
             "scheme": "peace",
             "host": "auth",
@@ -38,14 +41,20 @@
         },
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": {
             "scheme": "peace"
           }
         },
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": {
             "scheme": "https",
             "host": "peace.praisetech.tech",
