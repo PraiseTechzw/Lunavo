@@ -1,6 +1,14 @@
 {
   "commits": [
     {
+      "hash": "2f800381b77fa659ee8e5709a8546bf1fb862e72",
+      "message": "[autopilot] style(ui): use theme variables for button colors\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 1e8605ca3dd1805f99c897b5e42570830af2070f81bd208c64865e97d9d7b2d9",
+      "files": [
+        "app/components/peace-logo.tsx"
+      ],
+      "timestamp": "2026-02-15T07:42:02.361Z"
+    },
+    {
       "hash": "9058f92e0f10dbe766e655574be57e577bc73c55",
       "message": "[autopilot] style(theme): update color variables\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 246648aaa6b3d3fb854e8c8ebd82bf7abe197dadb0bee6589f523ecc73dae9d7",
       "files": [
@@ -1028,15 +1036,6 @@
         "app/auth/register.tsx"
       ],
       "timestamp": "2026-02-13T06:54:19.810Z"
-    },
-    {
-      "hash": "59e81b2e3640f1fc51a2deb09ea7c9c82e28a0d7",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 9f67bb1bbe46e215f92eaddf3c68283a65c49f266704ce41b84e3302f77c72b9",
-      "files": [
-        "autopilot/history.json",
-        "app/auth/register.tsx"
-      ],
-      "timestamp": "2026-02-13T06:50:32.491Z"
     }
   ]
 }
