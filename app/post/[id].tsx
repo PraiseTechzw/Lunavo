@@ -61,6 +61,7 @@ export default function PostDetailScreen() {
   const [hasLiked, setHasLiked] = useState(false);
   const [likedReplies, setLikedReplies] = useState<string[]>([]);
   const [replyingTo, setReplyingTo] = useState<Reply | null>(null);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const repliesChannelRef = useRef<RealtimeChannel | null>(null);
   const postChannelRef = useRef<RealtimeChannel | null>(null);
@@ -448,19 +449,24 @@ export default function PostDetailScreen() {
               <View style={styles.footerActions}>
                 <TouchableOpacity
                   onPress={() => handleLikeReply(reply.id)}
-                  style={[styles.actionBtn, isLiked && { backgroundColor: colors.danger + '10' }]}
+                  style={[
+                    styles.actionBtn,
+                    isLiked && { backgroundColor: colors.danger + '10' }
+                  ]}
                 >
                   <Ionicons
                     name={isLiked ? "heart" : "heart-outline"}
                     size={16}
                     color={isLiked ? colors.danger : colors.icon}
                   />
-                  <ThemedText type="small" style={[
-                    styles.actionText,
-                    { color: isLiked ? colors.danger : colors.icon, fontWeight: '700' }
-                  ]}>
-                    {reply.isHelpful || 0}
-                  </ThemedText>
+                  {(reply.isHelpful || 0) > 0 && (
+                    <ThemedText type="small" style={[
+                      styles.actionText,
+                      { color: isLiked ? colors.danger : colors.icon, fontWeight: '700' }
+                    ]}>
+                      {reply.isHelpful}
+                    </ThemedText>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -536,7 +542,10 @@ export default function PostDetailScreen() {
         <ScrollView
           ref={scrollViewRef}
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 40, flexGrow: 1 }
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {isEscalated && (
@@ -594,12 +603,23 @@ export default function PostDetailScreen() {
             <View style={styles.postFooter}>
               <CategoryBadge category={post.category} />
               <TouchableOpacity
-                style={[styles.likeRow, hasLiked && { opacity: 0.7 }]}
+                style={[
+                  styles.likeRow,
+                  hasLiked && { backgroundColor: colors.danger + '10', borderColor: colors.danger + '20' }
+                ]}
                 onPress={handleLike}
               >
-                <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={22} color={hasLiked ? colors.danger : colors.icon} />
-                <ThemedText style={{ color: hasLiked ? colors.danger : colors.icon, fontWeight: '600' }}>
-                  {post.upvotes || 0}
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={20}
+                  color={hasLiked ? colors.danger : colors.icon}
+                />
+                <ThemedText style={{
+                  color: hasLiked ? colors.danger : colors.icon,
+                  fontWeight: '700',
+                  fontSize: 14
+                }}>
+                  {(post.upvotes || 0) > 0 ? post.upvotes : ''} Helpful
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -625,37 +645,57 @@ export default function PostDetailScreen() {
 
         </ScrollView>
 
-        {/* Reply Input Area */}
-        <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <View style={[
+          styles.inputWrapper,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, 12),
+            elevation: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }
+        ]}>
           {replyingTo && (
-            <View style={[styles.replyingToBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text }}>{replyingTo.authorPseudonym}</ThemedText>
+            <View style={[styles.replyingToBanner, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 8 }]}>
+              <ThemedText type="small" style={{ color: colors.icon, textTransform: 'none' }}>
+                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text, textTransform: 'none' }}>{replyingTo.authorPseudonym}</ThemedText>
               </ThemedText>
               <TouchableOpacity onPress={() => { setReplyingTo(null); setReplyContent(''); }}>
-                <Ionicons name="close-circle" size={18} color={colors.icon} />
+                <Ionicons name="close-circle" size={20} color={colors.icon} />
               </TouchableOpacity>
             </View>
           )}
+
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TextInput
               ref={inputRef}
               style={[styles.input, { color: colors.text }]}
-              placeholder="Write a supportive reply..."
+              placeholder={replyingTo ? "Write a reply..." : "Add to the discussion..."}
               placeholderTextColor={colors.icon}
-              multiline
               value={replyContent}
               onChangeText={setReplyContent}
+              multiline
+              maxLength={1000}
             />
             <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: colors.primary, opacity: replyContent.trim() ? 1 : 0.5 }]}
+              style={[
+                styles.sendBtn,
+                { backgroundColor: replyContent.trim() ? colors.primary : colors.surface },
+              ]}
               onPress={handleSubmitReply}
-              disabled={!replyContent.trim() || isSubmitting}
+              disabled={isSubmitting || !replyContent.trim()}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Ionicons name="arrow-up" size={20} color="#FFF" />
+                <Ionicons
+                  name="send"
+                  size={20}
+                  color={replyContent.trim() ? "#fff" : colors.icon}
+                />
               )}
             </TouchableOpacity>
           </View>

@@ -1068,14 +1068,13 @@ export async function toggleReplyLike(
     if (deleteError) throw deleteError;
 
     // Fetch clean count (is_helpful) from DB
-    const { data: reply, error: fetchError } = await supabase
+    const { data: reply } = await supabase
       .from("replies")
       .select("is_helpful")
       .eq("id", replyId)
       .single();
 
-    if (reply) newCount = reply.is_helpful;
-
+    newCount = reply?.is_helpful ?? 0;
     return { liked: false, count: newCount };
   } else {
     // Like
@@ -1085,14 +1084,13 @@ export async function toggleReplyLike(
 
     if (insertError) throw insertError;
 
-    const { data: reply, error: fetchError } = await supabase
+    const { data: reply } = await supabase
       .from("replies")
       .select("is_helpful")
       .eq("id", replyId)
       .single();
 
-    if (reply) newCount = reply.is_helpful;
-
+    newCount = reply?.is_helpful ?? 0;
     return { liked: true, count: newCount };
   }
 }
