@@ -6,10 +6,8 @@
 
 import { PEACELogo } from "@/app/components/peace-logo";
 import { ThemedText } from "@/app/components/themed-text";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
+import { Colors } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { createShadow } from "@/app/utils/platform-styles";
-import { getUserCount } from "@/lib/database";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
@@ -17,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Dimensions, TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -106,7 +104,7 @@ const onboardingData = [
   },
 ];
 
-const ONBOARDING_ITEM_WIDTH = width;
+
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -119,7 +117,7 @@ export default function OnboardingScreen() {
   const buttonScale = useSharedValue(1);
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isFoundingMember, setIsFoundingMember] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const inputRanges = useMemo(
     () => onboardingData.map((_, i) => i * width),
     [],
@@ -169,7 +167,7 @@ export default function OnboardingScreen() {
       -1,
       true,
     );
-  }, []);
+  }, [blob1Position, blob2Position]);
 
   useEffect(() => {
     if (activeIndex === onboardingData.length - 1) {
@@ -184,19 +182,7 @@ export default function OnboardingScreen() {
     } else {
       buttonScale.value = withTiming(1);
     }
-  }, [activeIndex]);
-
-  useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const count = await getUserCount();
-        if (count < 8) setIsFoundingMember(true);
-      } catch (e) {
-        // Silently fail if DB is unavailable
-      }
-    };
-    checkStatus();
-  }, []);
+  }, [activeIndex, buttonScale]);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -472,175 +458,4 @@ function OnboardingItem({ item, index, scrollX, colors }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  blobContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  blob: {
-    position: "absolute",
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-  },
-  page: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
-  },
-  glassCard: {
-    width: "100%",
-    borderRadius: BorderRadius.xxl,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    ...createShadow(20, "#000", 0.2),
-  },
-  glassGradient: {
-    padding: Spacing.xxl,
-    alignItems: "center",
-  },
-  imageWrapper: {
-    width: "100%",
-    height: 240,
-    borderRadius: BorderRadius.xl,
-    overflow: "hidden",
-    marginBottom: Spacing.xl,
-    position: "relative",
-  },
-  illustration: {
-    width: "100%",
-    height: "100%",
-  },
-  miniIcon: {
-    position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  logoWrapper: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconFallback: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.md,
-    zIndex: 10,
-  },
-  skipText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
-  itemSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 3,
-    marginBottom: Spacing.sm,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  itemTitle: {
-    color: "#FFF",
-    fontSize: 36,
-    fontWeight: "900",
-    textAlign: "center",
-    marginBottom: Spacing.md,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
-  },
-  divider: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#FFF",
-    borderRadius: 2,
-    marginBottom: Spacing.xl,
-    opacity: 0.8,
-  },
-  itemDescription: {
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 18,
-    lineHeight: 28,
-    textAlign: "center",
-    fontWeight: "500",
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  footer: {
-    padding: Spacing.xl,
-    alignItems: "center",
-  },
-  pagination: {
-    flexDirection: "row",
-    height: 8,
-    marginBottom: Spacing.xxl,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FFF",
-    marginHorizontal: 4,
-  },
-  buttonWrapper: {
-    width: "100%",
-  },
-  mainButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    gap: Spacing.sm,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  founderBadge: {
-    marginTop: Spacing.md,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  founderText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 2,
-    textTransform: "uppercase",
-  },
-});
+

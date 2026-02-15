@@ -35,7 +35,7 @@ export const PEACELogo: React.FC<PEACELogoProps> = ({ size = 100, style, animate
         if (animate) {
             // Continuous rotation for outer ring
             rotation.value = withRepeat(
-                withTiming(360, { duration: 8000, easing: Easing.linear }),
+                withTiming(360, { duration: 20000, easing: Easing.linear }),
                 -1,
                 false
             );
