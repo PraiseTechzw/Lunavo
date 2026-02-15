@@ -15,7 +15,8 @@ import {
   getCurrentUser,
   getPost,
   getReplies,
-  upvotePost,
+  hasUserLikedPost,
+  togglePostLike,
 } from "@/lib/database";
 import {
   RealtimeChannel,
@@ -66,11 +67,21 @@ export default function PostDetailScreen() {
   const loadPost = useCallback(async () => {
     try {
       if (!id) return;
-      const foundPost = await getPost(id);
+
+      const [foundPost, user] = await Promise.all([
+        getPost(id),
+        getCurrentUser()
+      ]);
+
       if (foundPost) {
         setPost(foundPost);
         const postReplies = await getReplies(id);
         setReplies(postReplies);
+
+        if (user) {
+          const liked = await hasUserLikedPost(user.id, id);
+          setHasLiked(liked);
+        }
       } else {
         Alert.alert("Not Found", "This post could not be found.", [
           { text: "OK", onPress: () => router.back() },
@@ -115,6 +126,9 @@ export default function PostDetailScreen() {
 
     // Subscribe to post updates
     const postUpdateChannel = subscribeToPostUpdates(id, (updatedPost) => {
+      // Preserve the upvotes if we are optimistic, but generally we want the server truth
+      // However, to avoid jumping, we might want to respect local optimistic state if recently changed
+      // For now, accept server truth which should come from our trigger quickly
       setPost(updatedPost);
     });
 
@@ -211,20 +225,38 @@ export default function PostDetailScreen() {
   };
 
   const handleLike = async () => {
-    if (!post || hasLiked) return;
+    if (!post) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setHasLiked(true);
 
-    // Optimistic update
-    setPost(prev => prev ? ({ ...prev, upvotes: (prev.upvotes || 0) + 1 }) : null);
+    // Determine new state
+    const newLikedState = !hasLiked;
+    setHasLiked(newLikedState);
+
+    // Optimistic update of count
+    const diff = newLikedState ? 1 : -1;
+    setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) + diff) }) : null);
 
     try {
-      await upvotePost(post.id);
+      const user = await getCurrentUser();
+      if (!user) {
+        // Revert
+        setHasLiked(!newLikedState);
+        setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) - diff) }) : null);
+        router.push("/(auth)/sign-in");
+        return;
+      }
+
+      // Perform toggle on server
+      const { count } = await togglePostLike(user.id, post.id);
+
+      // Sync exact server count
+      setPost(prev => prev ? ({ ...prev, upvotes: count }) : null);
     } catch (e) {
       // Revert if failed
-      setHasLiked(false);
-      setPost(prev => prev ? ({ ...prev, upvotes: (prev.upvotes || 0) - 1 }) : null);
+      setHasLiked(!newLikedState);
+      setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) - diff) }) : null);
+      console.error("Like failed", e);
     }
   };
 
