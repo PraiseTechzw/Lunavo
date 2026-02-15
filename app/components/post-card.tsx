@@ -71,7 +71,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
                 </ThemedText>
               </View>
               <View style={styles.authorInfo}>
-                <ThemedText type="defaultSemiBold" style={styles.authorName}>
+                <ThemedText type="body" style={[styles.authorName, { fontWeight: '600' }]}>
                   {post.authorPseudonym || 'Anonymous'}
                 </ThemedText>
                 <ThemedText type="small" style={{ color: colors.icon }}>
@@ -88,11 +88,11 @@ export function PostCard({ post, onPress }: PostCardProps) {
           </View>
 
           <View style={styles.body}>
-            <ThemedText type="subtitle" numberOfLines={2} style={styles.title}>
+            <ThemedText type="h3" numberOfLines={2} style={styles.title}>
               {post.title}
             </ThemedText>
             <ThemedText
-              type="default"
+              type="body"
               numberOfLines={3}
               style={[styles.previewText, { color: colors.text + 'CC' }]}
             >
