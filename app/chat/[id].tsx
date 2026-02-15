@@ -7,14 +7,14 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { SupportMessage } from "@/app/types";
+import { SupportMessage , SupportSession } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
   getCurrentUser,
   getSupportMessages,
   getUser,
   sendSupportMessage,
-} from "@/lib/database";
+ getSupportSessions, updateSupportSession } from "@/lib/database";
 import {
   sendReaction,
   sendTyping,
@@ -47,8 +47,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { SupportSession } from "@/app/types";
-import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

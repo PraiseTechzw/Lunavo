@@ -19,8 +19,8 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { BADGE_DEFINITIONS, getBadgeProgress, checkAllBadges } from '@/lib/gamification';
-import { getUserBadges } from '@/lib/database';
-import { getCurrentUser } from '@/lib/database';
+import { getUserBadges , getCurrentUser } from '@/lib/database';
+
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 export default function BadgesScreen() {
@@ -106,7 +106,7 @@ export default function BadgesScreen() {
 
   const earnedCount = earnedBadgeIds.size;
   const totalCount = BADGE_DEFINITIONS.length;
-  const categories: Array<'all' | 'check-in' | 'helping' | 'engagement' | 'achievement'> = [
+  const categories: ('all' | 'check-in' | 'helping' | 'engagement' | 'achievement')[] = [
     'all',
     'check-in',
     'helping',

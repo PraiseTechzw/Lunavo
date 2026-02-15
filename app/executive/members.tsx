@@ -42,8 +42,8 @@ export default function MemberManagementScreen() {
   );
 
   const [refreshing, setRefreshing] = useState(false);
-  const [members, setMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
-  const [filteredMembers, setFilteredMembers] = useState<Array<User & { stats?: MemberStats }>>([]);
+  const [members, setMembers] = useState<(User & { stats?: MemberStats })[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<(User & { stats?: MemberStats })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
