@@ -994,6 +994,93 @@ export async function getReplies(
   });
 }
 
+export async function getUserReplyLikesForPost(
+  userId: string,
+  postId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("reply_likes")
+    .select("reply_id")
+    .eq("user_id", userId)
+    .in("reply_id", (
+      supabase.from("replies").select("id").eq("post_id", postId) as any
+    ));
+
+  if (error) {
+    console.error("Error fetching user reply likes:", error);
+    return [];
+  }
+
+  return (data || []).map((l: any) => l.reply_id);
+}
+
+export async function hasUserLikedReply(
+  userId: string,
+  replyId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("reply_likes")
+    .select("id")
+    .eq("reply_id", replyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error checking reply like:", error);
+    return false;
+  }
+
+  return !!data;
+}
+
+export async function toggleReplyLike(
+  userId: string,
+  replyId: string,
+): Promise<{ liked: boolean; count: number }> {
+  // Check if already liked
+  const liked = await hasUserLikedReply(userId, replyId);
+  let newCount = 0;
+
+  if (liked) {
+    // Unlike
+    const { error: deleteError } = await supabase
+      .from("reply_likes")
+      .delete()
+      .eq("reply_id", replyId)
+      .eq("user_id", userId);
+
+    if (deleteError) throw deleteError;
+
+    // Fetch clean count (is_helpful) from DB
+    const { data: reply, error: fetchError } = await supabase
+      .from("replies")
+      .select("is_helpful")
+      .eq("id", replyId)
+      .single();
+
+    if (reply) newCount = reply.is_helpful;
+
+    return { liked: false, count: newCount };
+  } else {
+    // Like
+    const { error: insertError } = await supabase
+      .from("reply_likes")
+      .insert({ reply_id: replyId, user_id: userId });
+
+    if (insertError) throw insertError;
+
+    const { data: reply, error: fetchError } = await supabase
+      .from("replies")
+      .select("is_helpful")
+      .eq("id", replyId)
+      .single();
+
+    if (reply) newCount = reply.is_helpful;
+
+    return { liked: true, count: newCount };
+  }
+}
+
 export async function updateReply(
   replyId: string,
   updates: Partial<Reply>,

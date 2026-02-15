@@ -1,6 +1,17 @@
 {
   "commits": [
     {
+      "hash": "8014786391bf73664f8d10b8740be0ccb0238568",
+      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 1f414f9c9880c97df2dd7c2e16b0b621c41bdff97251cab46e9d7318e0dce21c",
+      "files": [
+        "autopilot/history.json",
+        "app/types/forum.ts",
+        "lib/database.ts",
+        "supabase/migrations/034_nested_replies.sql"
+      ],
+      "timestamp": "2026-02-15T11:04:34.637Z"
+    },
+    {
       "hash": "421f922107524a3ff22614b75773d61a817a82ee",
       "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 8c786e1a9f5d62d3082a624bcbf9cc19a0cae22fff2e3993077c1d74ab3d6789",
       "files": [
@@ -1022,17 +1033,6 @@
         "app/auth/register.tsx"
       ],
       "timestamp": "2026-02-13T15:55:00.945Z"
-    },
-    {
-      "hash": "4da0776735984e0cf7f8bfd942bd798b794d6ac3",
-      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 2219978d3a736ace44b6ed2f05e4010993551ed1bc2f633da882d0f38daf3863",
-      "files": [
-        "autopilot/history.json",
-        "app/_layout.tsx",
-        "app/auth/_layout.tsx",
-        "lib/auth.ts"
-      ],
-      "timestamp": "2026-02-13T15:43:48.573Z"
     }
   ]
 }

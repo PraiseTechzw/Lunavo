@@ -15,8 +15,10 @@ import {
   getCurrentUser,
   getPost,
   getReplies,
+  getUserReplyLikesForPost,
   hasUserLikedPost,
   togglePostLike,
+  toggleReplyLike,
 } from "@/lib/database";
 import {
   RealtimeChannel,
@@ -57,6 +59,8 @@ export default function PostDetailScreen() {
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
+  const [likedReplies, setLikedReplies] = useState<string[]>([]);
+  const [replyingTo, setReplyingTo] = useState<Reply | null>(null);
   const insets = useSafeAreaInsets();
   const repliesChannelRef = useRef<RealtimeChannel | null>(null);
   const postChannelRef = useRef<RealtimeChannel | null>(null);
@@ -79,8 +83,12 @@ export default function PostDetailScreen() {
         setReplies(postReplies);
 
         if (user) {
-          const liked = await hasUserLikedPost(user.id, id);
-          setHasLiked(liked);
+          const [postLiked, replyLikes] = await Promise.all([
+            hasUserLikedPost(user.id, id),
+            getUserReplyLikesForPost(user.id, id)
+          ]);
+          setHasLiked(postLiked);
+          setLikedReplies(replyLikes);
         }
       } else {
         Alert.alert("Not Found", "This post could not be found.", [
@@ -101,7 +109,9 @@ export default function PostDetailScreen() {
         // Check if reply already exists (avoid duplicates)
         const exists = prevReplies.some((r) => r.id === newReply.id);
         if (exists) return prevReplies;
-        return [...prevReplies, newReply];
+        return [...prevReplies, newReply].sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       });
     });
 
@@ -126,9 +136,6 @@ export default function PostDetailScreen() {
 
     // Subscribe to post updates
     const postUpdateChannel = subscribeToPostUpdates(id, (updatedPost) => {
-      // Preserve the upvotes if we are optimistic, but generally we want the server truth
-      // However, to avoid jumping, we might want to respect local optimistic state if recently changed
-      // For now, accept server truth which should come from our trigger quickly
       setPost(updatedPost);
     });
 
@@ -172,15 +179,19 @@ export default function PostDetailScreen() {
         content: sanitizedContent,
         isAnonymous: true,
         isFromVolunteer: ["peer-educator", "counselor"].includes(user.role),
+        parentReplyId: replyingTo?.id,
       });
 
-      setReplies([...replies, newReply]);
+      setReplies(prev => [...prev, newReply]);
       setReplyContent("");
+      setReplyingTo(null);
 
-      // Scroll to bottom
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      // Scroll to bottom or just let it be if it's a nested reply
+      if (!newReply.parentReplyId) {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
 
       // Update local state
       const updatedPost = { ...post, replies: [...replies, newReply] };
@@ -260,9 +271,53 @@ export default function PostDetailScreen() {
     }
   };
 
-  const handleReplyTo = (username: string) => {
-    const mention = `@${username} `;
-    setReplyContent(prev => prev + mention);
+  const handleLikeReply = async (replyId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const isLiked = likedReplies.includes(replyId);
+    const newLikedReplies = isLiked
+      ? likedReplies.filter(id => id !== replyId)
+      : [...likedReplies, replyId];
+
+    setLikedReplies(newLikedReplies);
+
+    // Optimistic update of reply count
+    const diff = isLiked ? -1 : 1;
+    setReplies(prev => prev.map(r =>
+      r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) + diff) } : r
+    ));
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        // Revert
+        setLikedReplies(likedReplies);
+        setReplies(prev => prev.map(r =>
+          r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) - diff) } : r
+        ));
+        router.push("/(auth)/sign-in");
+        return;
+      }
+
+      const { count } = await toggleReplyLike(user.id, replyId);
+
+      // Sync exact count
+      setReplies(prev => prev.map(r =>
+        r.id === replyId ? { ...r, isHelpful: count } : r
+      ));
+    } catch (e) {
+      // Revert
+      setLikedReplies(likedReplies);
+      setReplies(prev => prev.map(r =>
+        r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) - diff) } : r
+      ));
+      console.error("Reply like failed", e);
+    }
+  };
+
+  const handleReplyTo = (reply: Reply) => {
+    setReplyingTo(reply);
+    setReplyContent(`@${reply.authorPseudonym} `);
     inputRef.current?.focus();
   };
 
@@ -270,6 +325,114 @@ export default function PostDetailScreen() {
     const colors = ['#CDB4DB', '#BDE0FE', '#A2D2FF', '#FFC8DD', '#FFAFCC'];
     const index = id.charCodeAt(0) % colors.length;
     return colors[index];
+  };
+
+  interface ThreadedReply extends Reply {
+    subReplies: ThreadedReply[];
+  }
+
+  const buildReplyTree = (flatReplies: Reply[]): ThreadedReply[] => {
+    const map = new Map<string, ThreadedReply>();
+    const roots: ThreadedReply[] = [];
+
+    // Sort by helpfulness and date
+    const sorted = [...flatReplies].sort((a, b) => {
+      if ((b.isHelpful || 0) !== (a.isHelpful || 0)) {
+        return (b.isHelpful || 0) - (a.isHelpful || 0);
+      }
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    sorted.forEach(r => map.set(r.id, { ...r, subReplies: [] }));
+
+    sorted.forEach(r => {
+      const threaded = map.get(r.id)!;
+      if (r.parentReplyId && map.has(r.parentReplyId)) {
+        map.get(r.parentReplyId)!.subReplies.push(threaded);
+      } else {
+        roots.push(threaded);
+      }
+    });
+
+    return roots;
+  };
+
+  const renderReply = (reply: ThreadedReply, depth = 0) => {
+    const replyAvatarColor = getAvatarColor(reply.id);
+    const isOP = reply.authorPseudonym === post?.authorPseudonym;
+    const maxDepth = 4;
+    const currentDepth = Math.min(depth, maxDepth);
+    const isLiked = likedReplies.includes(reply.id);
+
+    return (
+      <View key={reply.id} style={{ marginLeft: currentDepth > 0 ? 12 : 0 }}>
+        <View
+          style={[
+            styles.replyItem,
+            {
+              borderLeftColor: reply.isFromVolunteer ? colors.success : (currentDepth > 0 ? colors.border : 'transparent'),
+              borderLeftWidth: reply.isFromVolunteer ? 3 : (currentDepth > 0 ? 1 : 0),
+              backgroundColor: currentDepth > 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
+              marginTop: currentDepth > 0 ? 8 : 16,
+              paddingLeft: currentDepth > 0 ? 12 : 16,
+            }
+          ]}
+        >
+          <View style={styles.replyHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={[styles.avatarSmall, { backgroundColor: replyAvatarColor }]}>
+                <ThemedText style={styles.avatarTextSmall}>
+                  {reply.authorPseudonym?.[0]?.toUpperCase() || 'A'}
+                </ThemedText>
+              </View>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ThemedText style={[styles.replyAuthor, { color: reply.isFromVolunteer ? colors.success : colors.text }]}>
+                    {reply.authorPseudonym}
+                  </ThemedText>
+                  {isOP && <View style={[styles.roleBadge, { backgroundColor: colors.primary + '20' }]}><ThemedText style={[styles.roleText, { color: colors.primary }]}>OP</ThemedText></View>}
+                  {reply.isFromVolunteer && <View style={[styles.roleBadge, { backgroundColor: colors.success + '20' }]}><ThemedText style={[styles.roleText, { color: colors.success }]}>VOLUNTEER</ThemedText></View>}
+                </View>
+                <ThemedText type="small" style={{ color: colors.icon, fontSize: 11 }}>
+                  {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+
+          <Markdown
+            style={{
+              body: { color: colors.text, fontSize: 15, lineHeight: 22 }
+            }}
+          >
+            {reply.content}
+          </Markdown>
+
+          <View style={styles.replyFooter}>
+            <TouchableOpacity onPress={() => handleLikeReply(reply.id)} style={styles.actionBtn}>
+              <Ionicons name={isLiked ? "heart" : "heart-outline"} size={14} color={isLiked ? colors.danger : colors.icon} />
+              <ThemedText type="small" style={{ color: isLiked ? colors.danger : colors.icon, fontWeight: '600' }}>
+                {reply.isHelpful || 0}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => handleReplyTo(reply)} style={styles.actionBtn}>
+              <Ionicons name="arrow-undo-outline" size={14} color={colors.icon} />
+              <ThemedText type="small" style={{ color: colors.icon, fontWeight: '600' }}>Reply</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.actionBtn}>
+              <ThemedText type="small" style={{ color: colors.icon }}>Report</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {reply.subReplies.length > 0 && (
+          <View style={styles.nestedContainer}>
+            {reply.subReplies.map(sub => renderReply(sub, depth + 1))}
+          </View>
+        )}
+      </View>
+    );
   };
 
   if (!post) {
@@ -282,6 +445,7 @@ export default function PostDetailScreen() {
 
   const isEscalated = post.escalationLevel !== "none";
   const avatarColor = getAvatarColor(post.id);
+  const threadedReplies = buildReplyTree(replies);
 
   return (
     <KeyboardAvoidingView
@@ -405,55 +569,7 @@ export default function PostDetailScreen() {
             </View>
           ) : (
             <View style={styles.repliesList}>
-              {replies.map((reply) => {
-                const replyAvatarColor = getAvatarColor(reply.id);
-                const isOP = reply.authorPseudonym === post.authorPseudonym;
-
-                return (
-                  <View key={reply.id} style={[styles.replyItem, { borderLeftColor: reply.isFromVolunteer ? colors.success : 'transparent', borderLeftWidth: reply.isFromVolunteer ? 3 : 0 }]}>
-                    <View style={styles.replyHeader}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={[styles.avatarSmall, { backgroundColor: replyAvatarColor }]}>
-                          <ThemedText style={styles.avatarTextSmall}>
-                            {reply.authorPseudonym?.[0]?.toUpperCase() || 'A'}
-                          </ThemedText>
-                        </View>
-                        <View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <ThemedText style={[styles.replyAuthor, { color: reply.isFromVolunteer ? colors.success : colors.text }]}>
-                              {reply.authorPseudonym}
-                            </ThemedText>
-                            {isOP && <View style={[styles.roleBadge, { backgroundColor: colors.primary + '20' }]}><ThemedText style={[styles.roleText, { color: colors.primary }]}>OP</ThemedText></View>}
-                            {reply.isFromVolunteer && <View style={[styles.roleBadge, { backgroundColor: colors.success + '20' }]}><ThemedText style={[styles.roleText, { color: colors.success }]}>VOLUNTEER</ThemedText></View>}
-                          </View>
-                          <ThemedText type="small" style={{ color: colors.icon, fontSize: 11 }}>
-                            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                          </ThemedText>
-                        </View>
-                      </View>
-                    </View>
-
-                    <Markdown
-                      style={{
-                        body: { color: colors.text, fontSize: 15, lineHeight: 22 }
-                      }}
-                    >
-                      {reply.content}
-                    </Markdown>
-
-                    <View style={styles.replyFooter}>
-                      <TouchableOpacity onPress={() => handleReplyTo(reply.authorPseudonym)} style={styles.actionBtn}>
-                        <Ionicons name="arrow-undo-outline" size={14} color={colors.icon} />
-                        <ThemedText type="small" style={{ color: colors.icon, fontWeight: '600' }}>Reply</ThemedText>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.actionBtn}>
-                        <ThemedText type="small" style={{ color: colors.icon }}>Report</ThemedText>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
+              {threadedReplies.map(reply => renderReply(reply))}
             </View>
           )}
 
@@ -461,6 +577,16 @@ export default function PostDetailScreen() {
 
         {/* Reply Input Area */}
         <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          {replyingTo && (
+            <View style={[styles.replyingToBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ThemedText type="small" style={{ color: colors.icon }}>
+                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text }}>{replyingTo.authorPseudonym}</ThemedText>
+              </ThemedText>
+              <TouchableOpacity onPress={() => { setReplyingTo(null); setReplyContent(''); }}>
+                <Ionicons name="close-circle" size={18} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TextInput
               ref={inputRef}
@@ -658,5 +784,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingVertical: 4,
+  },
+  nestedContainer: {
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(0,0,0,0.05)',
+    marginLeft: 8,
+  },
+  replyingToBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomWidth: 0,
+    marginBottom: -1,
   },
 });

@@ -493,6 +493,12 @@ export default function CreatePostScreen() {
       const escalation = checkEscalation(content, selectedCategory);
       const sanitizedContent = sanitizeContent(content);
 
+      // Add trigger warning tag if selected
+      const finalTags = [...selectedTags];
+      if (hasTriggerWarning) {
+        finalTags.push("Trigger Warning");
+      }
+
       // Create post using database function
       await createPostDB({
         authorId: user.id,
@@ -500,7 +506,7 @@ export default function CreatePostScreen() {
         title: title.trim(),
         content: sanitizedContent,
         isAnonymous,
-        tags: selectedTags,
+        tags: finalTags,
         escalationLevel: escalation.level,
         escalationReason: escalation.reason,
       });
