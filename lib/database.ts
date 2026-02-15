@@ -5,27 +5,29 @@
 
 import { CATEGORIES } from "@/app/constants/categories";
 import {
-    ActivityLog,
-    Announcement,
-    Category,
-    CheckIn,
-    Escalation,
-    EscalationLevel,
-    Meeting,
-    MeetingAttendance,
-    MeetingType,
-    Notification,
-    NotificationType,
-    Post,
-    PostCategory,
-    PostStatus,
-    Reply,
-    Report,
-    SupportMessage,
-    SupportSession,
-    User,
+  ActivityLog,
+  Announcement,
+  Category,
+  CheckIn,
+  Escalation,
+  EscalationLevel,
+  Meeting,
+  MeetingAttendance,
+  MeetingType,
+  Notification,
+  NotificationType,
+  Post,
+  PostCategory,
+  PostStatus,
+  Reply,
+  Report,
+  SupportMessage,
+  SupportSession,
+  User,
 } from "@/app/types";
+import { sendEmailWithResend } from "./email";
 import { checkAllBadges } from "./gamification";
+import { sendPushNotification } from "./notifications";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";
 
@@ -139,14 +141,14 @@ export interface CreateUserData {
   location?: string; // Optional but recommended
   preferred_contact_method?: "phone" | "sms" | "email" | "in-person"; // Optional
   role?:
-    | "student"
-    | "peer-educator"
-    | "peer-educator-executive"
-    | "moderator"
-    | "counselor"
-    | "life-coach"
-    | "student-affairs"
-    | "admin";
+  | "student"
+  | "peer-educator"
+  | "peer-educator-executive"
+  | "moderator"
+  | "counselor"
+  | "life-coach"
+  | "student-affairs"
+  | "admin";
   pseudonym: string;
   profile_data?: Record<string, any>;
 }
@@ -839,6 +841,49 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
     await checkAllBadges(replyData.authorId);
   } catch (pointsError) {
     console.error("Error awarding points:", pointsError);
+  }
+
+  // Send push notification to post author
+  try {
+    const post = await getPost(replyData.postId);
+    if (post && post.authorId !== replyData.authorId) {
+      const author = await getUser(post.authorId);
+      const replier = await getUser(replyData.authorId);
+      const replierName = replier?.pseudonym || "Someone";
+
+      // Use profile_data.pushToken
+      // Since getUser returns mapped User object, we need to check if we expose pushToken
+      // It is in profileData (mapped from profile_data)
+      const pushToken = author?.profileData?.pushToken;
+
+      if (pushToken) {
+        await sendPushNotification(
+          pushToken,
+          "New Reply",
+          `${replierName} replied to your post: "${post.title.substring(0, 20)}..."`,
+          { postId: post.id }
+        );
+      }
+
+      // Send email notification if user has email
+      if (author?.email) {
+        await sendEmailWithResend({
+          to: author.email,
+          subject: "New Reply to your Post",
+          html: `
+             <h1>New Reply on PEACE</h1>
+             <p>${replierName} replied to your post "<b>${post.title}</b>":</p>
+             <blockquote style="border-left: 4px solid #ccc; padding-left: 10px; margin-left: 0;">
+               ${replyData.content.substring(0, 200)}${replyData.content.length > 200 ? "..." : ""}
+             </blockquote>
+             <p>Open the app to view the full reply.</p>
+           `,
+          text: `${replierName} replied to your post "${post.title}": ${replyData.content.substring(0, 100)}...`
+        });
+      }
+    }
+  } catch (notifyError) {
+    console.error("Error sending notification:", notifyError);
   }
 
   return reply;
@@ -1565,13 +1610,13 @@ export interface CreateResourceData {
   description?: string;
   category: PostCategory;
   resourceType:
-    | "article"
-    | "video"
-    | "pdf"
-    | "link"
-    | "training"
-    | "image"
-    | "tool";
+  | "article"
+  | "video"
+  | "pdf"
+  | "link"
+  | "training"
+  | "image"
+  | "tool";
   url?: string;
   filePath?: string;
   tags?: string[];
@@ -1902,13 +1947,13 @@ export async function getUserBadges(userId: string): Promise<any[]> {
     earnedAt: new Date(ub.earned_at),
     badge: ub.badges
       ? {
-          id: ub.badges.id,
-          name: ub.badges.name,
-          description: ub.badges.description,
-          icon: ub.badges.icon,
-          color: ub.badges.color,
-          category: ub.badges.category,
-        }
+        id: ub.badges.id,
+        name: ub.badges.name,
+        description: ub.badges.description,
+        icon: ub.badges.icon,
+        color: ub.badges.color,
+        category: ub.badges.category,
+      }
       : null,
   }));
 }

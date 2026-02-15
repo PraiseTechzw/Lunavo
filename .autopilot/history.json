@@ -1,6 +1,19 @@
 {
   "commits": [
     {
+      "hash": "f9a2c8d8763fa595848076c3aa2b2514986af42a",
+      "message": "[autopilot] chore: update files\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 3cc1972871473459ddfcf47c5a6bb79e1aef837fae09e6d28d059daa6220fa72",
+      "files": [
+        "autopilot/history.json",
+        "app/components/peace-logo.tsx",
+        "app/create-post.tsx",
+        "app/onboarding.tsx",
+        "lib/notifications.ts",
+        "supabase/functions/send-push/"
+      ],
+      "timestamp": "2026-02-15T07:53:56.487Z"
+    },
+    {
       "hash": "9954af0b620248e69ab75098f8904d16f5d07c87",
       "message": "[autopilot] chore(autopilot): update autopilot\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 69f308c17e5072b3ea56d17e8e30d6ce2d712480ccebdd292214b13197a45285",
       "files": [
@@ -1025,15 +1038,6 @@
         "com.swmansion.worklets.a"
       ],
       "timestamp": "2026-02-13T10:17:07.862Z"
-    },
-    {
-      "hash": "afc3f4ecfac29a0db8cbc514d25f1f6ac7cb67e1",
-      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: cca1b256ce62ae26f5bcc669f3bd76dbde3b8ed9f9473215c9f8a79f60d2ae9d",
-      "files": [
-        "autopilot/history.json",
-        "app/auth/register.tsx"
-      ],
-      "timestamp": "2026-02-13T06:58:33.148Z"
     }
   ]
 }
