@@ -11,9 +11,11 @@ import { Post, Reply } from "@/app/types";
 import { sanitizeContent } from "@/app/utils/anonymization";
 import {
   createReply,
+  createReport,
   getCurrentUser,
   getPost,
   getReplies,
+  upvotePost,
 } from "@/lib/database";
 import {
   RealtimeChannel,
@@ -25,6 +27,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { formatDistanceToNow } from "date-fns";
+import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -52,11 +55,13 @@ export default function PostDetailScreen() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
   const insets = useSafeAreaInsets();
   const repliesChannelRef = useRef<RealtimeChannel | null>(null);
   const postChannelRef = useRef<RealtimeChannel | null>(null);
   const replyChangesChannelRef = useRef<RealtimeChannel | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const loadPost = useCallback(async () => {
     try {
@@ -174,9 +179,59 @@ export default function PostDetailScreen() {
     }
   };
 
-  const handleReport = () => {
-    if (!post) return;
-    router.push(`/report?targetType=post&targetId=${post.id}`);
+  const handleReport = (targetType: 'post' | 'reply', targetId: string) => {
+    Alert.alert(
+      "Report Content",
+      "Are you sure you want to report this content as inappropriate?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Report",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const user = await getCurrentUser();
+              if (!user) return;
+
+              await createReport({
+                targetType,
+                targetId,
+                reporterId: user.id,
+                reason: "Inappropriate content",
+                description: "User reported via mobile app"
+              });
+              Alert.alert("Reported", "Thank you for keeping our community safe. We will review this content.");
+            } catch (e) {
+              Alert.alert("Error", "Failed to submit report.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleLike = async () => {
+    if (!post || hasLiked) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setHasLiked(true);
+
+    // Optimistic update
+    setPost(prev => prev ? ({ ...prev, upvotes: (prev.upvotes || 0) + 1 }) : null);
+
+    try {
+      await upvotePost(post.id);
+    } catch (e) {
+      // Revert if failed
+      setHasLiked(false);
+      setPost(prev => prev ? ({ ...prev, upvotes: (prev.upvotes || 0) - 1 }) : null);
+    }
+  };
+
+  const handleReplyTo = (username: string) => {
+    const mention = `@${username} `;
+    setReplyContent(prev => prev + mention);
+    inputRef.current?.focus();
   };
 
   const getAvatarColor = (id: string): string => {
@@ -225,8 +280,8 @@ export default function PostDetailScreen() {
               </TouchableOpacity>
             ),
             headerRight: () => (
-              <TouchableOpacity onPress={handleReport} style={{ marginRight: 8 }}>
-                <Ionicons name="flag-outline" size={22} color={colors.icon} />
+              <TouchableOpacity onPress={() => handleReport('post', post.id)} style={{ marginRight: 8, padding: 4 }}>
+                <Ionicons name="flag-outline" size={20} color={colors.icon} />
               </TouchableOpacity>
             )
           }}
@@ -292,10 +347,15 @@ export default function PostDetailScreen() {
 
             <View style={styles.postFooter}>
               <CategoryBadge category={post.category} />
-              <View style={styles.likeRow}>
-                <Ionicons name="heart-outline" size={18} color={colors.icon} />
-                <ThemedText style={{ color: colors.icon, fontWeight: '600' }}>{post.upvotes || 0}</ThemedText>
-              </View>
+              <TouchableOpacity
+                style={[styles.likeRow, hasLiked && { opacity: 0.7 }]}
+                onPress={handleLike}
+              >
+                <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={22} color={hasLiked ? colors.danger : colors.icon} />
+                <ThemedText style={{ color: hasLiked ? colors.danger : colors.icon, fontWeight: '600' }}>
+                  {post.upvotes || 0}
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -348,6 +408,17 @@ export default function PostDetailScreen() {
                     >
                       {reply.content}
                     </Markdown>
+
+                    <View style={styles.replyFooter}>
+                      <TouchableOpacity onPress={() => handleReplyTo(reply.authorPseudonym)} style={styles.actionBtn}>
+                        <Ionicons name="arrow-undo-outline" size={14} color={colors.icon} />
+                        <ThemedText type="small" style={{ color: colors.icon, fontWeight: '600' }}>Reply</ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.actionBtn}>
+                        <ThemedText type="small" style={{ color: colors.icon }}>Report</ThemedText>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })}
@@ -360,6 +431,7 @@ export default function PostDetailScreen() {
         <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TextInput
+              ref={inputRef}
               style={[styles.input, { color: colors.text }]}
               placeholder="Write a supportive reply..."
               placeholderTextColor={colors.icon}
@@ -539,5 +611,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 0,
+  },
+  replyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
   },
 });

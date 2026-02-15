@@ -1,6 +1,18 @@
 {
   "commits": [
     {
+      "hash": "3868fef6d40378291bbfdb5932578399e0fe31fa",
+      "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: efb646a3a0903f8e926945c7b4d304b1e6fd0ee9a8eb2546dfae3735df9f862c",
+      "files": [
+        "autopilot/history.json",
+        "app/chat/[id].tsx",
+        "app/components/post-card.tsx",
+        "app/post/[id].tsx",
+        "app/topic/[category].tsx"
+      ],
+      "timestamp": "2026-02-15T08:23:27.806Z"
+    },
+    {
       "hash": "c83aa1832cd831d067d316352988a0ab2e597aa2",
       "message": "[autopilot] style(ui): use theme variables for button colors\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.2.0\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 39267b0084974d8444d7107204688ba931040b34248f1112d9f3391befa22806",
       "files": [
@@ -1021,16 +1033,6 @@
         "supabase/functions/send-email/index.ts"
       ],
       "timestamp": "2026-02-13T11:09:21.024Z"
-    },
-    {
-      "hash": "2b4d6ee8a99de60e2bf99b6e8f4df6633b108ea3",
-      "message": "[autopilot] chore: update files\n\n- Replaced custom logging with logger module\n- Switched to date-fns for date formatting\n- Simplified module exports\nAutopilot-Commit: true\nAutopilot-Version: 2.1.1\nAutopilot-User: 9b06151f-e74d-41b9-af57-d1d258601e9e\nAutopilot-Signature: 64d7197c9cb1fde8341784a723107f459fcd1452fac76bf15a01d4bb5d5c8f47",
-      "files": [
-        "autopilot/history.json",
-        "lib/email.ts",
-        "supabase/functions/"
-      ],
-      "timestamp": "2026-02-13T10:39:37.431Z"
     }
   ]
 }
