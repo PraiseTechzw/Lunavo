@@ -7,7 +7,7 @@ import { ThemedText } from '@/app/components/themed-text';
 import { ThemedView } from '@/app/components/themed-view';
 import { BorderRadius, Colors, PlatformStyles } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { ActivityLog, SupportSession } from '@/app/types';
+import { SupportSession } from '@/app/types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getActivityLogs, getSupportSessions } from '@/lib/database';
 import { getUserPoints } from '@/lib/points-system';
@@ -42,7 +42,7 @@ export default function PeerEducatorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingSessions, setPendingSessions] = useState<SupportSession[]>([]);
   const [activeSessions, setActiveSessions] = useState<SupportSession[]>([]);
-  const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([]);
+
 
   const [stats, setStats] = useState({
     helped: 0,
@@ -68,7 +68,7 @@ export default function PeerEducatorDashboard() {
 
       setPendingSessions(allPending.slice(0, 3));
       setActiveSessions(myActive);
-      setRecentActivity(allLogs.slice(0, 3));
+
 
       const totalMinutes = allLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
       const totalHours = Math.round(totalMinutes / 60 * 10) / 10;

@@ -30,7 +30,7 @@ import {
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// const { width } = Dimensions.get("window");
+
 const FAVORITES_KEY = "resource_favorites";
 const DOWNLOADS_KEY = "resource_downloads";
 
@@ -43,7 +43,7 @@ export default function ResourceDetailScreen() {
   const [resource, setResource] = useState<Resource | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isDownloaded, setIsDownloaded] = useState(false);
+
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
 
@@ -75,25 +75,14 @@ export default function ResourceDetailScreen() {
     }
   }, [id]);
 
-  const checkDownloadStatus = useCallback(async () => {
-    try {
-      const downloadsJson = await AsyncStorage.getItem(DOWNLOADS_KEY);
-      if (downloadsJson) {
-        const downloads = JSON.parse(downloadsJson);
-        setIsDownloaded(downloads.some((d: any) => d.id === id));
-      }
-    } catch (error) {
-      console.error("Error checking download status:", error);
-    }
-  }, [id]);
+
 
   useEffect(() => {
     if (id) {
       loadResource();
       checkFavoriteStatus();
-      checkDownloadStatus();
     }
-  }, [id, loadResource, checkFavoriteStatus, checkDownloadStatus]);
+  }, [id, loadResource, checkFavoriteStatus]);
 
   const toggleFavorite = async () => {
     try {
@@ -138,7 +127,6 @@ export default function ResourceDetailScreen() {
       }
 
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
-      setIsDownloaded(true);
 
       if (resource.url) {
         const canOpen = await Linking.canOpenURL(resource.url);

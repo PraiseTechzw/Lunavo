@@ -57,7 +57,7 @@ export default function ResourceCategoryScreen() {
       }
     };
     load();
-  }, []);
+  }, [slug]);
 
   const filter = useCallback(() => {
     let items = resources;
@@ -70,7 +70,7 @@ export default function ResourceCategoryScreen() {
       );
     }
     setFiltered(items);
-  }, [resources, slug, searchQuery]);
+  }, [resources, searchQuery]);
 
   useEffect(() => {
     filter();
