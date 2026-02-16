@@ -1,5 +1,5 @@
 /**
- * Post detail screen - view a post and its replies
+ * Post detail screen - view a post and its replies (Thread View)
  */
 
 import { CategoryBadge } from "@/app/components/category-badge";
@@ -10,35 +10,40 @@ import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { Post, Reply } from "@/app/types";
 import { sanitizeContent } from "@/app/utils/anonymization";
 import {
-    createReply,
-    getCurrentUser,
-    getPost,
-    getReplies,
+  createReply,
+  createReport,
+  getCurrentUser,
+  getPost,
+  getReplies,
+  getUserReplyLikesForPost,
+  hasUserLikedPost,
+  togglePostLike,
+  toggleReplyLike,
 } from "@/lib/database";
 import {
-    RealtimeChannel,
-    subscribeToPostUpdates,
-    subscribeToReplies,
-    subscribeToReplyChanges,
-    unsubscribe,
+  RealtimeChannel,
+  subscribeToPostUpdates,
+  subscribeToReplies,
+  subscribeToReplyChanges,
+  unsubscribe,
 } from "@/lib/realtime";
 import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { formatDistanceToNow } from "date-fns";
+import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,20 +58,39 @@ export default function PostDetailScreen() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [likedReplies, setLikedReplies] = useState<string[]>([]);
+  const [replyingTo, setReplyingTo] = useState<Reply | null>(null);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const repliesChannelRef = useRef<RealtimeChannel | null>(null);
   const postChannelRef = useRef<RealtimeChannel | null>(null);
   const replyChangesChannelRef = useRef<RealtimeChannel | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const loadPost = useCallback(async () => {
     try {
       if (!id) return;
-      const foundPost = await getPost(id);
+
+      const [foundPost, user] = await Promise.all([
+        getPost(id),
+        getCurrentUser()
+      ]);
+
       if (foundPost) {
         setPost(foundPost);
         const postReplies = await getReplies(id);
         setReplies(postReplies);
+
+        if (user) {
+          const [postLiked, replyLikes] = await Promise.all([
+            hasUserLikedPost(user.id, id),
+            getUserReplyLikesForPost(user.id, id)
+          ]);
+          setHasLiked(postLiked);
+          setLikedReplies(replyLikes);
+        }
       } else {
         Alert.alert("Not Found", "This post could not be found.", [
           { text: "OK", onPress: () => router.back() },
@@ -86,16 +110,17 @@ export default function PostDetailScreen() {
         // Check if reply already exists (avoid duplicates)
         const exists = prevReplies.some((r) => r.id === newReply.id);
         if (exists) return prevReplies;
-        return [...prevReplies, newReply];
+        return [...prevReplies, newReply].sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       });
     });
 
-    // Subscribe to reply updates (helpful votes, etc.)
+    // Subscribe to reply updates
     const replyChangesChannel = subscribeToReplyChanges(
       id,
       ({ eventType, reply }) => {
         if (eventType === "DELETE" && reply === null) {
-          // Handle reply deletion if needed
           return;
         }
 
@@ -110,7 +135,7 @@ export default function PostDetailScreen() {
       },
     );
 
-    // Subscribe to post updates (upvotes, status changes, etc.)
+    // Subscribe to post updates
     const postUpdateChannel = subscribeToPostUpdates(id, (updatedPost) => {
       setPost(updatedPost);
     });
@@ -126,21 +151,14 @@ export default function PostDetailScreen() {
       setupRealtimeSubscriptions();
     }
     return () => {
-      if (repliesChannelRef.current) {
-        unsubscribe(repliesChannelRef.current);
-      }
-      if (postChannelRef.current) {
-        unsubscribe(postChannelRef.current);
-      }
-      if (replyChangesChannelRef.current) {
-        unsubscribe(replyChangesChannelRef.current);
-      }
+      if (repliesChannelRef.current) unsubscribe(repliesChannelRef.current);
+      if (postChannelRef.current) unsubscribe(postChannelRef.current);
+      if (replyChangesChannelRef.current) unsubscribe(replyChangesChannelRef.current);
     };
   }, [id, loadPost, setupRealtimeSubscriptions]);
 
   const handleSubmitReply = async () => {
     if (!replyContent.trim()) {
-      Alert.alert("Empty Reply", "Please enter a reply before submitting.");
       return;
     }
 
@@ -161,17 +179,20 @@ export default function PostDetailScreen() {
         authorId: user.id,
         content: sanitizedContent,
         isAnonymous: true,
-        // Calculate isFromVolunteer based on user role if needed, or backend handles it
         isFromVolunteer: ["peer-educator", "counselor"].includes(user.role),
+        parentReplyId: replyingTo?.id,
       });
 
-      setReplies([...replies, newReply]);
+      setReplies(prev => [...prev, newReply]);
       setReplyContent("");
+      setReplyingTo(null);
 
-      // Scroll to bottom
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      // Scroll to bottom or just let it be if it's a nested reply
+      if (!newReply.parentReplyId) {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
 
       // Update local state
       const updatedPost = { ...post, replies: [...replies, newReply] };
@@ -184,307 +205,515 @@ export default function PostDetailScreen() {
     }
   };
 
-  const handleReport = () => {
+  const handleReport = (targetType: 'post' | 'reply', targetId: string) => {
+    Alert.alert(
+      "Report Content",
+      "Are you sure you want to report this content as inappropriate?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Report",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const user = await getCurrentUser();
+              if (!user) return;
+
+              await createReport({
+                targetType,
+                targetId,
+                reporterId: user.id,
+                reason: "Inappropriate content",
+                description: "User reported via mobile app"
+              });
+              Alert.alert("Reported", "Thank you for keeping our community safe. We will review this content.");
+            } catch (e) {
+              Alert.alert("Error", "Failed to submit report.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleLike = async () => {
     if (!post) return;
-    router.push(`/report?targetType=post&targetId=${post.id}`);
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Determine new state
+    const newLikedState = !hasLiked;
+    setHasLiked(newLikedState);
+
+    // Optimistic update of count
+    const diff = newLikedState ? 1 : -1;
+    setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) + diff) }) : null);
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        // Revert
+        setHasLiked(!newLikedState);
+        setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) - diff) }) : null);
+        router.push("/(auth)/sign-in");
+        return;
+      }
+
+      // Perform toggle on server
+      const { count } = await togglePostLike(user.id, post.id);
+
+      // Sync exact server count
+      setPost(prev => prev ? ({ ...prev, upvotes: count }) : null);
+    } catch (e) {
+      // Revert if failed
+      setHasLiked(!newLikedState);
+      setPost(prev => prev ? ({ ...prev, upvotes: Math.max(0, (prev.upvotes || 0) - diff) }) : null);
+      console.error("Like failed", e);
+    }
+  };
+
+  const handleLikeReply = async (replyId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const isLiked = likedReplies.includes(replyId);
+    const newLikedReplies = isLiked
+      ? likedReplies.filter(id => id !== replyId)
+      : [...likedReplies, replyId];
+
+    setLikedReplies(newLikedReplies);
+
+    // Optimistic update of reply count
+    const diff = isLiked ? -1 : 1;
+    setReplies(prev => prev.map(r =>
+      r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) + diff) } : r
+    ));
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        // Revert
+        setLikedReplies(likedReplies);
+        setReplies(prev => prev.map(r =>
+          r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) - diff) } : r
+        ));
+        router.push("/(auth)/sign-in");
+        return;
+      }
+
+      const { count } = await toggleReplyLike(user.id, replyId);
+
+      // Sync exact count
+      setReplies(prev => prev.map(r =>
+        r.id === replyId ? { ...r, isHelpful: count } : r
+      ));
+    } catch (e) {
+      // Revert
+      setLikedReplies(likedReplies);
+      setReplies(prev => prev.map(r =>
+        r.id === replyId ? { ...r, isHelpful: Math.max(0, (r.isHelpful || 0) - diff) } : r
+      ));
+      console.error("Reply like failed", e);
+    }
+  };
+
+  const handleReplyTo = (reply: Reply) => {
+    setReplyingTo(reply);
+    setReplyContent(`@${reply.authorPseudonym} `);
+    inputRef.current?.focus();
+  };
+
+  const getAvatarColor = (id: string): string => {
+    const colors = ['#CDB4DB', '#BDE0FE', '#A2D2FF', '#FFC8DD', '#FFAFCC'];
+    const index = id.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  interface ThreadedReply extends Reply {
+    subReplies: ThreadedReply[];
+  }
+
+  const buildReplyTree = (flatReplies: Reply[]): ThreadedReply[] => {
+    const map = new Map<string, ThreadedReply>();
+    const roots: ThreadedReply[] = [];
+
+    // Sort by helpfulness and date
+    const sorted = [...flatReplies].sort((a, b) => {
+      if ((b.isHelpful || 0) !== (a.isHelpful || 0)) {
+        return (b.isHelpful || 0) - (a.isHelpful || 0);
+      }
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    sorted.forEach(r => map.set(r.id, { ...r, subReplies: [] }));
+
+    sorted.forEach(r => {
+      const threaded = map.get(r.id)!;
+      if (r.parentReplyId && map.has(r.parentReplyId)) {
+        map.get(r.parentReplyId)!.subReplies.push(threaded);
+      } else {
+        roots.push(threaded);
+      }
+    });
+
+    return roots;
+  };
+
+  const renderReply = (reply: ThreadedReply, depth = 0) => {
+    const replyAvatarColor = getAvatarColor(reply.id);
+    const isOP = reply.authorPseudonym === post?.authorPseudonym;
+    const maxDepth = 5;
+    const currentDepth = Math.min(depth, maxDepth);
+    const isLiked = likedReplies.includes(reply.id);
+
+    return (
+      <View key={reply.id} style={[
+        styles.threadWrapper,
+        currentDepth > 0 && { marginLeft: Spacing.sm }
+      ]}>
+        {/* Vertical Threading Line */}
+        {currentDepth > 0 && (
+          <View style={[
+            styles.threadLine,
+            { backgroundColor: colors.border }
+          ]} />
+        )}
+
+        <View style={styles.replyFullWidth}>
+          <View
+            style={[
+              styles.replyItem,
+              {
+                backgroundColor: currentDepth === 0 ? colors.card : 'transparent',
+                borderColor: currentDepth === 0 ? colors.border : 'transparent',
+                borderWidth: currentDepth === 0 ? 1 : 0,
+                paddingLeft: currentDepth > 0 ? 12 : 16,
+                marginTop: currentDepth > 0 ? 8 : 16,
+              },
+              reply.isFromVolunteer && { borderLeftColor: colors.success, borderLeftWidth: 3 },
+              currentDepth === 0 && PlatformStyles.shadow
+            ]}
+          >
+            <View style={styles.replyHeader}>
+              <View style={styles.replyAuthorRow}>
+                <View style={[styles.avatarSmall, { backgroundColor: replyAvatarColor }]}>
+                  <ThemedText style={styles.avatarTextSmall}>
+                    {reply.authorPseudonym?.[0]?.toUpperCase() || 'A'}
+                  </ThemedText>
+                </View>
+                <View style={styles.replyMeta}>
+                  <View style={styles.authorBadgeRow}>
+                    <ThemedText style={[
+                      styles.replyAuthor,
+                      { color: reply.isFromVolunteer ? colors.success : colors.text }
+                    ]}>
+                      {reply.authorPseudonym}
+                    </ThemedText>
+                    {isOP && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.primary + '15' }]}>
+                        <ThemedText style={[styles.roleText, { color: colors.primary }]}>OP</ThemedText>
+                      </View>
+                    )}
+                    {reply.isFromVolunteer && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.success + '15' }]}>
+                        <ThemedText style={[styles.roleText, { color: colors.success }]}>MOD</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                  <ThemedText type="small" style={styles.replyTime}>
+                    {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                  </ThemedText>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={() => handleReport('reply', reply.id)} style={styles.reportIcon}>
+                <Ionicons name="flag-outline" size={14} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.replyContentBody}>
+              <Markdown
+                style={{
+                  body: {
+                    color: colors.text,
+                    fontSize: 15,
+                    lineHeight: 22,
+                    fontFamily: PlatformStyles.fontFamily
+                  }
+                }}
+              >
+                {reply.content}
+              </Markdown>
+            </View>
+
+            <View style={styles.replyFooter}>
+              <View style={styles.footerActions}>
+                <TouchableOpacity
+                  onPress={() => handleLikeReply(reply.id)}
+                  style={[
+                    styles.actionBtn,
+                    isLiked && { backgroundColor: colors.danger + '10' }
+                  ]}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={16}
+                    color={isLiked ? colors.danger : colors.icon}
+                  />
+                  {(reply.isHelpful || 0) > 0 && (
+                    <ThemedText type="small" style={[
+                      styles.actionText,
+                      { color: isLiked ? colors.danger : colors.icon, fontWeight: '700' }
+                    ]}>
+                      {reply.isHelpful}
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleReplyTo(reply)}
+                  style={styles.actionBtn}
+                >
+                  <Ionicons name="chatbubble-outline" size={16} color={colors.icon} />
+                  <ThemedText type="small" style={styles.actionText}>Reply</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {reply.subReplies.length > 0 && (
+            <View style={styles.childRepliesWrapper}>
+              {reply.subReplies.map(sub => renderReply(sub, depth + 1))}
+            </View>
+          )}
+        </View>
+      </View>
+    );
   };
 
   if (!post) {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedText>Loading...</ThemedText>
+      <ThemedView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </ThemedView>
     );
   }
 
   const isEscalated = post.escalationLevel !== "none";
+  const avatarColor = getAvatarColor(post.id);
+  const threadedReplies = buildReplyTree(replies);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={headerHeight}
-    >
-      <ThemedView style={styles.container}>
-        <StatusBar
-          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        />
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: "Circle Post",
-            headerShadowVisible: false,
-            headerStyle: { backgroundColor: colors.background },
-            headerLeft: () => (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={[
-                  styles.backButton,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-            ),
-          }}
-        />
+    <ThemedView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: "Discussion",
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={[
+                styles.backButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity onPress={() => handleReport('post', post.id)} style={{ marginRight: 8, padding: 4 }}>
+              <Ionicons name="flag-outline" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} />
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
+
         <ScrollView
           ref={scrollViewRef}
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 40, flexGrow: 1 }
+          ]}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
         >
           {isEscalated && (
-            <View
-              style={[
-                styles.escalationBanner,
-                { backgroundColor: colors.danger + "20" },
-              ]}
-            >
+            <View style={[styles.escalationBanner, { backgroundColor: colors.danger + "15", borderColor: colors.danger + '30' }]}>
               <Ionicons name="warning" size={20} color={colors.danger} />
-              <ThemedText
-                style={[styles.escalationText, { color: colors.danger }]}
-              >
-                Support team has been notified and will reach out soon.
+              <ThemedText style={[styles.escalationText, { color: colors.danger }]}>
+                Alert: Moderate concern detected. Support notified.
               </ThemedText>
             </View>
           )}
 
-          <View style={styles.header}>
-            <CategoryBadge category={post.category} />
-            <TouchableOpacity onPress={handleReport}>
-              <Ionicons name="flag-outline" size={20} color={colors.icon} />
-            </TouchableOpacity>
-          </View>
-
-          <ThemedText type="h1" style={styles.title}>
-            {post.title}
-          </ThemedText>
-
-          <View style={styles.meta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="person-outline" size={12} color={colors.icon} />
-              <ThemedText
-                type="small"
-                style={{ color: colors.icon, fontWeight: "700" }}
-              >
-                {post.authorPseudonym}
-              </ThemedText>
+          {/* Main Post */}
+          <View style={styles.postContainer}>
+            <View style={styles.postHeader}>
+              <View style={[styles.avatarBig, { backgroundColor: avatarColor }]}>
+                <ThemedText style={styles.avatarTextBig}>
+                  {post.authorPseudonym?.[0]?.toUpperCase() || 'A'}
+                </ThemedText>
+              </View>
+              <View>
+                <ThemedText type="body" style={{ fontSize: 16, fontWeight: '600' }}>
+                  {post.authorPseudonym}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: colors.icon }}>
+                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                </ThemedText>
+              </View>
             </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={12} color={colors.icon} />
-              <ThemedText
-                type="small"
-                style={{ color: colors.icon, fontWeight: "600" }}
+
+            <ThemedText type="h2" style={styles.postTitle}>{post.title}</ThemedText>
+
+            <View style={styles.markdownWrapper}>
+              <Markdown
+                style={{
+                  body: {
+                    color: colors.text,
+                    fontSize: 16,
+                    lineHeight: 26,
+                  },
+                  link: { color: colors.primary },
+                  blockquote: {
+                    backgroundColor: colors.surface,
+                    borderLeftColor: colors.primary,
+                    borderLeftWidth: 4,
+                    paddingHorizontal: 12,
+                    paddingVertical: 4,
+                    borderRadius: 4,
+                  },
+                }}
               >
-                {formatDistanceToNow(new Date(post.createdAt), {
-                  addSuffix: true,
-                })}
-              </ThemedText>
+                {post.content}
+              </Markdown>
+            </View>
+
+            <View style={styles.postFooter}>
+              <CategoryBadge category={post.category} />
+              <TouchableOpacity
+                style={[
+                  styles.likeRow,
+                  hasLiked && { backgroundColor: colors.danger + '10', borderColor: colors.danger + '20' }
+                ]}
+                onPress={handleLike}
+              >
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={20}
+                  color={hasLiked ? colors.danger : colors.icon}
+                />
+                <ThemedText style={{
+                  color: hasLiked ? colors.danger : colors.icon,
+                  fontWeight: '700',
+                  fontSize: 14
+                }}>
+                  {(post.upvotes || 0) > 0 ? post.upvotes : ''} Helpful
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <Markdown
-            style={{
-              body: {
-                color: colors.text,
-                fontSize: 17,
-                lineHeight: 26,
-              },
-              link: {
-                color: colors.primary,
-                textDecorationLine: "underline",
-              },
-              image: {
-                borderRadius: 12,
-                marginTop: 12,
-                marginBottom: 12,
-              },
-              strong: {
-                fontWeight: "bold",
-                color: colors.text,
-              },
-              em: {
-                fontStyle: "italic",
-              },
-              blockquote: {
-                backgroundColor: colors.surface,
-                borderLeftColor: colors.primary,
-                borderLeftWidth: 4,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                marginVertical: 8,
-                borderRadius: 4,
-              },
-              bullet_list: {
-                marginVertical: 8,
-              },
-              ordered_list: {
-                marginVertical: 8,
-              },
-              list_item: {
-                marginVertical: 4,
-              },
-              hr: {
-                backgroundColor: colors.border,
-                height: 1,
-                marginVertical: 16,
-              },
-            }}
-          >
-            {post.content}
-          </Markdown>
 
           <View style={styles.divider} />
 
-          <View style={styles.repliesHeader}>
-            <ThemedText type="h3">Replies ({replies.length})</ThemedText>
-          </View>
+          <ThemedText type="h3" style={styles.repliesTitle}>
+            Replies <ThemedText style={{ color: colors.icon, fontSize: 18 }}>({replies.length})</ThemedText>
+          </ThemedText>
 
+          {/* Replies List */}
           {replies.length === 0 ? (
             <View style={styles.emptyReplies}>
-              <ThemedText type="body" style={styles.emptyText}>
-                No replies yet. Be the first to offer support!
-              </ThemedText>
+              <Ionicons name="chatbubbles-outline" size={40} color={colors.icon} style={{ opacity: 0.3 }} />
+              <ThemedText style={{ color: colors.icon, marginTop: 10 }}>No replies yet. Start the conversation!</ThemedText>
             </View>
           ) : (
-            replies.map((reply) => (
-              <View
-                key={reply.id}
-                style={[styles.replyCard, { backgroundColor: colors.surface }]}
-              >
-                <View style={styles.replyHeader}>
-                  <ThemedText type="body" style={styles.replyAuthor}>
-                    {reply.authorPseudonym}
-                    {reply.isFromVolunteer && (
-                      <Text
-                        style={[
-                          styles.volunteerBadge,
-                          { color: colors.success },
-                        ]}
-                      >
-                        {" "}
-                        ✓ Volunteer
-                      </Text>
-                    )}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: colors.icon }}>
-                    {formatDistanceToNow(new Date(reply.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </ThemedText>
-                </View>
-                <Markdown
-                  style={{
-                    body: {
-                      color: colors.text,
-                      fontSize: 15,
-                      lineHeight: 22,
-                    },
-                    link: {
-                      color: colors.primary,
-                    },
-                  }}
-                >
-                  {reply.content}
-                </Markdown>
-                {reply.isHelpful > 0 && (
-                  <View
-                    style={[
-                      styles.helpfulBadge,
-                      { backgroundColor: colors.success + "15" },
-                    ]}
-                  >
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={14}
-                      color={colors.success}
-                    />
-                    <ThemedText
-                      type="small"
-                      style={{ color: colors.success, fontWeight: "800" }}
-                    >
-                      Helpful ({reply.isHelpful})
-                    </ThemedText>
-                  </View>
-                )}
-              </View>
-            ))
+            <View style={styles.repliesList}>
+              {threadedReplies.map(reply => renderReply(reply))}
+            </View>
           )}
+
         </ScrollView>
 
-        <View
-          style={[
-            styles.replyInputContainer,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.md),
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.attachButton, { backgroundColor: colors.surface }]}
-            onPress={() =>
-              Alert.alert(
-                "Photos",
-                "Support for image attachments coming soon.",
-              )
-            }
-          >
-            <Ionicons name="image-outline" size={24} color={colors.icon} />
-          </TouchableOpacity>
-          <TextInput
-            style={[
-              styles.replyInput,
-              {
-                backgroundColor: colors.surface,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="Write a supportive reply..."
-            placeholderTextColor={colors.icon}
-            value={replyContent}
-            onChangeText={setReplyContent}
-            multiline
-            maxLength={1000}
-          />
-          <TouchableOpacity
-            style={[
-              styles.replyButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: isSubmitting || !replyContent.trim() ? 0.6 : 1,
-              },
-            ]}
-            onPress={handleSubmitReply}
-            disabled={isSubmitting || !replyContent.trim()}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons
-                name="send"
-                size={20}
-                color="#FFFFFF"
-                style={{ marginLeft: 2 }}
-              />
-            )}
-          </TouchableOpacity>
+        <View style={[
+          styles.inputWrapper,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, 12),
+            elevation: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }
+        ]}>
+          {replyingTo && (
+            <View style={[styles.replyingToBanner, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 8 }]}>
+              <ThemedText type="small" style={{ color: colors.icon, textTransform: 'none' }}>
+                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text, textTransform: 'none' }}>{replyingTo.authorPseudonym}</ThemedText>
+              </ThemedText>
+              <TouchableOpacity onPress={() => { setReplyingTo(null); setReplyContent(''); }}>
+                <Ionicons name="close-circle" size={20} color={colors.icon} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TextInput
+              ref={inputRef}
+              style={[styles.input, { color: colors.text }]}
+              placeholder={replyingTo ? "Write a reply..." : "Add to the discussion..."}
+              placeholderTextColor={colors.icon}
+              value={replyContent}
+              onChangeText={setReplyContent}
+              multiline
+              maxLength={1000}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendBtn,
+                { backgroundColor: replyContent.trim() ? colors.primary : colors.surface },
+              ]}
+              onPress={handleSubmitReply}
+              disabled={isSubmitting || !replyContent.trim()}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons
+                  name="send"
+                  size={20}
+                  color={replyContent.trim() ? "#fff" : colors.icon}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </ThemedView>
-    </KeyboardAvoidingView>
+
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButton: {
     width: 40,
@@ -499,147 +728,219 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
-    paddingBottom: 40,
+    padding: Spacing.lg,
   },
   escalationBanner: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: Spacing.xl,
-    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    gap: 10,
   },
   escalationText: {
     flex: 1,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 13,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -1,
-    lineHeight: 34,
-    marginBottom: Spacing.md,
-  },
-  meta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+  postContainer: {
     marginBottom: Spacing.xl,
   },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.03)",
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Spacing.md,
   },
-  content: {
-    fontSize: 17,
-    lineHeight: 28,
-    marginBottom: Spacing.xxl,
-    fontWeight: "400",
-    opacity: 0.9,
+  avatarBig: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarTextBig: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  postTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    marginBottom: 12,
+  },
+  markdownWrapper: {
+    marginBottom: Spacing.md,
+  },
+  postFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.md,
+  },
+  likeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    marginBottom: Spacing.xl,
-  },
-  repliesHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    backgroundColor: '#0000000D',
     marginBottom: Spacing.lg,
   },
-  emptyReplies: {
-    padding: Spacing.xxl,
-    alignItems: "center",
-  },
-  emptyText: {
-    opacity: 0.5,
-    textAlign: "center",
-    fontSize: 15,
-  },
-  replyCard: {
-    padding: 16,
-    borderRadius: 20,
+  repliesTitle: {
     marginBottom: Spacing.md,
-    ...PlatformStyles.shadow,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+  },
+  repliesList: {
+    gap: 16,
+  },
+  replyItem: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   replyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  avatarSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarTextSmall: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
   },
   replyAuthor: {
-    fontWeight: "800",
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 14,
   },
-  volunteerBadge: {
-    fontSize: 10,
-    fontWeight: "900",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  replyContent: {
-    lineHeight: 22,
-    fontSize: 15,
-  },
-  helpfulBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 10,
-    paddingHorizontal: 8,
+  roleBadge: {
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: "flex-start",
+    borderRadius: 4,
   },
-  replyInputContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+  roleText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  emptyReplies: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  inputWrapper: {
+    padding: Spacing.md,
     borderTopWidth: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
   },
-  attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  replyInput: {
-    flex: 1,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    borderRadius: 24,
     borderWidth: 1,
-    borderRadius: 22,
+    padding: 6,
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
-    maxHeight: 120,
-    minHeight: 44,
   },
-  replyButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    ...PlatformStyles.premiumShadow,
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  replyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  nestedContainer: {
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(0,0,0,0.05)',
+    marginLeft: 8,
+  },
+  replyingToBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 0,
+    marginBottom: -1,
+  },
+  threadWrapper: {
+    flexDirection: 'row',
+  },
+  threadLine: {
+    width: 2,
+    marginLeft: 4,
+    marginRight: 8,
+    borderRadius: 1,
+    opacity: 0.5,
+  },
+  replyFullWidth: {
+    flex: 1,
+  },
+  replyAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  replyMeta: {
+    flex: 1,
+  },
+  authorBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  replyTime: {
+    color: '#64748B',
+    fontSize: 12,
+  },
+  reportIcon: {
+    padding: 4,
+  },
+  replyContentBody: {
+    marginVertical: 4,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionText: {
+    color: '#64748B',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  childRepliesWrapper: {
+    marginTop: 4,
   },
 });

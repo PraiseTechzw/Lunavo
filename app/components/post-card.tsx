@@ -3,11 +3,12 @@
  */
 
 import { CATEGORIES } from '@/app/constants/categories';
-import { Colors, Spacing } from '@/app/constants/theme';
+import { Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Post, PostCategory } from '@/app/types';
 import { getCursorStyle } from '@/app/utils/platform-styles';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -39,9 +40,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
     color: colors.primary,
   };
 
-  // Use category color for background with low opacity, and full color for text
-  const categoryBgColor = (categoryData.color || colors.primary) + '15';
-  const categoryTextColor = categoryData.color || colors.primary;
+  const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }).replace('about ', '');
 
   return (
     <TouchableOpacity
@@ -59,64 +58,69 @@ export function PostCard({ post, onPress }: PostCardProps) {
           },
         ]}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.userInfo}>
-            <View style={[styles.avatar, { backgroundColor: avatarColor + '30' }]}>
-              <ThemedText style={[styles.avatarText, { color: avatarColor }]}>
-                {post.authorPseudonym?.[0]?.toUpperCase() || 'A'}
-              </ThemedText>
+        {isEscalated && (
+          <View style={[styles.escalationStrip, { backgroundColor: colors.danger }]} />
+        )}
+
+        <View style={styles.cardContent}>
+          <View style={styles.header}>
+            <View style={styles.authorRow}>
+              <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+                <ThemedText style={styles.avatarText}>
+                  {post.authorPseudonym?.[0]?.toUpperCase() || 'A'}
+                </ThemedText>
+              </View>
+              <View style={styles.authorInfo}>
+                <ThemedText type="body" style={[styles.authorName, { fontWeight: '600' }]}>
+                  {post.authorPseudonym || 'Anonymous'}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: colors.icon }}>
+                  {timeAgo}
+                </ThemedText>
+              </View>
             </View>
-            <View>
-              <ThemedText type="body" style={styles.userName}>
-                {post.authorPseudonym || 'Anonymous Student'}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.icon }}>
-                just now
+
+            <View style={[styles.categoryBadge, { backgroundColor: categoryData.color + '15' }]}>
+              <ThemedText style={[styles.categoryText, { color: categoryData.color }]}>
+                {categoryData.name}
               </ThemedText>
             </View>
           </View>
 
-          <View style={[styles.categoryBadge, { backgroundColor: categoryBgColor }]}>
-            <ThemedText style={[styles.categoryText, { color: categoryTextColor }]}>
-              {categoryData.name}
+          <View style={styles.body}>
+            <ThemedText type="h3" numberOfLines={2} style={styles.title}>
+              {post.title}
+            </ThemedText>
+            <ThemedText
+              type="body"
+              numberOfLines={3}
+              style={[styles.previewText, { color: colors.text + 'CC' }]}
+            >
+              {post.content}
             </ThemedText>
           </View>
-        </View>
 
-        <View style={styles.cardBody}>
-          <ThemedText type="h3" style={styles.title}>
-            {post.title}
-          </ThemedText>
-
-          <ThemedText type="body" numberOfLines={3} style={[styles.content, { color: colors.text + 'CC' }]}>
-            {post.content}
-          </ThemedText>
-        </View>
-
-        <View style={[styles.cardFooter, { borderTopColor: colors.border + '30' }]}>
-          <View style={styles.engagement}>
-            <TouchableOpacity style={styles.engagementItem}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.surface }]}>
-                <MaterialIcons name="favorite-border" size={16} color={colors.icon} />
+          <View style={[styles.footer, { borderTopColor: colors.border + '40' }]}>
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Ionicons name="chatbubble-outline" size={18} color={colors.icon} />
+                <ThemedText style={[styles.statText, { color: colors.icon }]}>
+                  {replyCount} {replyCount === 1 ? 'Reply' : 'Replies'}
+                </ThemedText>
               </View>
-              <ThemedText style={styles.engagementText}>
-                {likeCount}
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.engagementItem}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.surface }]}>
-                <MaterialIcons name="chat-bubble-outline" size={16} color={colors.icon} />
+              <View style={styles.stat}>
+                <Ionicons name="heart-outline" size={18} color={colors.icon} />
+                <ThemedText style={[styles.statText, { color: colors.icon }]}>
+                  {likeCount}
+                </ThemedText>
               </View>
-              <ThemedText style={styles.engagementText}>
-                {replyCount}
-              </ThemedText>
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.readMore}>
+              <ThemedText style={[styles.readMoreText, { color: colors.primary }]}>Read Thread</ThemedText>
+              <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            </View>
           </View>
-
-          <TouchableOpacity style={styles.shareIcon}>
-            <MaterialIcons name="share" size={18} color={colors.icon} />
-          </TouchableOpacity>
         </View>
       </ThemedView>
     </TouchableOpacity>
@@ -126,104 +130,98 @@ export function PostCard({ post, onPress }: PostCardProps) {
 const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.md,
+    ...PlatformStyles.premiumShadow,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  cardHeader: {
+  escalationStrip: {
+    height: 4,
+    width: '100%',
+  },
+  cardContent: {
+    padding: Spacing.lg,
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  userInfo: {
+  authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 10,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  userName: {
-    fontWeight: '700',
-    fontSize: 14,
-    letterSpacing: -0.2,
-  },
-  categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  cardBody: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  title: {
-    marginBottom: 6,
-    fontWeight: '800',
-    fontSize: 17,
-    letterSpacing: -0.3,
-  },
-  content: {
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-  },
-  engagement: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
-  },
-  engagementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
+    width: 40,
+    height: 40,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  engagementText: {
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  authorInfo: {
+    gap: 2,
+  },
+  authorName: {
+    fontSize: 15,
+  },
+  categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  body: {
+    marginBottom: Spacing.lg,
+  },
+  title: {
+    marginBottom: 6,
+    lineHeight: 24,
+  },
+  previewText: {
+    lineHeight: 22,
+    fontSize: 15,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  readMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  readMoreText: {
     fontSize: 13,
     fontWeight: '700',
-    opacity: 0.7,
-  },
-  shareIcon: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0.5,
-  },
+  }
 });
 

@@ -9,7 +9,6 @@ import { ThemedText } from "@/app/components/themed-text";
 import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
 import { createShadow } from "@/app/utils/platform-styles";
-import { getUserCount } from "@/lib/database";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
@@ -106,7 +105,7 @@ const onboardingData = [
   },
 ];
 
-const ONBOARDING_ITEM_WIDTH = width;
+
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -119,7 +118,7 @@ export default function OnboardingScreen() {
   const buttonScale = useSharedValue(1);
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isFoundingMember, setIsFoundingMember] = useState(false);
+
   const inputRanges = useMemo(
     () => onboardingData.map((_, i) => i * width),
     [],
@@ -169,7 +168,7 @@ export default function OnboardingScreen() {
       -1,
       true,
     );
-  }, []);
+  }, [blob1Position, blob2Position]);
 
   useEffect(() => {
     if (activeIndex === onboardingData.length - 1) {
@@ -184,19 +183,9 @@ export default function OnboardingScreen() {
     } else {
       buttonScale.value = withTiming(1);
     }
-  }, [activeIndex]);
+  }, [activeIndex, buttonScale]);
 
-  useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const count = await getUserCount();
-        if (count < 8) setIsFoundingMember(true);
-      } catch (e) {
-        // Silently fail if DB is unavailable
-      }
-    };
-    checkStatus();
-  }, []);
+
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -644,3 +633,5 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
+
+

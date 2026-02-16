@@ -25,7 +25,9 @@ import {
   SupportSession,
   User,
 } from "@/app/types";
+import { sendEmailWithResend } from "./email";
 import { checkAllBadges } from "./gamification";
+import { sendPushNotification } from "./notifications";
 import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";
 
@@ -766,16 +768,78 @@ export async function deletePost(postId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function hasUserLikedPost(
+  userId: string,
+  postId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error checking post like:", error);
+    return false;
+  }
+
+  return !!data;
+}
+
+export async function togglePostLike(
+  userId: string,
+  postId: string,
+): Promise<{ liked: boolean; count: number }> {
+  // Check if already liked
+  const liked = await hasUserLikedPost(userId, postId);
+  let newCount = 0;
+
+  if (liked) {
+    // Unlike
+    const { error: deleteError } = await supabase
+      .from("post_likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (deleteError) throw deleteError;
+
+    // Decrement count manually (fallback if trigger doesn't exist)
+    // We fetch clean count to be sure
+    const post = await getPost(postId);
+    if (post) {
+      newCount = Math.max(0, post.upvotes - 1);
+      await supabase.from("posts").update({ upvotes: newCount }).eq("id", postId);
+    }
+
+    return { liked: false, count: newCount };
+  } else {
+    // Like
+    const { error: insertError } = await supabase
+      .from("post_likes")
+      .insert({ post_id: postId, user_id: userId });
+
+    if (insertError) throw insertError;
+
+    // Increment count manually (fallback)
+    const post = await getPost(postId);
+    if (post) {
+      newCount = post.upvotes + 1;
+      await supabase.from("posts").update({ upvotes: newCount }).eq("id", postId);
+    }
+
+    return { liked: true, count: newCount };
+  }
+}
+
+// Deprecated: use togglePostLike instead
 export async function upvotePost(postId: string): Promise<number> {
-  // Get current upvotes
-  const post = await getPost(postId);
-  if (!post) throw new Error("Post not found");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Must be logged in");
 
-  const newUpvotes = post.upvotes + 1;
-
-  await supabase.from("posts").update({ upvotes: newUpvotes }).eq("id", postId);
-
-  return newUpvotes;
+  const { count } = await togglePostLike(user.id, postId);
+  return count;
 }
 
 // ============================================
@@ -788,6 +852,7 @@ export interface CreateReplyData {
   content: string;
   isAnonymous: boolean;
   isFromVolunteer?: boolean;
+  parentReplyId?: string;
 }
 
 export async function createReply(replyData: CreateReplyData): Promise<Reply> {
@@ -799,6 +864,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
       content: replyData.content,
       is_anonymous: replyData.isAnonymous,
       is_from_volunteer: replyData.isFromVolunteer || false,
+      parent_reply_id: replyData.parentReplyId || null,
     })
     .select()
     .maybeSingle();
@@ -828,6 +894,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
       createdAt: new Date(),
       updatedAt: new Date(),
       reportedCount: 0,
+      parentReplyId: replyData.parentReplyId,
     };
   }
 
@@ -841,11 +908,56 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
     console.error("Error awarding points:", pointsError);
   }
 
+  // Send push notification to post author
+  try {
+    const post = await getPost(replyData.postId);
+    if (post && post.authorId !== replyData.authorId) {
+      const author = await getUser(post.authorId);
+      const replier = await getUser(replyData.authorId);
+      const replierName = replier?.pseudonym || "Someone";
+
+      // Use profile_data.pushToken
+      // Since getUser returns mapped User object, we need to check if we expose pushToken
+      // It is in profileData (mapped from profile_data)
+      const pushToken = author?.profileData?.pushToken;
+
+      if (pushToken) {
+        await sendPushNotification(
+          pushToken,
+          "New Reply",
+          `${replierName} replied to your post: "${post.title.substring(0, 20)}..."`,
+          { postId: post.id }
+        );
+      }
+
+      // Send email notification if user has email
+      if (author?.email) {
+        await sendEmailWithResend({
+          to: author.email,
+          subject: "New Reply to your Post",
+          html: `
+             <h1>New Reply on PEACE</h1>
+             <p>${replierName} replied to your post "<b>${post.title}</b>":</p>
+             <blockquote style="border-left: 4px solid #ccc; padding-left: 10px; margin-left: 0;">
+               ${replyData.content.substring(0, 200)}${replyData.content.length > 200 ? "..." : ""}
+             </blockquote>
+             <p>Open the app to view the full reply.</p>
+           `,
+          text: `${replierName} replied to your post "${post.title}": ${replyData.content.substring(0, 100)}...`
+        });
+      }
+    }
+  } catch (notifyError) {
+    console.error("Error sending notification:", notifyError);
+  }
+
   return reply;
 }
 
-export async function getReplies(postId: string): Promise<Reply[]> {
-  const { data, error } = await supabase
+export async function getReplies(
+  postIdOrFilters?: string | { postId?: string; authorId?: string },
+): Promise<Reply[]> {
+  let query = supabase
     .from("replies")
     .select(
       `
@@ -853,8 +965,26 @@ export async function getReplies(postId: string): Promise<Reply[]> {
       users!replies_author_id_fkey(pseudonym)
     `,
     )
-    .eq("post_id", postId)
     .order("created_at", { ascending: true });
+
+  const postId =
+    typeof postIdOrFilters === "string"
+      ? postIdOrFilters
+      : postIdOrFilters?.postId;
+  const authorId =
+    typeof postIdOrFilters === "object"
+      ? postIdOrFilters?.authorId
+      : undefined;
+
+  if (postId) {
+    query = query.eq("post_id", postId);
+  }
+
+  if (authorId) {
+    query = query.eq("author_id", authorId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -862,6 +992,107 @@ export async function getReplies(postId: string): Promise<Reply[]> {
     const authorPseudonym = reply.users?.pseudonym || "Anonymous";
     return mapReplyFromDB(reply, authorPseudonym);
   });
+}
+
+export async function getUserReplyLikesForPost(
+  userId: string,
+  postId: string,
+): Promise<string[]> {
+  try {
+    // First get all reply IDs for this post
+    const { data: replyIdsData, error: repliesError } = await supabase
+      .from("replies")
+      .select("id")
+      .eq("post_id", postId);
+
+    if (repliesError || !replyIdsData || replyIdsData.length === 0) {
+      return [];
+    }
+
+    const replyIds = replyIdsData.map(r => r.id);
+
+    // Then get likes for those replies
+    const { data, error } = await supabase
+      .from("reply_likes")
+      .select("reply_id")
+      .eq("user_id", userId)
+      .in("reply_id", replyIds);
+
+    if (error) {
+      console.error("Error fetching user reply likes:", error);
+      return [];
+    }
+
+    return (data || []).map((l: any) => l.reply_id);
+  } catch (e) {
+    console.error("Failed to fetch reply likes:", e);
+    return [];
+  }
+}
+
+export async function hasUserLikedReply(
+  userId: string,
+  replyId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("reply_likes")
+    .select("id")
+    .eq("reply_id", replyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error checking reply like:", error);
+    return false;
+  }
+
+  return !!data;
+}
+
+export async function toggleReplyLike(
+  userId: string,
+  replyId: string,
+): Promise<{ liked: boolean; count: number }> {
+  // Check if already liked
+  const liked = await hasUserLikedReply(userId, replyId);
+  let newCount = 0;
+
+  if (liked) {
+    // Unlike
+    const { error: deleteError } = await supabase
+      .from("reply_likes")
+      .delete()
+      .eq("reply_id", replyId)
+      .eq("user_id", userId);
+
+    if (deleteError) throw deleteError;
+
+    // Fetch clean count (is_helpful) from DB
+    const { data: reply } = await supabase
+      .from("replies")
+      .select("is_helpful")
+      .eq("id", replyId)
+      .single();
+
+    newCount = reply?.is_helpful ?? 0;
+    return { liked: false, count: newCount };
+  } else {
+    // Like
+    const { error: insertError } = await supabase
+      .from("reply_likes")
+      .insert({ reply_id: replyId, user_id: userId });
+
+    if (insertError) throw insertError;
+
+    const { data: reply } = await supabase
+      .from("replies")
+      .select("is_helpful")
+      .eq("id", replyId)
+      .single();
+
+    newCount = reply?.is_helpful ?? 0;
+    return { liked: true, count: newCount };
+  }
 }
 
 export async function updateReply(
@@ -1564,7 +1795,14 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   category: PostCategory;
-  resourceType: "article" | "video" | "pdf" | "link" | "training" | "image" | "tool";
+  resourceType:
+  | "article"
+  | "video"
+  | "pdf"
+  | "link"
+  | "training"
+  | "image"
+  | "tool";
   url?: string;
   filePath?: string;
   tags?: string[];
@@ -1646,63 +1884,70 @@ export async function getResource(resourceId: string): Promise<any | null> {
   return data;
 }
 
-export async function incrementResourceViews(resourceId: string): Promise<void> {
-  const { error } = await supabase.rpc('increment_resource_views', {
-    resource_id: resourceId
-  });
+export async function incrementResourceViews(
+  resourceId: string,
+): Promise<void> {
+  try {
+    const { error } = await supabase.rpc("increment_resource_views", {
+      resource_id: resourceId,
+    });
 
-  if (error) {
-    console.error('Error incrementing views:', error);
-    // Fallback: manual increment if RPC doesn't exist
-    const { data: resource } = await supabase
-      .from('resources')
-      .select('views')
-      .eq('id', resourceId)
+    if (!error) return;
+
+    // Fallback if RPC fails
+    const { data: resource, error: fetchError } = await supabase
+      .from("resources")
+      .select("views")
+      .eq("id", resourceId)
       .single();
 
-    if (resource) {
-      await supabase
-        .from('resources')
-        .update({ views: (resource.views || 0) + 1 })
-        .eq('id', resourceId);
-    }
+    if (fetchError || !resource) return;
+
+    await supabase
+      .from("resources")
+      .update({ views: (resource.views || 0) + 1 })
+      .eq("id", resourceId);
+  } catch (e) {
+    console.log("Error incrementing views:", e);
   }
 }
 
 export async function addResourceRating(
   resourceId: string,
   userId: string,
-  rating: number
+  rating: number,
 ): Promise<void> {
   // Store individual rating
-  const { error: ratingError } = await supabase
-    .from('resource_ratings')
-    .upsert({
+  const { error: ratingError } = await supabase.from("resource_ratings").upsert(
+    {
       resource_id: resourceId,
       user_id: userId,
       rating: rating,
-      created_at: new Date().toISOString()
-    }, {
-      onConflict: 'resource_id,user_id'
-    });
+      created_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "resource_id,user_id",
+    },
+  );
 
   if (ratingError) {
-    console.error('Error saving rating:', ratingError);
+    console.error("Error saving rating:", ratingError);
     throw ratingError;
   }
 
   // Calculate new average rating
   const { data: ratings } = await supabase
-    .from('resource_ratings')
-    .select('rating')
-    .eq('resource_id', resourceId);
+    .from("resource_ratings")
+    .select("rating")
+    .eq("resource_id", resourceId);
 
   if (ratings && ratings.length > 0) {
-    const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    const avgRating =
+      ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
     await supabase
-      .from('resources')
+      .from("resources")
       .update({ rating: avgRating })
-      .eq('id', resourceId);
+      .eq("id", resourceId);
   }
 }
 
@@ -1761,16 +2006,21 @@ export async function uploadResourceFile(
     const filePath = `${userId}/${fileName}`;
 
     // Determine content type
-    let contentType = 'application/octet-stream';
-    if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
-    else if (fileExt === 'png') contentType = 'image/png';
-    else if (fileExt === 'gif') contentType = 'image/gif';
-    else if (fileExt === 'pdf') contentType = 'application/pdf';
+    let contentType = "application/octet-stream";
+    if (["jpg", "jpeg"].includes(fileExt)) contentType = "image/jpeg";
+    else if (fileExt === "png") contentType = "image/png";
+    else if (fileExt === "gif") contentType = "image/gif";
+    else if (fileExt === "pdf") contentType = "application/pdf";
 
-    console.log("Uploading via FormData to path:", filePath, "ContentType:", contentType);
+    console.log(
+      "Uploading via FormData to path:",
+      filePath,
+      "ContentType:",
+      contentType,
+    );
 
     const formData = new FormData();
-    formData.append('file', {
+    formData.append("file", {
       uri: uri,
       name: fileName,
       type: contentType,

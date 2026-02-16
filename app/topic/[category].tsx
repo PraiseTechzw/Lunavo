@@ -15,8 +15,16 @@ import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 export default function TopicScreen() {
     const { category } = useLocalSearchParams<{ category: string }>();
@@ -40,16 +48,6 @@ export default function TopicScreen() {
         color: colors.primary
     });
 
-    useEffect(() => {
-        loadPosts();
-        setupSubscription();
-        loadCategoryInfo();
-
-        return () => {
-            if (channelRef.current) unsubscribe(channelRef.current);
-        };
-    }, [activeCategory, loadPosts, setupSubscription, loadCategoryInfo]);
-
     const loadCategoryInfo = useCallback(async () => {
         const stats = await getTopicStats();
         const stat = stats.find(s => s.category === activeCategory);
@@ -71,6 +69,24 @@ export default function TopicScreen() {
         }
     }, [activeCategory]);
 
+    const setupSubscription = useCallback(() => {
+        channelRef.current = subscribeToPosts((payload) => {
+            // If we needed to filter only for this category we could check payload
+            // But re-fetching is safer for ensuring we get the mapped post with author
+            loadPosts();
+        });
+    }, [loadPosts]);
+
+    useEffect(() => {
+        loadPosts();
+        setupSubscription();
+        loadCategoryInfo();
+
+        return () => {
+            if (channelRef.current) unsubscribe(channelRef.current);
+        };
+    }, [activeCategory, loadPosts, setupSubscription, loadCategoryInfo]);
+
     const handleRefresh = async () => {
         setRefreshing(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -80,44 +96,31 @@ export default function TopicScreen() {
         setRefreshing(false);
     };
 
-    const setupSubscription = useCallback(() => {
-        channelRef.current = subscribeToPosts((payload) => {
-            // If we needed to filter only for this category we could check payload
-            // But re-fetching is safer for ensuring we get the mapped post with author
-            loadPosts();
-        });
-    }, [loadPosts]);
-
     const renderHeader = () => (
         <View style={styles.header}>
-            <View style={styles.headerTop}>
-                <View style={[styles.iconBox, { backgroundColor: (categoryInfo?.color || colors.primary) + '15' }]}>
-                    <Ionicons name={(categoryInfo?.icon || 'people-outline') as any} size={36} color={categoryInfo?.color || colors.primary} />
-                    <View style={[styles.iconGlow, { backgroundColor: categoryInfo?.color || colors.primary }]} />
+            <View style={[styles.heroBanner, { backgroundColor: categoryInfo?.color + '10' }]}>
+                <View style={[styles.heroIconCircle, { backgroundColor: categoryInfo?.color }]}>
+                    <Ionicons name={categoryInfo?.icon as any} size={40} color="#FFF" />
                 </View>
-                <View style={styles.headerBadge}>
-                    <ThemedText style={{ color: categoryInfo?.color || colors.primary, fontWeight: '900', fontSize: 10 }}>SUPPORT CIRCLE</ThemedText>
-                </View>
-            </View>
-
-            <View style={styles.headerText}>
-                <ThemedText type="h1" style={styles.title}>{categoryInfo?.name || 'Peer Circle'}</ThemedText>
-                <ThemedText style={[styles.description, { color: colors.icon }]}>
-                    {categoryInfo?.description || 'Community support space.'}
+                <ThemedText type="h1" style={styles.heroTitle}>{categoryInfo?.name}</ThemedText>
+                <ThemedText style={[styles.heroDesc, { color: colors.icon }]}>
+                    {categoryInfo?.description}
                 </ThemedText>
             </View>
 
-            <View style={styles.actionRow}>
-                <View style={styles.statsBadge}>
-                    <Ionicons name="people" size={14} color={colors.text} />
-                    <ThemedText style={styles.statsLabel}>{posts.length} discussions</ThemedText>
+            <View style={styles.filterRow}>
+                <View style={styles.countBadge}>
+                    <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.icon }}>
+                        {posts.length} {posts.length === 1 ? 'Discussion' : 'Discussions'}
+                    </ThemedText>
                 </View>
+
                 <TouchableOpacity
-                    style={[styles.sortButton, { borderColor: colors.border }]}
+                    style={[styles.filterBtn, { borderColor: colors.border }]}
                     onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
                 >
-                    <Ionicons name="filter-outline" size={16} color={colors.text} />
-                    <ThemedText style={styles.sortText}>Latest</ThemedText>
+                    <ThemedText type="small" style={{ fontWeight: '600' }}>Latest</ThemedText>
+                    <Ionicons name="chevron-down" size={14} color={colors.text} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -165,15 +168,21 @@ export default function TopicScreen() {
                 ListEmptyComponent={
                     !loading ? (
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="chatbubbles-outline" size={48} color={colors.icon} style={{ opacity: 0.5 }} />
+                            <View style={[styles.emptyIconCircle, { backgroundColor: colors.surface }]}>
+                                <Ionicons name="chatbubbles-outline" size={48} color={colors.icon} style={{ opacity: 0.5 }} />
+                            </View>
+                            <ThemedText type="h3" style={{ marginTop: Spacing.lg }}>
+                                It's quiet here...
+                            </ThemedText>
                             <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
-                                No conversations yet. Be the first to share!
+                                Be the first to start a conversation in this circle.
                             </ThemedText>
                             <TouchableOpacity
-                                style={[styles.emptyButton, { borderColor: colors.primary }]}
+                                style={[styles.emptyButton, { backgroundColor: colors.primary }]}
                                 onPress={() => router.push(`/create-post?category=${activeCategory}`)}
                             >
-                                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Start a Discussion</ThemedText>
+                                <Ionicons name="add-circle-outline" size={20} color="#FFF" />
+                                <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Start Discussion</ThemedText>
                             </TouchableOpacity>
                         </View>
                     ) : null
@@ -181,6 +190,7 @@ export default function TopicScreen() {
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
                 }
+                showsVerticalScrollIndicator={false}
             />
 
             {loading && !refreshing && (
@@ -202,89 +212,73 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: Spacing.xl,
-        paddingHorizontal: Spacing.sm,
     },
-    headerTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: Spacing.lg,
-    },
-    iconBox: {
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        justifyContent: 'center',
+    heroBanner: {
         alignItems: 'center',
-        position: 'relative',
-    },
-    iconGlow: {
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        borderRadius: 20,
-        opacity: 0.1,
-        transform: [{ scale: 1.2 }],
-    },
-    headerBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 10,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-    },
-    headerText: {
+        padding: Spacing.xl,
+        borderRadius: 24,
         marginBottom: Spacing.lg,
     },
-    title: {
-        fontSize: 32,
+    heroIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.md,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 8,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    heroTitle: {
+        fontSize: 28,
         fontWeight: '900',
-        letterSpacing: -1,
+        textAlign: 'center',
         marginBottom: 8,
     },
-    description: {
-        fontSize: 16,
-        lineHeight: 24,
-        fontWeight: '400',
+    heroDesc: {
+        fontSize: 15,
+        textAlign: 'center',
+        maxWidth: '80%',
+        lineHeight: 22,
     },
-    actionRow: {
+    filterRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: Spacing.sm,
     },
-    statsBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    statsLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-        opacity: 0.6,
-    },
-    sortButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
+    countBadge: {
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 12,
-        borderWidth: 1,
+        backgroundColor: 'rgba(0,0,0,0.03)',
     },
-    sortText: {
-        fontSize: 14,
-        fontWeight: '700',
+    filterBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
     },
     createButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
     backButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
@@ -299,18 +293,36 @@ const styles = StyleSheet.create({
     emptyContainer: {
         padding: Spacing.xl,
         alignItems: 'center',
-        marginTop: Spacing.xl,
+        marginTop: Spacing.xl * 2,
+    },
+    emptyIconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     emptyText: {
         textAlign: 'center',
-        marginTop: Spacing.md,
-        marginBottom: Spacing.lg,
+        marginTop: 8,
+        marginBottom: Spacing.xl,
         fontSize: 16,
+        maxWidth: '80%',
     },
     emptyButton: {
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderRadius: 100,
-        borderWidth: 1,
+        flexDirection: 'row',
+        gap: 8,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: 14,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
 });

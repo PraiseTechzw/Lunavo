@@ -238,7 +238,7 @@ export default function NotificationsScreen() {
     </TouchableOpacity>
   );
 
-  const filterOptions: Array<{ id: 'all' | NotificationType; label: string }> = [
+  const filterOptions: { id: 'all' | NotificationType; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'reply', label: 'Replies' },
     { id: 'escalation', label: 'Escalations' },

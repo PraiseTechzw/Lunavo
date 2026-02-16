@@ -5,8 +5,6 @@ import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/t
 import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   KeyboardAvoidingView,
   ScrollView,
@@ -14,6 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ConfirmSignup() {
   const colorScheme = useColorScheme();

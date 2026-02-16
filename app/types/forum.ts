@@ -37,6 +37,7 @@ export interface Post {
 export interface Reply {
     id: string;
     postId: string;
+    parentReplyId?: string;
     authorId: string;
     authorPseudonym: string;
     content: string;

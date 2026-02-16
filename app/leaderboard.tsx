@@ -19,8 +19,8 @@ import { useColorScheme } from '@/app/hooks/use-color-scheme';
 import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
 import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
 import { supabase } from '@/lib/supabase';
-import { getPosts, getReplies, getUserStreaks } from '@/lib/database';
-import { getCurrentUser } from '@/lib/database';
+import { getPosts, getReplies, getUserStreaks , getCurrentUser } from '@/lib/database';
+
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 
 type LeaderboardCategory = 'helpful' | 'engaged' | 'streaks' | 'badges' | 'category-expert';

@@ -254,7 +254,7 @@ export default function VerifyStudentScreen() {
 
             </Animated.View>
 
-            
+
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

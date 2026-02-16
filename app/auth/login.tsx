@@ -26,8 +26,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   Easing,

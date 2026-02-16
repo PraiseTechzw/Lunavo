@@ -9,6 +9,38 @@ import { Platform } from 'react-native';
 import { getCurrentUser } from './auth';
 import { supabase } from './supabase';
 
+/**
+ * Send a push notification using Supabase Edge Function
+ */
+export async function sendPushNotification(
+  to: string | string[],
+  title: string,
+  body: string,
+  data?: Record<string, any>
+): Promise<any> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke('send-push', {
+      body: {
+        to,
+        title,
+        body,
+        data,
+        sound: 'default',
+      },
+    });
+
+    if (error) {
+      console.error('Error sending push notification:', error);
+      throw error;
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error invoking send-push function:', error);
+    return null; // Don't crash the app if notification fails
+  }
+}
+
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

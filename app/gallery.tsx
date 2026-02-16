@@ -21,6 +21,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCurrentUser } from "@/hooks/use-auth-guard";
 import { getGalleryImages } from "@/lib/database";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 const { width } = Dimensions.get("window");
 const COLUMN_WIDTH = (width - Spacing.md * 3) / 2;
 
@@ -251,8 +253,6 @@ export default function GalleryScreen() {
         </SafeAreaView>
     );
 }
-
-import { LinearGradient } from "expo-linear-gradient";
 
 const styles = StyleSheet.create({
     container: {

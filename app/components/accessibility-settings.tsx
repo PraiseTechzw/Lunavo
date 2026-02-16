@@ -41,7 +41,7 @@ export default function AccessibilitySettingsScreen() {
     updateSettings({ reduceMotion: value });
   };
 
-  const fontSizeOptions: Array<{ value: AccessibilitySettings['fontSize']; label: string; preview: string }> = [
+  const fontSizeOptions: { value: AccessibilitySettings['fontSize']; label: string; preview: string }[] = [
     { value: 'small', label: 'Small', preview: 'Aa' },
     { value: 'medium', label: 'Medium', preview: 'Aa' },
     { value: 'large', label: 'Large', preview: 'Aa' },

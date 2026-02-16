@@ -7,13 +7,15 @@ import {
   Spacing,
 } from "@/app/constants/theme";
 import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { SupportMessage } from "@/app/types";
+import { SupportMessage, SupportSession } from "@/app/types";
 import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
 import {
   getCurrentUser,
   getSupportMessages,
+  getSupportSessions,
   getUser,
   sendSupportMessage,
+  updateSupportSession
 } from "@/lib/database";
 import {
   sendReaction,
@@ -47,8 +49,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { SupportSession } from "@/app/types";
-import { getSupportSessions, updateSupportSession } from "@/lib/database";
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -283,7 +283,7 @@ export default function ChatDetailScreen() {
       educator?.role === "counselor"
         ? "Counselor"
         : educator?.role === "peer-educator" ||
-            educator?.role === "peer-educator-executive"
+          educator?.role === "peer-educator-executive"
           ? "Peer Educator"
           : educator?.role === "life-coach"
             ? "Life Coach"
@@ -291,7 +291,7 @@ export default function ChatDetailScreen() {
     const showDateDivider =
       index === 0 ||
       new Date(messages[index - 1].created_at).toDateString() !==
-        new Date(item.created_at).toDateString();
+      new Date(item.created_at).toDateString();
     const isDelivered = !String(item.id).startsWith("temp-");
     const isRead = !!item.is_read;
     return (
@@ -551,8 +551,8 @@ export default function ChatDetailScreen() {
 
             <View
               style={[
-                styles.inputRow,
-                { backgroundColor: colors.surface, borderColor: colors.border },
+                styles.inputContainer,
+                { backgroundColor: 'transparent' }, // Transparent to let background show
                 {
                   marginBottom:
                     Platform.OS === "android" && kbVisible
@@ -561,53 +561,56 @@ export default function ChatDetailScreen() {
                 },
               ]}
             >
-              <TouchableOpacity
-                onPress={handlePickImage}
-                style={[
-                  styles.attachBtn,
-                  { borderColor: colors.border, backgroundColor: colors.card },
-                ]}
-              >
-                <Ionicons name="image-outline" size={18} color={colors.icon} />
-              </TouchableOpacity>
-              <TextInput
-                style={[
-                  styles.input,
-                  createInputStyle(),
-                  { color: colors.text },
-                ]}
-                placeholder="Type a message..."
-                placeholderTextColor={colors.icon}
-                value={input}
-                onChangeText={handleInputChange}
-                onFocus={scrollToEnd}
-                returnKeyType="send"
-                onSubmitEditing={handleSend}
-                blurOnSubmit={false}
-                underlineColorAndroid="transparent"
-              />
-              <TouchableOpacity
-                style={[styles.sendBtn, { backgroundColor: colors.primary }]}
-                onPress={handleSend}
-                disabled={sending}
-                activeOpacity={0.8}
-              >
-                {sending ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Ionicons name="send" size={18} color="#FFF" />
-                )}
-              </TouchableOpacity>
+              <View style={[styles.inputPill, { backgroundColor: colors.surface, borderColor: colors.border, paddingBottom: 0 }]}>
+                <TouchableOpacity
+                  onPress={handlePickImage}
+                  style={styles.attachBtn}
+                >
+                  <Ionicons name="add-circle" size={32} color={colors.primary} />
+                </TouchableOpacity>
+                <TextInput
+                  style={[
+                    styles.input,
+                    createInputStyle(),
+                    { color: colors.text }
+                  ]}
+                  placeholder="Message..."
+                  placeholderTextColor={colors.icon}
+                  value={input}
+                  onChangeText={handleInputChange}
+                  onFocus={scrollToEnd}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSend}
+                  blurOnSubmit={false}
+                  underlineColorAndroid="transparent"
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.sendBtn, { backgroundColor: sending || !input.trim() ? colors.surface : colors.primary }]}
+                  onPress={handleSend}
+                  disabled={sending || !input.trim()}
+                  activeOpacity={0.8}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="arrow-up" size={20} color={!input.trim() ? colors.icon : "#FFF"} />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
             {supporterTyping && (
               <View
                 style={{
                   paddingHorizontal: Spacing.lg,
                   paddingVertical: Spacing.xs,
+                  position: 'absolute',
+                  bottom: 80,
+                  left: 0,
                 }}
               >
-                <ThemedText type="small" style={{ color: colors.icon }}>
-                  Supporter is typing…
+                <ThemedText type="small" style={{ color: colors.icon, fontStyle: 'italic' }}>
+                  Typing...
                 </ThemedText>
               </View>
             )}
@@ -630,15 +633,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: "700",
-    fontSize: 18,
+    fontSize: 17,
     lineHeight: 22,
   },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
     borderBottomWidth: 1,
   },
   headerLeft: {
@@ -647,15 +650,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   headerInfo: {
-    marginLeft: Spacing.sm,
+    marginLeft: 6,
   },
   headerRight: {
     flexDirection: "row",
@@ -672,12 +675,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
-  },
-  priorityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginLeft: Spacing.md,
   },
   toolsRow: {
     alignItems: "center",
@@ -707,23 +704,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   messagesList: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xl,
-    paddingTop: 4,
+    paddingTop: 10,
   },
   dateDivider: {
     alignSelf: "center",
-    marginVertical: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    marginVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: 1,
-    backgroundColor: "#00000008",
-    ...PlatformStyles.shadow,
+    backgroundColor: "rgba(0,0,0,0.03)",
   },
   messageRow: {
-    marginVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+    marginVertical: 2,
+    paddingHorizontal: 4,
   },
   mineRow: {
     alignItems: "flex-end",
@@ -732,21 +727,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   bubble: {
-    maxWidth: "70%",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    marginHorizontal: Spacing.sm,
+    maxWidth: "75%",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginHorizontal: 0,
   },
   mineBubble: {
-    borderWidth: 0,
+    borderBottomRightRadius: 4,
     ...PlatformStyles.premiumShadow,
   },
   theirBubble: {
-    backgroundColor: "#00000008",
-    borderWidth: 0,
-    ...PlatformStyles.shadow,
+    borderBottomLeftRadius: 4,
   },
   ticks: {
     position: "absolute",
@@ -762,42 +754,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   labelWrap: {
-    display: "none",
+    marginLeft: 4,
+    marginBottom: 2,
   },
   labelText: {
-    fontSize: 0,
+    fontSize: 11,
+    opacity: 0.7,
   },
   timeRow: {
-    marginTop: 2,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+    opacity: 0.5,
   },
-  inputRow: {
+  inputContainer: {
+    padding: Spacing.md,
+  },
+  inputPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
-    borderTopWidth: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    gap: 8,
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   attachBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
+    marginLeft: 4,
   },
   input: {
     flex: 1,
-    minHeight: 40,
+    maxHeight: 100,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    paddingVertical: 10,
   },
   sendBtn: {
     height: 36,
     width: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 4,
   },
 });

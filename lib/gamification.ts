@@ -2,11 +2,10 @@
  * Gamification System - Badges, Streaks, Points, and Achievements
  */
 
-import { supabase } from './supabase';
-import { getUserBadges, createUserBadge, getStreak, updateStreak, createStreak, getReplies, getPosts } from './database';
+import { createStreak, getPosts, getReplies, getStreak, getUserBadges, updateStreak } from './database';
 import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
 import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
-import { User } from '@/app/types';
+import { supabase } from './supabase';
 
 // ============================================
 // BADGE DEFINITIONS
@@ -55,7 +54,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'check-in',
     criteria: { type: 'check_in_streak', value: 30, description: '30-day check-in streak' },
   },
-  
+
   // Helping Badges
   {
     id: 'first-response',
@@ -84,7 +83,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'helping',
     criteria: { type: 'response_count', value: 50, description: 'Give 50 helpful responses' },
   },
-  
+
   // Engagement Badges
   {
     id: 'active-member',
@@ -113,7 +112,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: 'engagement',
     criteria: { type: 'helpful_votes', value: 10, description: 'Get 10 helpful votes' },
   },
-  
+
   // Achievement Badges
   {
     id: 'streak-master',
@@ -192,23 +191,68 @@ export async function checkBadgeEligibility(userId: string, badgeId: string): Pr
 
 export async function awardBadge(userId: string, badgeId: string): Promise<boolean> {
   try {
-    // Check eligibility
-    const eligible = await checkBadgeEligibility(userId, badgeId);
-    if (!eligible) return false;
+    const badgeDef = BADGE_DEFINITIONS.find((b) => b.id === badgeId);
+    if (!badgeDef) return false;
 
-    // Award badge
-    await createUserBadge({
-      userId,
-      badgeId,
-    });
+    // 1. Resolve DB Badge UUID
+    let dbBadgeId: string | null = null;
 
-    // Send notification
-    const badge = BADGE_DEFINITIONS.find((b) => b.id === badgeId);
-    if (badge) {
-      await notifyBadgeEarned(userId, badge.name, badge.description);
-      // Award points for badge
-      await awardBadgePoints(userId);
+    // Check if badge exists in DB by name
+    const { data: existingBadge, error: fetchError } = await supabase
+      .from('badges')
+      .select('id')
+      .eq('name', badgeDef.name)
+      .maybeSingle();
+
+    if (existingBadge) {
+      dbBadgeId = existingBadge.id;
+    } else {
+      // Create the badge if it doesn't exist
+      const { data: newBadge, error: createError } = await supabase
+        .from('badges')
+        .insert({
+          name: badgeDef.name,
+          description: badgeDef.description,
+          icon: badgeDef.icon,
+          color: badgeDef.color,
+          category: badgeDef.category,
+          criteria: badgeDef.criteria
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error("Error creating badge definition:", createError);
+        return false;
+      }
+      dbBadgeId = newBadge.id;
     }
+
+    // 2. Check if user already has this badge (using DB UUID)
+    const { data: hasBadge } = await supabase
+      .from('user_badges')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('badge_id', dbBadgeId)
+      .maybeSingle();
+
+    if (hasBadge) {
+      return false; // Already earned
+    }
+
+    // 3. Award badge
+    const { error: awardError } = await supabase
+      .from('user_badges')
+      .insert({
+        user_id: userId,
+        badge_id: dbBadgeId
+      });
+
+    if (awardError) throw awardError;
+
+    // 4. Send notification & points
+    await notifyBadgeEarned(userId, badgeDef.name, badgeDef.description);
+    await awardBadgePoints(userId);
 
     return true;
   } catch (error) {
@@ -524,8 +568,7 @@ async function getUserStats(userId: string) {
     .eq('user_id', userId);
 
   // Get replies
-  const allReplies = await getReplies(''); // Get all replies, then filter
-  const replies = allReplies.filter((r) => r.authorId === userId);
+  const replies = await getReplies({ authorId: userId });
 
   // Get posts
   const allPosts = await getPosts();

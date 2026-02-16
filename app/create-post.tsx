@@ -99,10 +99,7 @@ export default function CreatePostScreen() {
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [pseudonym, setPseudonym] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [hasTriggerWarning, setHasTriggerWarning] = useState(false);
-  const [categoryConfidence, setCategoryConfidence] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [contentSelection, setContentSelection] = useState({
@@ -303,7 +300,7 @@ export default function CreatePostScreen() {
     loadPseudonym();
     loadDraft();
     loadAvailableCategories();
-  }, []);
+  }, [loadAvailableCategories, loadDraft]);
 
   useEffect(() => {
     // Set category from params if provided
@@ -318,7 +315,7 @@ export default function CreatePostScreen() {
   useEffect(() => {
     // Auto-save draft
     saveDraft();
-  }, [title, content, selectedCategory, selectedTags]);
+  }, [saveDraft]);
 
   useEffect(() => {
     // Analyze content for category and tag suggestions
@@ -328,9 +325,9 @@ export default function CreatePostScreen() {
     ) {
       analyzeContent();
     }
-  }, [debouncedTitle, debouncedContent]);
+  }, [debouncedTitle, debouncedContent, analyzeContent]);
 
-  const loadAvailableCategories = async () => {
+  const loadAvailableCategories = React.useCallback(async () => {
     try {
       setLoadingCategories(true);
       // Get topic stats to see which categories have posts
@@ -367,7 +364,7 @@ export default function CreatePostScreen() {
     } finally {
       setLoadingCategories(false);
     }
-  };
+  }, [params.category]);
 
   const loadPseudonym = async () => {
     let savedPseudonym = await getPseudonym();
@@ -378,7 +375,7 @@ export default function CreatePostScreen() {
     setPseudonym(savedPseudonym);
   };
 
-  const loadDraft = async () => {
+  const loadDraft = React.useCallback(async () => {
     try {
       const draftJson = await AsyncStorage.getItem(DRAFT_KEY);
       if (draftJson) {
@@ -393,9 +390,9 @@ export default function CreatePostScreen() {
     } catch (error) {
       console.error("Error loading draft:", error);
     }
-  };
+  }, [availableCategories]);
 
-  const saveDraft = async () => {
+  const saveDraft = React.useCallback(async () => {
     try {
       const draft = {
         title,
@@ -408,7 +405,7 @@ export default function CreatePostScreen() {
     } catch (error) {
       console.error("Error saving draft:", error);
     }
-  };
+  }, [title, content, selectedCategory, selectedTags]);
 
   const clearDraft = async () => {
     try {
@@ -418,7 +415,7 @@ export default function CreatePostScreen() {
     }
   };
 
-  const analyzeContent = async () => {
+  const analyzeContent = React.useCallback(async () => {
     try {
       if (!title.trim() && !content.trim()) return;
 
@@ -430,7 +427,7 @@ export default function CreatePostScreen() {
         availableCategories.includes(analysis.categorization.category)
       ) {
         setSuggestedCategory(analysis.categorization.category);
-        setCategoryConfidence(analysis.categorization.confidence);
+        // setCategoryConfidence(analysis.categorization.confidence);
 
         // Auto-select if confidence is very high
         if (analysis.categorization.confidence > 0.8) {
@@ -445,7 +442,7 @@ export default function CreatePostScreen() {
     } catch (error) {
       console.error("Error analyzing content:", error);
     }
-  };
+  }, [title, content, selectedCategory, availableCategories]);
 
   const handlePostButton = () => {
     if (!title.trim() || !content.trim()) {
@@ -496,6 +493,12 @@ export default function CreatePostScreen() {
       const escalation = checkEscalation(content, selectedCategory);
       const sanitizedContent = sanitizeContent(content);
 
+      // Add trigger warning tag if selected
+      const finalTags = [...selectedTags];
+      if (hasTriggerWarning) {
+        finalTags.push("Trigger Warning");
+      }
+
       // Create post using database function
       await createPostDB({
         authorId: user.id,
@@ -503,7 +506,7 @@ export default function CreatePostScreen() {
         title: title.trim(),
         content: sanitizedContent,
         isAnonymous,
-        tags: selectedTags,
+        tags: finalTags,
         escalationLevel: escalation.level,
         escalationReason: escalation.reason,
       });
