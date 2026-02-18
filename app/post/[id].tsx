@@ -36,6 +36,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -150,10 +151,22 @@ export default function PostDetailScreen() {
       loadPost();
       setupRealtimeSubscriptions();
     }
+
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
     return () => {
       if (repliesChannelRef.current) unsubscribe(repliesChannelRef.current);
       if (postChannelRef.current) unsubscribe(postChannelRef.current);
       if (replyChangesChannelRef.current) unsubscribe(replyChangesChannelRef.current);
+      showSub.remove();
+      hideSub.remove();
     };
   }, [id, loadPost, setupRealtimeSubscriptions]);
 
@@ -544,7 +557,7 @@ export default function PostDetailScreen() {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: 40, flexGrow: 1 }
+            { paddingBottom: replyingTo ? 180 : 120, flexGrow: 1 }
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -650,21 +663,30 @@ export default function PostDetailScreen() {
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 12),
-            elevation: 10,
+            paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
+            elevation: 20,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
           }
         ]}>
           {replyingTo && (
-            <View style={[styles.replyingToBanner, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 8 }]}>
-              <ThemedText type="small" style={{ color: colors.icon, textTransform: 'none' }}>
-                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text, textTransform: 'none' }}>{replyingTo.authorPseudonym}</ThemedText>
+            <View style={[
+              styles.replyingToBanner,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                marginBottom: 6,
+                paddingVertical: 6,
+                borderRadius: 12
+              }
+            ]}>
+              <ThemedText type="small" style={{ color: colors.icon, textTransform: 'none', fontSize: 12 }}>
+                Replying to <ThemedText type="small" style={{ fontWeight: 'bold', color: colors.text, textTransform: 'none', fontSize: 12 }}>{replyingTo.authorPseudonym}</ThemedText>
               </ThemedText>
               <TouchableOpacity onPress={() => { setReplyingTo(null); setReplyContent(''); }}>
-                <Ionicons name="close-circle" size={20} color={colors.icon} />
+                <Ionicons name="close-circle" size={18} color={colors.icon} />
               </TouchableOpacity>
             </View>
           )}
