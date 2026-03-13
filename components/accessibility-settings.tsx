@@ -9,10 +9,10 @@ import { useRouter } from 'expo-router';
 import { ThemedView } from './themed-view';
 import { ThemedText } from './themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { useAccessibility } from '@/app/_hooks/use-accessibility';
-import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
-import { getCursorStyle } from '@/app/_utils/platform-styles';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAccessibility } from '@/hooks/use-accessibility';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { getCursorStyle } from '@/utils/platform-styles';
 import { AccessibilitySettings } from '@/lib/accessibility';
 
 export default function AccessibilitySettingsScreen() {

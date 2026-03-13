@@ -2,12 +2,12 @@
  * Peer Support Forum - Premium Topic Cards View
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { CATEGORIES } from '@/app/_constants/categories';
-import { Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { PostCategory } from '@/app/_types';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { CATEGORIES } from '@/constants/categories';
+import { Colors, PlatformStyles, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PostCategory } from '@/types';
 import { TopicStats, getTopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';

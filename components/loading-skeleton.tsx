@@ -4,8 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 
 interface SkeletonProps {
   width?: number | string;

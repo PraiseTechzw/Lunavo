@@ -2,12 +2,12 @@
  * User Management Screen - Admin only
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { User, UserRole } from "@/app/_types";
-import { createShadow, getCursorStyle } from "@/app/_utils/platform-styles";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { User, UserRole } from "@/types";
+import { createShadow, getCursorStyle } from "@/utils/platform-styles";
 import { getUsers, updateUser } from "@/lib/database";
 import { MaterialIcons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";

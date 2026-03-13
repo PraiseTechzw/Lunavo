@@ -2,11 +2,11 @@
  * Profile Tab - Premium Version
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { getPseudonym } from '@/app/_utils/storage';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getPseudonym } from '@/utils/storage';
 import { getCurrentUser, getPosts, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
 import { POINTS_CONFIG, getPointsHistory, getUserPoints } from '@/lib/points-system';

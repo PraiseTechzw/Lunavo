@@ -2,7 +2,7 @@
  * Real-time subscription utilities for Supabase
  */
 
-import { Post, Reply } from "@/app/_types";
+import { Post, Reply } from "@/types";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 export type { RealtimeChannel };

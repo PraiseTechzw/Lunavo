@@ -2,13 +2,13 @@
  * Report Detail Screen - Admin view of a specific report
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Post, Report } from "@/app/_types";
-import { createShadow, getCursorStyle } from "@/app/_utils/platform-styles";
-import { getReport, getPost, updateReport, deletePost } from "@/app/_utils/storage";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Post, Report } from "@/types";
+import { createShadow, getCursorStyle } from "@/utils/platform-styles";
+import { getReport, getPost, updateReport, deletePost } from "@/utils/storage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -37,7 +37,7 @@ export default function ReportDetailScreen() {
     if (!id) return;
     setLoading(true);
     try {
-      const allReports = await import("@/app/_utils/storage").then(m => m.getReports());
+      const allReports = await import("@/utils/storage").then(m => m.getReports());
       const foundReport = allReports.find(r => r.id === id);
       
       if (!foundReport) {

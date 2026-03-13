@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ThemedView } from '@/app/_components/themed-view';
-import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
-import { addReport, getPseudonym } from '@/app/_utils/storage';
-import { createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
-import { Report } from '@/app/_types';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { addReport, getPseudonym } from '@/utils/storage';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
+import { Report } from '@/types';
 
 const reportReasons = [
   { id: 'inappropriate', label: 'Inappropriate Content', icon: 'block' as const },

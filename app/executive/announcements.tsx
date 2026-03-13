@@ -2,12 +2,12 @@
  * Announcements Management - Create, edit, delete announcements
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Announcement } from '@/app/_types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Announcement } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import {
   createAnnouncement,

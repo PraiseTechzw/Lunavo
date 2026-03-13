@@ -3,13 +3,13 @@
  * All data is anonymized (no user IDs, only pseudonyms)
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { CATEGORIES } from '@/app/_constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { EscalationLevel, PostCategory } from '@/app/_types';
-import { createShadow } from '@/app/_utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { CATEGORIES } from '@/constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { EscalationLevel, PostCategory } from '@/types';
+import { createShadow } from '@/utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getEscalations, getPosts, getReplies } from '@/lib/database';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';

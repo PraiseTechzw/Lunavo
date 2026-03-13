@@ -1,14 +1,14 @@
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { SupportMessage, SupportSession } from "@/app/_types";
-import { createInputStyle, getCursorStyle } from "@/app/_utils/platform-styles";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { SupportMessage, SupportSession } from "@/types";
+import { createInputStyle, getCursorStyle } from "@/utils/platform-styles";
 import {
   getCurrentUser,
   getSupportMessages,

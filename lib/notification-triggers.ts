@@ -3,24 +3,25 @@
  * These functions create notifications for various events
  */
 
-import { createNotification, getPost } from './database';
-import { getCurrentUser } from './auth';
 import { scheduleNotification } from './notifications';
-import { NotificationType } from '@/app/_types';
+import { NotificationType } from '@/types';
 
 /**
  * Send notification when a new reply is added to user's post
  */
 export async function notifyNewReply(postId: string, replyAuthor: string) {
   try {
+    const { getPost } = await import('./database');
     const post = await getPost(postId);
     if (!post) return;
 
     // Don't notify if user replied to their own post
+    const { getCurrentUser } = await import('./auth');
     const currentUser = await getCurrentUser();
     if (currentUser?.id === post.authorId) return;
 
     // Create notification in database
+    const { createNotification } = await import('./database');
     await createNotification({
       userId: post.authorId,
       type: 'reply',
@@ -50,9 +51,11 @@ export async function notifyEscalationAssigned(
   escalationLevel: string
 ) {
   try {
+    const { getPost } = await import('./database');
     const post = await getPost(postId);
     if (!post) return;
 
+    const { createNotification } = await import('./database');
     await createNotification({
       userId: counselorId,
       type: 'escalation',
@@ -89,6 +92,7 @@ export async function scheduleMeetingReminder(
     if (oneHourBefore <= now) return;
 
     // Create notification in database
+    const { createNotification } = await import('./database');
     await createNotification({
       userId,
       type: 'meeting',
@@ -103,7 +107,7 @@ export async function scheduleMeetingReminder(
       'Meeting Reminder',
       `Peer Educator Club meeting in 1 hour: "${meetingTitle}"`,
       { meetingId, type: 'meeting' },
-      { date: oneHourBefore }
+      oneHourBefore
     );
   } catch (error) {
     console.error('Error scheduling meeting reminder:', error);
@@ -127,6 +131,7 @@ export async function scheduleMeetingReminder24h(
     if (twentyFourHoursBefore <= now) return;
 
     // Create notification in database
+    const { createNotification } = await import('./database');
     await createNotification({
       userId,
       type: 'meeting',
@@ -141,7 +146,7 @@ export async function scheduleMeetingReminder24h(
       'Meeting Reminder',
       `Peer Educator Club meeting tomorrow: "${meetingTitle}"`,
       { meetingId, type: 'meeting' },
-      { date: twentyFourHoursBefore }
+      twentyFourHoursBefore
     );
   } catch (error) {
     console.error('Error scheduling 24h meeting reminder:', error);
@@ -183,6 +188,7 @@ export async function scheduleAllMeetingReminders(
  */
 export async function notifyBadgeEarned(userId: string, badgeName: string, badgeDescription: string) {
   try {
+    const { createNotification } = await import('./database');
     await createNotification({
       userId,
       type: 'achievement',
@@ -207,6 +213,7 @@ export async function notifyBadgeEarned(userId: string, badgeName: string, badge
  */
 export async function notifyStreakMilestone(userId: string, streakType: string, days: number) {
   try {
+    const { createNotification } = await import('./database');
     await createNotification({
       userId,
       type: 'achievement',
@@ -236,6 +243,7 @@ export async function notifyNewPostInCategory(
   postTitle: string
 ) {
   try {
+    const { createNotification } = await import('./database');
     await createNotification({
       userId,
       type: 'system',

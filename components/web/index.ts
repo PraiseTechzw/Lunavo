@@ -3,7 +3,7 @@
  * Web-optimized components for desktop/large screen experiences
  * 
  * Usage:
- * import { DataTable } from '@/app/_components/web';
+ * import { DataTable } from '@/components/web';
  */
 
 export { DataTable } from './data-table';

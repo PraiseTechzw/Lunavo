@@ -2,16 +2,16 @@
  * Premium Reset Password Screen
  */
 
-import { PEACELogo } from "@/app/_components/peace-logo";
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
+import { PEACELogo } from "@/components/peace-logo";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { updatePassword } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";

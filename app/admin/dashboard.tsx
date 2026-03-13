@@ -2,16 +2,16 @@
  * Admin Dashboard - For Student Affairs and Moderators
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Post, Report } from "@/app/_types";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Post, Report } from "@/types";
 import {
     createShadow,
     getContainerStyle,
     getCursorStyle,
-} from "@/app/_utils/platform-styles";
+} from "@/utils/platform-styles";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
 import { getEscalations, getPosts, getReports, getUsers } from "@/lib/database";
 import { subscribeToEscalations, subscribeToPosts } from "@/lib/realtime";

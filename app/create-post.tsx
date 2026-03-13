@@ -3,26 +3,26 @@
  * Enhanced UI with dynamic categories based on existing topics
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { CATEGORIES, CATEGORY_LIST } from "@/app/_constants/categories";
-import { checkEscalation } from "@/app/_constants/escalation";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { CATEGORIES, CATEGORY_LIST } from "@/constants/categories";
+import { checkEscalation } from "@/constants/escalation";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { useDebounce } from "@/app/_hooks/use-debounce";
-import { PostCategory } from "@/app/_types";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDebounce } from "@/hooks/use-debounce";
+import { PostCategory } from "@/types";
 import {
   containsIdentifyingInfo,
   generatePseudonym,
   sanitizeContent,
-} from "@/app/_utils/anonymization";
-import { createInputStyle, getCursorStyle } from "@/app/_utils/platform-styles";
-import { getPseudonym, savePseudonym } from "@/app/_utils/storage";
+} from "@/utils/anonymization";
+import { createInputStyle, getCursorStyle } from "@/utils/platform-styles";
+import { getPseudonym, savePseudonym } from "@/utils/storage";
 import { analyzePost } from "@/lib/ai-utils";
 import {
   createPost as createPostDB,

@@ -2,11 +2,11 @@
  * Leaderboard Screen - Rankings and statistics
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/utils/platform-styles';
 import { getPosts, getReplies, getUserStreaks } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import { MaterialIcons } from '@expo/vector-icons';

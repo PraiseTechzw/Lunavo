@@ -4,15 +4,15 @@
  * Standalone suite at /executive
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import {
   Colors,
   PlatformStyles,
   Spacing
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Resource, User } from "@/app/_types";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Resource, User } from "@/types";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
 import { getNetworkStats, getPEUsers, getResources } from "@/lib/database";
 import { MaterialCommunityIcons } from "@expo/vector-icons";

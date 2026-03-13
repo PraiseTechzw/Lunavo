@@ -3,10 +3,10 @@
  * Header with drawer menu button for mobile screens
  */
 
-import { PEACELogo } from '@/app/_components/peace-logo';
-import { ThemedText } from '@/app/_components/themed-text';
-import { Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { PEACELogo } from '@/components/peace-logo';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 

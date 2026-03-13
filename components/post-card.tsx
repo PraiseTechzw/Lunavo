@@ -2,11 +2,11 @@
  * Post card component for displaying posts in the feed
  */
 
-import { CATEGORIES } from '@/app/_constants/categories';
-import { Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Post, PostCategory } from '@/app/_types';
-import { getCursorStyle } from '@/app/_utils/platform-styles';
+import { CATEGORIES } from '@/constants/categories';
+import { Colors, PlatformStyles, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Post, PostCategory } from '@/types';
+import { getCursorStyle } from '@/utils/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';

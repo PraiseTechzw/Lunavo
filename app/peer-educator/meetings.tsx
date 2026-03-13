@@ -3,12 +3,12 @@
  * Weekly view (Wednesdays 16:00-16:30)
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Meeting } from "@/app/_types";
-import { createShadow, getCursorStyle } from "@/app/_utils/platform-styles";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Meeting } from "@/types";
+import { createShadow, getCursorStyle } from "@/utils/platform-styles";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
 import { createOrUpdateAttendance, getMeetings, getUserAttendance } from "@/lib/database";
 import { scheduleRemindersForNewRSVP } from "@/lib/meeting-reminders";

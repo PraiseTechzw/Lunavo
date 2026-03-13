@@ -3,8 +3,6 @@
  */
 
 import { createStreak, getPosts, getReplies, getStreak, getUserBadges, updateStreak } from './database';
-import { notifyBadgeEarned, notifyStreakMilestone } from './notification-triggers';
-import { awardBadgePoints, awardStreakMilestonePoints } from './points-system';
 import { supabase } from './supabase';
 
 // ============================================
@@ -251,6 +249,8 @@ export async function awardBadge(userId: string, badgeId: string): Promise<boole
     if (awardError) throw awardError;
 
     // 4. Send notification & points
+    const { notifyBadgeEarned } = await import('./notification-triggers');
+    const { awardBadgePoints } = await import('./points-system');
     await notifyBadgeEarned(userId, badgeDef.name, badgeDef.description);
     await awardBadgePoints(userId);
 
@@ -633,6 +633,8 @@ async function getUserStats(userId: string) {
 async function checkStreakMilestones(userId: string, streakType: string, days: number) {
   const milestones = [7, 14, 30, 60, 100];
   if (milestones.includes(days)) {
+    const { notifyStreakMilestone } = await import('./notification-triggers');
+    const { awardStreakMilestonePoints } = await import('./points-system');
     await notifyStreakMilestone(userId, streakType, days);
     // Award points for streak milestone
     await awardStreakMilestonePoints(userId, days);

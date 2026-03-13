@@ -2,13 +2,13 @@
  * Escalation Detail View - Full escalation management
  */
 
-import { CategoryBadge } from '@/app/_components/category-badge';
-import { ThemedText } from '@/app/_components/themed-text';
-import { ThemedView } from '@/app/_components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Escalation, EscalationLevel, Post } from '@/app/_types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
+import { CategoryBadge } from '@/components/category-badge';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Escalation, EscalationLevel, Post } from '@/types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/utils/platform-styles';
 import {
     getCurrentUser,
     getEscalationById,

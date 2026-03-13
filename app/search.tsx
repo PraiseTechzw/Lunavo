@@ -2,16 +2,16 @@
  * Global Search Screen - Search posts, resources, users by pseudonym
  */
 
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Post, Resource, User } from "@/app/_types";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Post, Resource, User } from "@/types";
 import {
     createInputStyle,
     createShadow,
     getCursorStyle,
-} from "@/app/_utils/platform-styles";
+} from "@/utils/platform-styles";
 import { getPosts, getResources, getUsers } from "@/lib/database";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";

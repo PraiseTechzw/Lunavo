@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CATEGORIES } from "@/app/_constants/categories";
+import { CATEGORIES } from "@/constants/categories";
 import {
   ActivityLog,
   Announcement,
@@ -24,11 +24,9 @@ import {
   SupportMessage,
   SupportSession,
   User,
-} from "@/app/_types";
+} from "@/types";
 import { sendEmailWithResend } from "./email";
-import { checkAllBadges } from "./gamification";
 import { sendPushNotification } from "./notifications";
-import { awardPostCreatedPoints, awardReplyPoints } from "./points-system";
 import { supabase } from "./supabase";
 
 // ============================================
@@ -635,6 +633,8 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
 
   // Award points for creating post
   try {
+    const { awardPostCreatedPoints } = await import("./points-system");
+    const { checkAllBadges } = await import("./gamification");
     await awardPostCreatedPoints(postData.authorId);
     await checkAllBadges(postData.authorId);
   } catch (pointsError) {
@@ -902,6 +902,8 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
 
   // Award points for reply
   try {
+    const { awardReplyPoints } = await import("./points-system");
+    const { checkAllBadges } = await import("./gamification");
     await awardReplyPoints(replyData.authorId);
     await checkAllBadges(replyData.authorId);
   } catch (pointsError) {
@@ -919,7 +921,7 @@ export async function createReply(replyData: CreateReplyData): Promise<Reply> {
       // Use profile_data.pushToken
       // Since getUser returns mapped User object, we need to check if we expose pushToken
       // It is in profileData (mapped from profile_data)
-      const pushToken = author?.profileData?.pushToken;
+      const pushToken = author?.profile_data?.pushToken;
 
       if (pushToken) {
         await sendPushNotification(

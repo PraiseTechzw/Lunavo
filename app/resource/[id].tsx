@@ -1,9 +1,9 @@
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Resource } from "@/app/_types";
-import { createShadow } from "@/app/_utils/platform-styles";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Resource } from "@/types";
+import { createShadow } from "@/utils/platform-styles";
 import {
   addResourceRating,
   getResource,

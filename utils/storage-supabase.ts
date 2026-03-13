@@ -1,41 +1,40 @@
 /**
- * Storage utilities for the app
- * Now using Supabase backend instead of AsyncStorage
+ * Storage utilities using Supabase backend
+ * This replaces the AsyncStorage-based storage.ts
  */
 
-import { Analytics, CheckIn, Post, Reply, Report, User } from "@/app/_types";
 import {
-    createCheckIn as createCheckInInDB,
-    createPost as createPostInDB,
-    createReply as createReplyInDB,
-    createReport as createReportInDB,
-    getAnalytics as getAnalyticsFromDB,
-    getCheckIns as getCheckInsFromDB,
-    getCheckInStreak as getCheckInStreakFromDB,
-    getCurrentUser as getCurrentUserFromDB,
-    getPosts as getPostsFromDB,
-    getReports as getReportsFromDB,
-    hasCheckedInToday as hasCheckedInTodayFromDB,
-    updatePost as updatePostInDB,
-    updateReport as updateReportInDB,
-} from "@/lib/database";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+  getPosts as getPostsFromDB,
+  createPost as createPostInDB,
+  updatePost as updatePostInDB,
+  getPost as getPostFromDB,
+  createReply as createReplyInDB,
+  getCurrentUser as getCurrentUserFromDB,
+  createCheckIn as createCheckInInDB,
+  getCheckIns as getCheckInsFromDB,
+  hasCheckedInToday as hasCheckedInTodayFromDB,
+  getCheckInStreak as getCheckInStreakFromDB,
+  createReport as createReportInDB,
+  getReports as getReportsFromDB,
+  updateReport as updateReportInDB,
+  getAnalytics as getAnalyticsFromDB,
+} from '@/lib/database';
+import { Post, Reply, Report, User, CheckIn, Analytics } from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
-  USER: "@lunavo:user",
-  POSTS: "@lunavo:posts",
-  REPLIES: "@lunavo:replies",
-  USER_PSEUDONYM: "@lunavo:pseudonym",
-  SETTINGS: "@lunavo:settings",
-  CHECK_INS: "@lunavo:check_ins",
-  LAST_CHECK_IN_DATE: "@lunavo:last_check_in_date",
-  REPORTS: "@lunavo:reports",
-  ANALYTICS: "@lunavo:analytics",
+  USER_PSEUDONYM: '@lunavo:pseudonym',
+  SETTINGS: '@lunavo:settings',
 };
 
-/**
- * User storage (using Supabase)
- */
+// ============================================
+// USER OPERATIONS (using Supabase)
+// ============================================
+
+export async function getUser(): Promise<User | null> {
+  return getCurrentUserFromDB();
+}
+
 export async function saveUser(user: User): Promise<void> {
   // User is saved in Supabase, but we can cache pseudonym locally
   if (user.pseudonym) {
@@ -43,27 +42,15 @@ export async function saveUser(user: User): Promise<void> {
   }
 }
 
-export async function getUser(): Promise<User | null> {
-  return getCurrentUserFromDB();
-}
-
-/**
- * Posts storage (using Supabase)
- */
-export async function savePosts(posts: Post[]): Promise<void> {
-  // Posts are now stored in Supabase, this function is kept for compatibility
-  // but doesn't do anything as posts are fetched from DB
-}
+// ============================================
+// POST OPERATIONS (using Supabase)
+// ============================================
 
 export async function getPosts(): Promise<Post[]> {
   return getPostsFromDB();
 }
 
 export async function addPost(post: Post): Promise<void> {
-  // Auto-detect and escalate if needed
-  const { autoEscalatePost } = await import("@/lib/escalation-detection");
-  await autoEscalatePost(post);
-
   await createPostInDB({
     authorId: post.authorId,
     category: post.category,
@@ -76,29 +63,27 @@ export async function addPost(post: Post): Promise<void> {
   });
 }
 
-export async function updatePost(
-  postId: string,
-  updates: Partial<Post>,
-): Promise<void> {
+export async function updatePost(postId: string, updates: Partial<Post>): Promise<void> {
   await updatePostInDB(postId, updates);
 }
 
-/**
- * Replies storage (using Supabase)
- */
-export async function getReplies(): Promise<Reply[]> {
-  // This function signature is kept for compatibility
-  // In practice, replies are fetched per post using getRepliesFromDB(postId)
-  return [];
+export async function getPost(postId: string): Promise<Post | null> {
+  return getPostFromDB(postId);
 }
 
-export async function saveReplies(replies: Reply[]): Promise<void> {
-  // Replies are now stored in Supabase
+// ============================================
+// REPLY OPERATIONS (using Supabase)
+// ============================================
+
+export async function getReplies(): Promise<Reply[]> {
+  // This function signature is kept for compatibility
+  // In practice, replies are fetched per post
+  return [];
 }
 
 export async function addReply(reply: Reply): Promise<void> {
   const user = await getCurrentUserFromDB();
-  if (!user) throw new Error("User not authenticated");
+  if (!user) throw new Error('User not authenticated');
 
   await createReplyInDB({
     postId: reply.postId,
@@ -109,9 +94,10 @@ export async function addReply(reply: Reply): Promise<void> {
   });
 }
 
-/**
- * Pseudonym storage
- */
+// ============================================
+// PSEUDONYM OPERATIONS (local cache)
+// ============================================
+
 export async function savePseudonym(pseudonym: string): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.USER_PSEUDONYM, pseudonym);
 }
@@ -120,12 +106,11 @@ export async function getPseudonym(): Promise<string | null> {
   return await AsyncStorage.getItem(STORAGE_KEYS.USER_PSEUDONYM);
 }
 
-/**
- * Settings storage
- */
-export async function saveSettings(
-  settings: Record<string, any>,
-): Promise<void> {
+// ============================================
+// SETTINGS OPERATIONS (local storage)
+// ============================================
+
+export async function saveSettings(settings: Record<string, any>): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 }
 
@@ -134,9 +119,13 @@ export async function getSettings(): Promise<Record<string, any>> {
   return data ? JSON.parse(data) : {};
 }
 
+// ============================================
+// CHECK-IN OPERATIONS (using Supabase)
+// ============================================
+
 export async function saveCheckIn(checkIn: CheckIn): Promise<void> {
   const user = await getCurrentUserFromDB();
-  if (!user) throw new Error("User not authenticated");
+  if (!user) throw new Error('User not authenticated');
 
   await createCheckInInDB({
     userId: user.id,
@@ -168,9 +157,10 @@ export async function hasCheckedInToday(): Promise<boolean> {
   return hasCheckedInTodayFromDB(user.id);
 }
 
-/**
- * Reports storage (using Supabase)
- */
+// ============================================
+// REPORT OPERATIONS (using Supabase)
+// ============================================
+
 export async function getReports(): Promise<Report[]> {
   const user = await getCurrentUserFromDB();
   if (!user) return [];
@@ -188,16 +178,18 @@ export async function addReport(report: Report): Promise<void> {
   });
 }
 
-export async function updateReport(
-  reportId: string,
-  updates: Partial<Report>,
-): Promise<void> {
+export async function updateReport(reportId: string, updates: Partial<Report>): Promise<void> {
   await updateReportInDB(reportId, updates);
 }
 
-/**
- * Analytics storage (using Supabase)
- */
+// ============================================
+// ANALYTICS OPERATIONS (using Supabase)
+// ============================================
+
 export async function getAnalytics(): Promise<Analytics> {
   return getAnalyticsFromDB();
 }
+
+// Re-export CheckIn type for compatibility
+export type { CheckIn };
+

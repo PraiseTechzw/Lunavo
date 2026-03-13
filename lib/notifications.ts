@@ -6,7 +6,6 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { getCurrentUser } from './auth';
 import { supabase } from './supabase';
 
 /**
@@ -102,6 +101,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     console.log('🚀 Push Notification Token:', token);
 
     // Save token to Supabase
+    const { getCurrentUser } = await import('./auth');
     const user = await getCurrentUser();
     if (user) {
       await supabase

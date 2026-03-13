@@ -1,16 +1,16 @@
-import { FAB } from "@/app/_components/navigation";
-import { OfflineIndicator } from "@/app/_components/offline-indicator";
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { Colors } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { UserRole } from "@/app/_types";
+import { FAB } from "@/components/navigation";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { UserRole } from "@/types";
 import {
   canAccessRoute,
   getDefaultRoute,
   isMobile,
   isStudentAffairsMobileBlocked,
-} from "@/app/_utils/navigation";
+} from "@/utils/navigation";
 import { AIResponse, processAIPrompt } from "@/lib/ai-assistant";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";

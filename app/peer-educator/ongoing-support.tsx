@@ -1,8 +1,8 @@
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
-import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { SupportSession } from "@/app/_types";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { SupportSession } from "@/types";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
 import { getCurrentUser, getLastSupportMessage, getSupportSessions } from "@/lib/database";
 import { subscribeToSupportSessions, unsubscribe } from "@/lib/realtime";

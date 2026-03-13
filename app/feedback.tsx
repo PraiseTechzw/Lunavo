@@ -2,17 +2,17 @@
  * Feedback Screen
  */
 
-import { DrawerHeader } from "@/app/_components/navigation/drawer-header";
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
+import { DrawerHeader } from "@/components/navigation/drawer-header";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import {
     BorderRadius,
     Colors,
     PlatformStyles,
     Spacing,
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { createShadow } from "@/app/_utils/platform-styles";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { createShadow } from "@/utils/platform-styles";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";

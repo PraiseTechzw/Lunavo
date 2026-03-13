@@ -2,10 +2,10 @@
  * Create Channel Screen - Allow users/moderators to create new support circles
  */
 
-import { ThemedText } from '@/app/_components/themed-text';
-import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { PostCategory } from '@/app/_types';
+import { ThemedText } from '@/components/themed-text';
+import { BorderRadius, Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PostCategory } from '@/types';
 import { createCategory } from '@/lib/database';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

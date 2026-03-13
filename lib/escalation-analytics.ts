@@ -4,7 +4,7 @@
  */
 
 import { getEscalations, getPosts } from './database';
-import { Escalation, EscalationLevel, EscalationStatus } from '@/app/_types';
+import { Escalation, EscalationLevel, EscalationStatus } from '@/types';
 
 export interface EscalationAnalytics {
   totalEscalations: number;

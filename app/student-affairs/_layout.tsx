@@ -3,9 +3,9 @@
  * Web-only layout with sidebar navigation
  */
 
-import { SidebarNavigation } from "@/app/_components/navigation/sidebar-navigation";
-import { Colors } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { SidebarNavigation } from "@/components/navigation/sidebar-navigation";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getCurrentUser } from "@/lib/database";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";

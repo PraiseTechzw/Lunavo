@@ -6,8 +6,8 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { ThemedText } from './themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/_hooks/use-color-scheme';
-import { Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Spacing } from '@/constants/theme';
 // import { isOnline } from '@/lib/offline-support';
 
 // Simplified version - in production, use actual network detection

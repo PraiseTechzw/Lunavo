@@ -2,9 +2,9 @@
  * Premium Floating Tab Navigation
  */
 
-import { Colors, PlatformStyles } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { UserRole } from "@/app/_types";
+import { Colors, PlatformStyles } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { UserRole } from "@/types";
 import { getCurrentUser } from "@/lib/database";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";

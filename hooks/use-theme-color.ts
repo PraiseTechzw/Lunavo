@@ -2,7 +2,7 @@
  * Hook for accessing theme colors
  */
 
-import { Colors } from '@/app/_constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from './use-color-scheme';
 
 // Exclude gradients from color name keys since gradients are objects, not strings

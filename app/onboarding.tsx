@@ -3,11 +3,11 @@
  * Immersive 3D visuals, Mesh Gradients, and Advanced Reanimated Orchestration
  */
 
-import { PEACELogo } from "@/app/_components/peace-logo";
-import { ThemedText } from "@/app/_components/themed-text";
-import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { createShadow } from "@/app/_utils/platform-styles";
+import { PEACELogo } from "@/components/peace-logo";
+import { ThemedText } from "@/components/themed-text";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { createShadow } from "@/utils/platform-styles";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";

@@ -2,19 +2,19 @@
  * Home Dashboard Screen - Enhanced Premium Version with Crafted Icons
  */
 
-import { DrawerHeader } from "@/app/_components/navigation/drawer-header";
-import { DrawerMenu } from "@/app/_components/navigation/drawer-menu";
-import { ThemedText } from "@/app/_components/themed-text";
-import { ThemedView } from "@/app/_components/themed-view";
+import { DrawerHeader } from "@/components/navigation/drawer-header";
+import { DrawerMenu } from "@/components/navigation/drawer-menu";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing
-} from "@/app/_constants/theme";
-import { useColorScheme } from "@/app/_hooks/use-color-scheme";
-import { Announcement, UserRole } from "@/app/_types";
-import { getCheckInStreak, getPosts, getPseudonym } from "@/app/_utils/storage";
+} from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Announcement, UserRole } from "@/types";
+import { getCheckInStreak, getPosts, getPseudonym } from "@/utils/storage";
 import { getAnnouncements, getCurrentUser } from "@/lib/database";
 import {
   MaterialCommunityIcons,
