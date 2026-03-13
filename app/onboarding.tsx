@@ -1,7 +1,6 @@
 /**
- * Premium Onboarding Screen
- * Uses Glassmorphism, Reanimated, and Haptic feedback
- * Praisetechzw
+ * Ultra-Premium Onboarding Redesign
+ * Immersive 3D visuals, Mesh Gradients, and Advanced Reanimated Orchestration
  */
 
 import { PEACELogo } from "@/app/_components/peace-logo";
@@ -16,7 +15,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import { BlurView } from 'expo-blur';
+import { Dimensions, StyleSheet, TouchableOpacity, View, Image, Platform } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -27,6 +27,8 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  withSpring,
+  withDelay,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,77 +37,38 @@ const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
 const onboardingData = [
   {
-    title: "Welcome to PEACE",
-    subtitle: "Peer Education Club",
-    description:
-      "Your digital community for health, mental wellness, and peer-to-peer support. Built by students, for students.",
-    icon: "heart-outline",
-    type: "logo",
-    colors: ["#6366F1", "#8B5CF6"],
+    title: "Welcome to Lunavo",
+    subtitle: "REDEFINING WELLNESS",
+    description: "Your digital sanctuary for health, mental wellness, and global student community.",
+    image: require("@/assets/images/onboarding/wellness_3d.png"),
+    colors: ["#6366F1", "#8B5CF6", "#4F46E5"],
+    accent: "#C7D2FE",
   },
   {
-    title: "1. The Student",
-    subtitle: "The Core Heart",
-    description:
-      "The foundation of PEACE. Access a safe community, anonymous sharing, and instant resources whenever you need them.",
-    icon: "person-outline",
-    illustration: require("@/assets/images/onboarding/welcome.png"),
-    colors: ["#4CAF50", "#81C784"],
+    title: "The Student Pulse",
+    subtitle: "VOICE & SUPPORT",
+    description: "The heart of Lunavo. Access anonymous sharing, peer guidance, and instant help.",
+    image: require("@/assets/images/onboarding/student_3d.png"),
+    colors: ["#10B981", "#059669", "#065F46"],
+    accent: "#A7F3D0",
   },
   {
-    title: "2. Peer Educators",
-    subtitle: "Frontline Support",
-    description:
-      "Verified students trained to provide first-line guidance, mental health awareness, and club activity leadership.",
-    icon: "school-outline",
-    illustration: require("@/assets/images/onboarding/support.png"),
-    colors: ["#2196F3", "#64B5F6"],
+    title: "Guided Expertise",
+    subtitle: "PROFESSIONAL CARE",
+    description: "Direct access to Life Coaches and Professional Counselors when you need it most.",
+    image: require("@/assets/images/onboarding/support_3d.png"),
+    colors: ["#3B82F6", "#2563EB", "#1E40AF"],
+    accent: "#BFDBFE",
   },
   {
-    title: "3. Life Coaches",
-    subtitle: "Professional Guidance",
-    description:
-      "Experts dedicated to your personal growth, providing life skills training and developmental coaching.",
-    icon: "star-outline",
-    illustration: require("@/assets/images/onboarding/mentorship.png"),
-    colors: ["#3F51B5", "#7986CB"],
-  },
-  {
-    title: "4. Counselors",
-    subtitle: "Specialized Intervention",
-    description:
-      "Licensed psychologists and therapists ready to provide professional intervention for deeper emotional needs.",
-    icon: "medical-outline",
-    illustration: require("@/assets/images/onboarding/privacy.png"),
-    colors: ["#9C27B0", "#BA68C8"],
-  },
-  {
-    title: "5. Moderators",
-    subtitle: "Community Protectors",
-    description:
-      "Guardians of our digital space ensuring safety, privacy, and adherence to community guidelines.",
-    icon: "shield-half-outline",
-    colors: ["#FFC107", "#FFD54F"],
-  },
-  {
-    title: "6. PE Executives",
-    subtitle: "System Orchestrators",
-    description:
-      "Elected student leaders managing operations and coordinating the entire Peer Education network.",
-    icon: "briefcase-outline",
-    colors: ["#009688", "#4DB6AC"],
-  },
-  {
-    title: "8. Admin & Affairs",
-    subtitle: "Global Oversight",
-    description:
-      "Institutional governance ensuring system integrity and data-driven wellness strategies for the university.",
-    icon: "planet-outline",
-    colors: ["#FF5722", "#FF8A65"],
-  },
+    title: "Safe Haven",
+    subtitle: "SECURITY & OVERSIGHT",
+    description: "Moderated, secure, and governed to ensure your safety and privacy at all times.",
+    image: require("@/assets/images/onboarding/shield_3d.png"),
+    colors: ["#F59E0B", "#D97706", "#92400E"],
+    accent: "#FDE68A",
+  }
 ];
-
-
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -113,79 +76,31 @@ export default function OnboardingScreen() {
   const colors = Colors[colorScheme];
   const scrollX = useSharedValue(0);
   const scrollRef = useRef<Animated.ScrollView>(null);
-  const blob1Position = useSharedValue({ x: -50, y: -50 });
-  const blob2Position = useSharedValue({ x: -100, y: height - 200 });
-  const buttonScale = useSharedValue(1);
+  
+  // Mesh Gradient Blob Positions
+  const b1 = useSharedValue({ x: width * 0.1, y: height * 0.1 });
+  const b2 = useSharedValue({ x: width * 0.8, y: height * 0.2 });
+  const b3 = useSharedValue({ x: width * 0.2, y: height * 0.7 });
+  const b4 = useSharedValue({ x: width * 0.7, y: height * 0.8 });
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const inputRanges = useMemo(
-    () => onboardingData.map((_, i) => i * width),
-    [],
-  );
-  const outputColors = useMemo(
-    () => onboardingData.map((item) => item.colors[0]),
-    [],
-  );
-
   useEffect(() => {
-    // Blob 1 Animation
-    blob1Position.value = withRepeat(
-      withSequence(
-        withTiming(
-          { x: width - 200, y: 100 },
-          { duration: 10000, easing: Easing.inOut(Easing.ease) },
-        ),
-        withTiming(
-          { x: -50, y: 200 },
-          { duration: 12000, easing: Easing.inOut(Easing.ease) },
-        ),
-        withTiming(
-          { x: -50, y: -50 },
-          { duration: 8000, easing: Easing.inOut(Easing.ease) },
-        ),
-      ),
-      -1,
-      true,
-    );
-
-    // Blob 2 Animation
-    blob2Position.value = withRepeat(
-      withSequence(
-        withTiming(
-          { x: 100, y: height - 400 },
-          { duration: 15000, easing: Easing.inOut(Easing.ease) },
-        ),
-        withTiming(
-          { x: width - 100, y: height - 100 },
-          { duration: 12000, easing: Easing.inOut(Easing.ease) },
-        ),
-        withTiming(
-          { x: -100, y: height - 200 },
-          { duration: 10000, easing: Easing.inOut(Easing.ease) },
-        ),
-      ),
-      -1,
-      true,
-    );
-  }, [blob1Position, blob2Position]);
-
-  useEffect(() => {
-    if (activeIndex === onboardingData.length - 1) {
-      buttonScale.value = withRepeat(
+    const animateBlob = (sv: any, targets: { x: number, y: number }[]) => {
+      sv.value = withRepeat(
         withSequence(
-          withTiming(1.05, { duration: 1000 }),
-          withTiming(1, { duration: 1000 }),
+          ...targets.map(t => withTiming(t, { duration: 8000 + Math.random() * 4000, easing: Easing.inOut(Easing.ease) }))
         ),
         -1,
-        true,
+        true
       );
-    } else {
-      buttonScale.value = withTiming(1);
-    }
-  }, [activeIndex, buttonScale]);
+    };
 
-
+    animateBlob(b1, [{ x: width * 0.4, y: height * 0.3 }, { x: width * 0.1, y: height * 0.1 }]);
+    animateBlob(b2, [{ x: width * 0.5, y: height * 0.05 }, { x: width * 0.8, y: height * 0.2 }]);
+    animateBlob(b3, [{ x: width * 0.05, y: height * 0.5 }, { x: width * 0.2, y: height * 0.7 }]);
+    animateBlob(b4, [{ x: width * 0.9, y: height * 0.6 }, { x: width * 0.7, y: height * 0.8 }]);
+  }, []);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -195,11 +110,8 @@ export default function OnboardingScreen() {
 
   const handleNext = () => {
     if (activeIndex < onboardingData.length - 1) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      scrollRef.current?.scrollTo({
-        x: (activeIndex + 1) * width,
-        animated: true,
-      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      scrollRef.current?.scrollTo({ x: (activeIndex + 1) * width, animated: true });
     } else {
       handleComplete();
     }
@@ -211,73 +123,33 @@ export default function OnboardingScreen() {
     router.replace("/auth/login");
   };
 
-  const backgroundStyle = useAnimatedStyle(() => {
+  const bgStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       scrollX.value,
-      inputRanges,
-      outputColors,
+      onboardingData.map((_, i) => i * width),
+      onboardingData.map(item => item.colors[0])
     );
     return { backgroundColor };
   });
 
-  const blob1Style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: blob1Position.value.x },
-      { translateY: blob1Position.value.y },
-    ],
-  }));
-
-  const blob2Style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: blob2Position.value.x },
-      { translateY: blob2Position.value.y },
-    ],
-  }));
-
-  const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
-
-  const skipOpacity = useAnimatedStyle(() => ({
-    opacity: withTiming(activeIndex === onboardingData.length - 1 ? 0 : 1),
-  }));
-
   return (
-    <Animated.View style={[styles.container, backgroundStyle]}>
+    <Animated.View style={[styles.container, bgStyle]}>
       <StatusBar style="light" />
-
-      {/* Animated Blobs */}
-      <View style={styles.blobContainer}>
-        <Animated.View
-          style={[
-            styles.blob,
-            { backgroundColor: "rgba(255,255,255,0.2)" },
-            blob1Style,
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blob,
-            {
-              width: 300,
-              height: 300,
-              backgroundColor: "rgba(255,255,255,0.1)",
-            },
-            blob2Style,
-          ]}
-        />
+      
+      {/* Mesh Gradient Layer */}
+      <View style={StyleSheet.absoluteFill}>
+        <Blob style={b1} color="rgba(255,255,255,0.15)" size={400} />
+        <Blob style={b2} color="rgba(255,255,255,0.1)" size={350} />
+        <Blob style={b3} color="rgba(255,255,255,0.12)" size={450} />
+        <Blob style={b4} color="rgba(255,255,255,0.08)" size={300} />
+        <BlurView intensity={Platform.OS === 'ios' ? 80 : 40} style={StyleSheet.absoluteFill} tint="dark" />
       </View>
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Animated.View style={skipOpacity}>
-            <TouchableOpacity
-              onPress={handleComplete}
-              disabled={activeIndex === onboardingData.length - 1}
-            >
-              <ThemedText style={styles.skipText}>Skip</ThemedText>
+            <TouchableOpacity onPress={handleComplete}>
+              <ThemedText style={styles.skipText}>SKIP</ThemedText>
             </TouchableOpacity>
-          </Animated.View>
         </View>
 
         <Animated.ScrollView
@@ -287,351 +159,151 @@ export default function OnboardingScreen() {
           showsHorizontalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          onMomentumScrollEnd={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / width);
-            setActiveIndex(index);
-          }}
+          onMomentumScrollEnd={(e) => setActiveIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
         >
           {onboardingData.map((item, index) => (
-            <OnboardingItem
-              key={index}
-              item={item}
-              index={index}
-              scrollX={scrollX}
-              colors={colors}
-            />
+            <OnboardingItem key={index} item={item} index={index} scrollX={scrollX} />
           ))}
         </Animated.ScrollView>
 
         <View style={styles.footer}>
-          {/* Pagination */}
           <View style={styles.pagination}>
             {onboardingData.map((_, i) => (
               <Dot key={i} index={i} scrollX={scrollX} />
             ))}
           </View>
 
-          {/* Button */}
-          <Animated.View style={[styles.buttonWrapper, buttonAnimatedStyle]}>
-            <TouchableOpacity
-              onPress={
-                activeIndex === onboardingData.length - 1
-                  ? handleComplete
-                  : handleNext
-              }
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]}
-                style={styles.mainButton}
-              >
-                <ThemedText style={styles.buttonText}>
-                  {activeIndex === onboardingData.length - 1
-                    ? "Start Journey"
-                    : "Continue"}
-                </ThemedText>
-                <Ionicons
-                  name={
-                    activeIndex === onboardingData.length - 1
-                      ? "rocket"
-                      : "arrow-forward"
-                  }
-                  size={20}
-                  color="#FFF"
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
+          <TouchableOpacity onPress={handleNext} activeOpacity={0.9} style={styles.buttonContainer}>
+            <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.05)']} style={styles.button}>
+              <ThemedText style={styles.buttonText}>
+                {activeIndex === onboardingData.length - 1 ? "ENTER LUNAVO" : "CONTINUE"}
+              </ThemedText>
+              <Ionicons name={activeIndex === onboardingData.length - 1 ? "planet" : "arrow-forward"} size={20} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </Animated.View>
   );
 }
 
+function Blob({ style, color, size }: any) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: style.value.x }, { translateY: style.value.y }],
+  }));
+  return <Animated.View style={[styles.blob, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }, animatedStyle]} />;
+}
+
 function Dot({ index, scrollX }: any) {
   const dotStyle = useAnimatedStyle(() => {
-    const dotWidth = interpolate(
-      scrollX.value,
-      [(index - 1) * width, index * width, (index + 1) * width],
-      [8, 32, 8],
-      "clamp",
-    );
-    const opacity = interpolate(
-      scrollX.value,
-      [(index - 1) * width, index * width, (index + 1) * width],
-      [0.5, 1, 0.5],
-      "clamp",
-    );
+    const dotWidth = interpolate(scrollX.value, [(index - 1) * width, index * width, (index + 1) * width], [8, 32, 8], "clamp");
+    const opacity = interpolate(scrollX.value, [(index - 1) * width, index * width, (index + 1) * width], [0.3, 1, 0.3], "clamp");
     return { width: dotWidth, opacity };
   });
   return <Animated.View style={[styles.dot, dotStyle]} />;
 }
 
-function OnboardingItem({ item, index, scrollX, colors }: any) {
-  const contentStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollX.value,
-      [(index - 0.5) * width, index * width, (index + 0.5) * width],
-      [0, 1, 0],
-      "clamp",
-    );
-    const translateY = interpolate(
-      scrollX.value,
-      [(index - 0.5) * width, index * width, (index + 0.5) * width],
-      [50, 0, 50],
-      "clamp",
-    );
+function OnboardingItem({ item, index, scrollX }: any) {
+  const imageStyle = useAnimatedStyle(() => {
+    const scale = interpolate(scrollX.value, [(index - 0.5) * width, index * width, (index + 0.5) * width], [0.4, 1, 0.4], "clamp");
+    const rotate = interpolate(scrollX.value, [(index - 0.5) * width, index * width, (index + 0.5) * width], [-15, 0, 15], "clamp");
+    const translateY = interpolate(scrollX.value, [(index - 0.5) * width, index * width, (index + 0.5) * width], [100, 0, 100], "clamp");
+    return { transform: [{ scale }, { rotate: `${rotate}deg` }, { translateY }] };
+  });
+
+  const textStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollX.value, [(index - 0.3) * width, index * width, (index + 0.3) * width], [0, 1, 0], "clamp");
+    const translateY = interpolate(scrollX.value, [(index - 0.3) * width, index * width, (index + 0.3) * width], [20, 0, 20], "clamp");
     return { opacity, transform: [{ translateY }] };
   });
 
-  const iconStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      scrollX.value,
-      [(index - 0.5) * width, index * width, (index + 0.5) * width],
-      [0.5, 1, 0.5],
-      "clamp",
-    );
-    const rotate = interpolate(
-      scrollX.value,
-      [(index - 0.5) * width, index * width, (index + 0.5) * width],
-      [-30, 0, 30],
-      "clamp",
-    );
-    return { transform: [{ scale }, { rotate: `${rotate}deg` }] };
-  });
-
-  const imageStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      scrollX.value,
-      [(index - 0.5) * width, index * width, (index + 0.5) * width],
-      [1.2, 1, 1.2],
-      "clamp",
-    );
-    return { transform: [{ scale }] };
-  });
-
   return (
-    <View style={[styles.page, { width }]}>
-      <Animated.View style={[styles.glassCard, contentStyle]}>
-        <LinearGradient
-          colors={["rgba(255,255,255,0.15)", "rgba(255,255,255,0.05)"]}
-          style={styles.glassGradient}
-        >
-          <View style={styles.imageWrapper}>
-            {item.type === "logo" ? (
-              <View style={styles.logoWrapper}>
-                <PEACELogo size={180} />
-                {item.type === "logo" && index === 0 && (
-                  <View style={styles.founderBadge}>
-                    <ThemedText style={styles.founderText}>
-                      FOUNDING PIONEER
-                    </ThemedText>
-                  </View>
-                )}
-              </View>
-            ) : item.illustration ? (
-              <Animated.Image
-                source={item.illustration}
-                style={[styles.illustration, imageStyle]}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.iconFallback}>
-                <Animated.View style={iconStyle}>
-                  <Ionicons name={item.icon} size={120} color="#FFF" />
-                </Animated.View>
-              </View>
-            )}
-            {item.illustration && (
-              <Animated.View style={[styles.miniIcon, iconStyle]}>
-                <Ionicons name={item.icon} size={30} color="#FFF" />
-              </Animated.View>
-            )}
-          </View>
+    <View style={styles.page}>
+      <Animated.View style={[styles.imageContainer, imageStyle]}>
+        <Image source={item.image} style={styles.heroImage} resizeMode="contain" />
+      </Animated.View>
 
-          <ThemedText style={styles.itemSubtitle}>{item.subtitle}</ThemedText>
-          <ThemedText style={styles.itemTitle}>{item.title}</ThemedText>
-          <View style={styles.divider} />
-          <ThemedText style={styles.itemDescription}>
-            {item.description}
-          </ThemedText>
-        </LinearGradient>
+      <Animated.View style={[styles.textContainer, textStyle]}>
+        <ThemedText style={[styles.subtitle, { color: item.accent }]}>{item.subtitle}</ThemedText>
+        <ThemedText style={styles.title}>{item.title}</ThemedText>
+        <ThemedText style={styles.description}>{item.description}</ThemedText>
       </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  safeArea: { flex: 1 },
+  blob: { position: 'absolute' },
+  header: { 
+    paddingHorizontal: 30, 
+    paddingTop: 20, 
+    alignItems: 'flex-end' 
   },
-  safeArea: {
-    flex: 1,
+  skipText: { 
+    color: 'rgba(255,255,255,0.6)', 
+    fontSize: 12, 
+    fontWeight: '900', 
+    letterSpacing: 2 
   },
-  blobContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
+  page: { width, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  imageContainer: { 
+    width: width * 0.8, 
+    height: width * 0.8, 
+    marginBottom: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  blob: {
-    position: "absolute",
-    width: 400,
-    height: 400,
-    borderRadius: 200,
+  heroImage: { width: '100%', height: '100%' },
+  textContainer: { alignItems: 'center' },
+  subtitle: { 
+    fontSize: 12, 
+    fontWeight: '900', 
+    letterSpacing: 4, 
+    marginBottom: 10,
+    textAlign: 'center',
   },
-  page: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
+  title: { 
+    color: '#FFF', 
+    fontSize: 36, 
+    fontWeight: '900', 
+    textAlign: 'center', 
+    lineHeight: 42,
+    marginBottom: 20 
   },
-  glassCard: {
-    width: "100%",
-    borderRadius: BorderRadius.xxl,
-    overflow: "hidden",
+  description: { 
+    color: 'rgba(255,255,255,0.7)', 
+    fontSize: 16, 
+    textAlign: 'center', 
+    lineHeight: 24,
+    fontWeight: '500'
+  },
+  footer: { 
+    padding: 40, 
+    alignItems: 'center' 
+  },
+  pagination: { 
+    flexDirection: 'row', 
+    height: 8, 
+    marginBottom: 40 
+  },
+  dot: { 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: '#FFF', 
+    marginHorizontal: 4 
+  },
+  buttonContainer: { width: '100%' },
+  button: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingVertical: 18, 
+    borderRadius: 24, 
+    gap: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    ...createShadow(20, "#000", 0.2),
+    borderColor: 'rgba(255,255,255,0.2)'
   },
-  glassGradient: {
-    padding: Spacing.xxl,
-    alignItems: "center",
-  },
-  imageWrapper: {
-    width: "100%",
-    height: 240,
-    borderRadius: BorderRadius.xl,
-    overflow: "hidden",
-    marginBottom: Spacing.xl,
-    position: "relative",
-  },
-  illustration: {
-    width: "100%",
-    height: "100%",
-  },
-  miniIcon: {
-    position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  logoWrapper: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconFallback: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.md,
-    zIndex: 10,
-  },
-  skipText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
-  itemSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 3,
-    marginBottom: Spacing.sm,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  itemTitle: {
-    color: "#FFF",
-    fontSize: 36,
-    fontWeight: "900",
-    textAlign: "center",
-    marginBottom: Spacing.md,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
-  },
-  divider: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#FFF",
-    borderRadius: 2,
-    marginBottom: Spacing.xl,
-    opacity: 0.8,
-  },
-  itemDescription: {
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 18,
-    lineHeight: 28,
-    textAlign: "center",
-    fontWeight: "500",
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  footer: {
-    padding: Spacing.xl,
-    alignItems: "center",
-  },
-  pagination: {
-    flexDirection: "row",
-    height: 8,
-    marginBottom: Spacing.xxl,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FFF",
-    marginHorizontal: 4,
-  },
-  buttonWrapper: {
-    width: "100%",
-  },
-  mainButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    gap: Spacing.sm,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  founderBadge: {
-    marginTop: Spacing.md,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  founderText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 2,
-    textTransform: "uppercase",
-  },
+  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
 });
-
-
