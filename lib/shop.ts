@@ -73,14 +73,21 @@ export async function buyItem(userId: string, itemId: string): Promise<{ success
         return { success: false, message: 'Insufficient points' };
     }
 
-    // 2. Record purchase in user_purchases (hypothetical table)
-    // For the demo, we'll just record it in a generic metadata field or user_badges
-    if (item.category === 'badge') {
-        await supabase.from('user_badges').insert({
-            user_id: userId,
-            badge_id: item.id, // Assuming the ID matches or is handled
-        });
+    // Reward the item based on its category
+    if (item.category === 'badge') { // Corrected 'badges' to 'badge' to match ShopItem interface
+      const { awardBadge } = await import('./gamification');
+      await awardBadge(userId, item.id);
     }
+
+    // Record the purchase in the database
+    await supabase.from('user_purchases').insert({
+      user_id: userId,
+      item_id: item.id,
+      item_name: item.name,
+      item_category: item.category,
+      price: item.price,
+      metadata: { icon: item.icon }
+    });
 
     return { success: true, message: `Successfully purchased ${item.name}!` };
 }

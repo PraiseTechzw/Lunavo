@@ -99,7 +99,7 @@ export default function StudentAffairsDashboardScreen() {
               delay={300}
               icon="alert-circle-outline"
               label="Escalations"
-              value={12}
+              value={analytics?.escalationCount || 0}
               gradient={colors.gradients.warm as any}
             />
             <StatCard

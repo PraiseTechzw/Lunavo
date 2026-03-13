@@ -8,7 +8,7 @@ import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/_constants/
 import { useColorScheme } from '@/app/_hooks/use-color-scheme';
 import { Escalation, EscalationLevel } from '@/app/_types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
-import { getEscalations } from '@/lib/database';
+import { getEscalations, updateEscalation } from '@/lib/database';
 import { RealtimeChannel, subscribeToEscalations, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,7 +20,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -61,6 +62,21 @@ export default function CounselorDashboardScreen() {
     } catch (error) { console.error(error); }
   };
 
+  const handleClaimCase = async (escalationId: string) => {
+    if (!user) return;
+    try {
+      await updateEscalation(escalationId, {
+        assignedTo: user.id,
+        status: 'in-progress'
+      });
+      Alert.alert('Success', 'Case claimed and moved to In Progress');
+      loadEscalations();
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to claim case');
+    }
+  };
+
   if (authLoading) return null;
 
   const renderEscalation = ({ item, index }: { item: Escalation, index: number }) => {
@@ -92,7 +108,7 @@ export default function CounselorDashboardScreen() {
                 <ThemedText style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>ASSIGNED TO YOU</ThemedText>
               </View>
             ) : (
-              <TouchableOpacity style={styles.assignLink} onPress={() => { }}>
+              <TouchableOpacity style={styles.assignLink} onPress={() => handleClaimCase(item.id)}>
                 <ThemedText style={{ color: colors.secondary, fontWeight: '700', fontSize: 12 }}>CLAIM CASE</ThemedText>
               </TouchableOpacity>
             )}
