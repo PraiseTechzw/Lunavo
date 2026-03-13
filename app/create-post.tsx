@@ -3,26 +3,26 @@
  * Enhanced UI with dynamic categories based on existing topics
  */
 
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { CATEGORIES, CATEGORY_LIST } from "@/app/constants/categories";
-import { checkEscalation } from "@/app/constants/escalation";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { CATEGORIES, CATEGORY_LIST } from "@/app/_constants/categories";
+import { checkEscalation } from "@/app/_constants/escalation";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { useDebounce } from "@/app/hooks/use-debounce";
-import { PostCategory } from "@/app/types";
+} from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { useDebounce } from "@/app/_hooks/use-debounce";
+import { PostCategory } from "@/app/_types";
 import {
   containsIdentifyingInfo,
   generatePseudonym,
   sanitizeContent,
-} from "@/app/utils/anonymization";
-import { createInputStyle, getCursorStyle } from "@/app/utils/platform-styles";
-import { getPseudonym, savePseudonym } from "@/app/utils/storage";
+} from "@/app/_utils/anonymization";
+import { createInputStyle, getCursorStyle } from "@/app/_utils/platform-styles";
+import { getPseudonym, savePseudonym } from "@/app/_utils/storage";
 import { analyzePost } from "@/lib/ai-utils";
 import {
   createPost as createPostDB,

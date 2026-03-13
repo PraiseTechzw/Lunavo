@@ -2,7 +2,7 @@
  * Content Recommendations Engine - Similar posts, resources, peer educators
  */
 
-import { Post, PostCategory, User, Resource } from '@/app/types';
+import { Post, PostCategory, User, Resource } from '@/app/_types';
 import { getPosts, getReplies, getResources, getUser } from './database';
 import { analyzePost, extractKeywords } from './ai-utils';
 

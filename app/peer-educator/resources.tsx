@@ -14,14 +14,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { ThemedText } from '@/app/_components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
+import { createShadow, getCursorStyle, createInputStyle } from '@/app/_utils/platform-styles';
 import { getResources } from '@/lib/database';
-import { PostCategory } from '@/app/types';
+import { PostCategory } from '@/app/_types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

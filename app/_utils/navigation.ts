@@ -3,7 +3,7 @@
  * Handles route access, device detection, and navigation logic
  */
 
-import { UserRole } from "@/app/types";
+import { UserRole } from "@/app/_types";
 import { Dimensions, Platform } from "react-native";
 
 export const isWeb = Platform.OS === "web";

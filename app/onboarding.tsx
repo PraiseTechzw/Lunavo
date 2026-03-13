@@ -4,11 +4,11 @@
  * Praisetechzw
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
-import { ThemedText } from "@/app/components/themed-text";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { createShadow } from "@/app/utils/platform-styles";
+import { PEACELogo } from "@/app/_components/peace-logo";
+import { ThemedText } from "@/app/_components/themed-text";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { createShadow } from "@/app/_utils/platform-styles";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";

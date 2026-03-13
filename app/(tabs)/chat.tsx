@@ -2,15 +2,15 @@
  * Chat List Screen - Premium Version
  */
 
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
 import {
     BorderRadius,
     Colors,
     PlatformStyles,
     Spacing,
-} from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
+} from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
 import {
     getCurrentUser,
     getLastSupportMessage,

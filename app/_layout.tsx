@@ -1,33 +1,34 @@
-import { FAB } from "@/app/components/navigation";
-import { OfflineIndicator } from "@/app/components/offline-indicator";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { Colors } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { UserRole } from "@/app/types";
+import { FAB } from "@/app/_components/navigation";
+import { OfflineIndicator } from "@/app/_components/offline-indicator";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { Colors } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { UserRole } from "@/app/_types";
 import {
-    canAccessRoute,
-    getDefaultRoute,
-    isMobile,
-    isStudentAffairsMobileBlocked,
-} from "@/app/utils/navigation";
+  canAccessRoute,
+  getDefaultRoute,
+  isMobile,
+  isStudentAffairsMobileBlocked,
+} from "@/app/_utils/navigation";
+import { AIResponse, processAIPrompt } from "@/lib/ai-assistant";
 import { getSession, onAuthStateChange } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import {
-    addNotificationResponseListener,
-    registerForPushNotifications,
+  addNotificationResponseListener,
+  registerForPushNotifications,
 } from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Modal,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
@@ -44,6 +45,7 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
   const isAuthRoute = useMemo(() => segments[0] === "auth", [segments]);
   const isOnboardingRoute = useMemo(
     () => segments[0] === "onboarding",
@@ -53,11 +55,6 @@ export default function RootLayout() {
     () => segments[0] === "(tabs)" || segments[0] === "peer-educator",
     [segments],
   );
-
-  useEffect(() => {
-    initializeAuth();
-    initializeNotifications();
-  }, [initializeAuth, initializeNotifications]);
 
   const initializeNotifications = useCallback(async () => {
     try {
@@ -87,6 +84,51 @@ export default function RootLayout() {
       console.error("Error initializing notifications:", error);
     }
   }, [router]);
+
+  const initializeAuth = useCallback(async () => {
+    try {
+      // Check onboarding status
+      const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
+      setIsOnboardingComplete(onboardingValue === "true");
+
+      // Check authentication status
+      const session = await getSession();
+      setIsAuthenticated(!!session);
+
+      // Listen to auth state changes
+      const {
+        data: { subscription },
+      } = onAuthStateChange((event, session) => {
+        setIsAuthenticated(!!session);
+        if (event === "PASSWORD_RECOVERY") {
+          router.replace("/auth/reset-password");
+        }
+        if (event === "SIGNED_OUT") {
+          // Stay safe: ensure we land on login if signed out by recovery flow
+          const navGroup = segments[0];
+          if (navGroup !== "auth") {
+            router.replace("/auth/login");
+          }
+        }
+      });
+
+      setIsInitialized(true);
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error("Error initializing auth:", error);
+      setIsAuthenticated(false);
+      setIsOnboardingComplete(false);
+      setIsInitialized(true);
+    }
+  }, [segments, router]);
+
+  useEffect(() => {
+    initializeAuth();
+    initializeNotifications();
+  }, [initializeAuth, initializeNotifications]);
 
   useEffect(() => {
     if ((isAuthRoute || isOnboardingRoute) && assistantOpen) {
@@ -312,7 +354,7 @@ export default function RootLayout() {
       });
     }
     if (current.startsWith("peer-educator")) {
-      list.push({ label: "Meetings", action: () => router.push("/meetings") });
+      list.push({ label: "Meetings", action: () => router.push("/peer-educator/meetings") });
       list.push({
         label: "Respond to Posts",
         action: () => router.push("/(tabs)/forum"),
@@ -320,46 +362,6 @@ export default function RootLayout() {
     }
     return list;
   }, [segments, router]);
-
-  const initializeAuth = useCallback(async () => {
-    try {
-      // Check onboarding status
-      const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
-      setIsOnboardingComplete(onboardingValue === "true");
-
-      // Check authentication status
-      const session = await getSession();
-      setIsAuthenticated(!!session);
-
-      // Listen to auth state changes
-      const {
-        data: { subscription },
-      } = onAuthStateChange((event, session) => {
-        setIsAuthenticated(!!session);
-        if (event === "PASSWORD_RECOVERY") {
-          router.replace("/auth/reset-password");
-        }
-        if (event === "SIGNED_OUT") {
-          // Stay safe: ensure we land on login if signed out by recovery flow
-          const navGroup = segments[0];
-          if (navGroup !== "auth") {
-            router.replace("/auth/login");
-          }
-        }
-      });
-
-      setIsInitialized(true);
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error("Error initializing auth:", error);
-      setIsAuthenticated(false);
-      setIsOnboardingComplete(false);
-      setIsInitialized(true);
-    }
-  }, []);
 
   if (!isInitialized || isOnboardingComplete === null) {
     return null; // Loading state
@@ -407,6 +409,13 @@ export default function RootLayout() {
             options={{
               headerShown: false,
               presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="rewards-shop"
+            options={{
+              headerShown: false,
+              presentation: "card",
             }}
           />
           <Stack.Screen
@@ -504,7 +513,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="meetings"
+            name="meetings/[id]"
             options={{
               headerShown: false,
             }}
@@ -548,7 +557,6 @@ export default function RootLayout() {
         {!isAuthRoute && !isTabsRoute && Platform.OS !== "web" && (
           <FAB
             icon="smart-toy"
-            label="AI Assist"
             onPress={() => setAssistantOpen(true)}
             position="bottom-right"
             color={colors.primary}
@@ -601,15 +609,38 @@ export default function RootLayout() {
                     { backgroundColor: colors.primary },
                   ]}
                   onPress={() => {
+                    if (!assistantPrompt.trim()) return;
+                    const result = processAIPrompt(assistantPrompt);
+                    setAiResponse(result);
                     setAssistantPrompt("");
-                    setAssistantOpen(false);
                   }}
                 >
                   <ThemedText style={{ color: "#FFF", fontWeight: "700" }}>
-                    Send
+                    {aiResponse ? "Ask Again" : "Send"}
                   </ThemedText>
                 </TouchableOpacity>
               </View>
+
+              {aiResponse && (
+                <View style={[styles.aiResponseCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
+                  <ThemedText style={{ fontSize: 14, lineHeight: 20, color: colors.text }}>
+                    {aiResponse.text}
+                  </ThemedText>
+                  {aiResponse.action && (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => {
+                        setAssistantOpen(false);
+                        setAiResponse(null);
+                        router.push(aiResponse.action as any);
+                      }}
+                    >
+                      <ThemedText style={{ color: '#FFF', fontWeight: '700' }}>{aiResponse.actionLabel || 'Go'}</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
               <View style={styles.suggestionRow}>
                 {assistantSuggestions.map((s, i) => (
                   <TouchableOpacity
@@ -697,6 +728,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 10,
+    alignItems: "center",
+  },
+  aiResponseCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 12,
+  },
+  actionBtn: {
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: "center",
   },
   webAssistantButton: {

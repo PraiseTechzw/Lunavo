@@ -4,9 +4,9 @@
  * Uses sidebar navigation on web, stack navigation on mobile
  */
 
-import { SidebarNavigation } from '@/app/components/navigation/sidebar-navigation';
-import { Colors } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { SidebarNavigation } from '@/app/_components/navigation/sidebar-navigation';
+import { Colors } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
 import { getCurrentUser } from '@/lib/database';
 import { Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';

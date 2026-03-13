@@ -1,6 +1,6 @@
-import { ThemedText } from "@/app/components/themed-text";
-import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { ThemedText } from "@/app/_components/themed-text";
+import { BorderRadius, Colors, PlatformStyles, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { Image } from "expo-image";

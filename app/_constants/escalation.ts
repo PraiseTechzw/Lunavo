@@ -3,7 +3,7 @@
  * Posts matching these patterns will be automatically flagged
  */
 
-import { EscalationRule, PostCategory } from '@/app/types';
+import { EscalationRule, PostCategory } from '@/app/_types';
 
 export const ESCALATION_RULES: EscalationRule[] = [
   {

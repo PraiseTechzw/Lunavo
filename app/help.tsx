@@ -2,21 +2,21 @@
  * Help & Support Screen
  */
 
-import { DrawerHeader } from "@/app/components/navigation/drawer-header";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { createShadow } from "@/app/utils/platform-styles";
+import { DrawerHeader } from "@/app/_components/navigation/drawer-header";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { createShadow } from "@/app/_utils/platform-styles";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 // no local state needed
 import {
-    Linking,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,77 +28,58 @@ export default function HelpScreen() {
   const helpSections = [
     {
       id: "getting-started",
-      title: "Getting Started",
+      title: "Navigation & Basics",
       icon: "rocket-launch" as const,
       items: [
         {
-          title: "How to create a post",
-          description: "Learn how to ask for help or share your thoughts",
+          title: "How the Pseudonym works",
+          description: "Your safe identity for sharing in the forum and joining meetings",
         },
         {
-          title: "Using the forum",
-          description: "Navigate and interact with the community",
+          title: "Earning Peace Points",
+          description: "Login daily (+10), help peers (+20), and attend meetings (+25)",
         },
         {
-          title: "Setting up your profile",
-          description: "Customize your profile and privacy settings",
-        },
-      ],
-    },
-    {
-      id: "support",
-      title: "Support Resources",
-      icon: "support" as const,
-      items: [
-        {
-          title: "Urgent Support",
-          description: "Access crisis lines and immediate help",
-        },
-        {
-          title: "Peer Support",
-          description: "Connect with peer educators and volunteers",
-        },
-        {
-          title: "Professional Counseling",
-          description: "Book sessions with counselors",
+          title: "The Mood Check-in",
+          description: "Track your wellbeing daily to see trends in your Insights",
         },
       ],
     },
     {
-      id: "features",
-      title: "Features",
-      icon: "apps" as const,
+      id: "counseling",
+      title: "Professional Support",
+      icon: "psychology" as const,
       items: [
         {
-          title: "Mood Check-in",
-          description: "Track your daily mood and build streaks",
+          title: "Booking a Session",
+          description: "Steps to schedule a confidential talk with a CUT counselor",
         },
         {
-          title: "Badges & Rewards",
-          description: "Earn points and unlock achievements",
+          title: "Anonymous Counseling",
+          description: "How to talk to a professional without sharing your real name",
         },
         {
-          title: "Resources Library",
-          description: "Access mental health and academic resources",
+          title: "Crisis Intervention",
+          description: "What to do if you need immediate psychological support",
         },
       ],
     },
     {
-      id: "safety",
-      title: "Safety & Privacy",
-      icon: "security" as const,
+      id: "emergency",
+      title: "Campus Safety",
+      icon: "local-police" as const,
       items: [
         {
-          title: "Anonymous posting",
-          description: "Post anonymously to protect your privacy",
+          title: "Campus Security",
+          description: "Immediate assistance for on-campus physical safety concerns",
         },
         {
-          title: "Reporting content",
-          description: "Report inappropriate or harmful content",
+          title: "First Aid & Medical",
+          description: "Accessing the CUT Clinic for health-related issues",
         },
         {
-          title: "Privacy settings",
-          description: "Control who can see your information",
+          title: "Abuse & Harassment",
+          description: "The official protocol for reporting harassment on campus",
         },
       ],
     },
@@ -106,22 +87,22 @@ export default function HelpScreen() {
 
   const contactOptions = [
     {
-      title: "Email Support",
-      description: "support@lunavo.app",
+      title: "PEACE Club Support",
+      description: "support@peaceclub.cut.ac.zw",
       icon: "email" as const,
-      action: () => Linking.openURL("mailto:support@lunavo.app"),
+      action: () => Linking.openURL("mailto:support@peaceclub.cut.ac.zw"),
     },
     {
-      title: "Emergency Hotline",
-      description: "Call 24/7 crisis support",
+      title: "CUT Crisis Hotline",
+      description: "Call the 24/7 dedicated support line",
       icon: "phone" as const,
-      action: () => Linking.openURL("tel:+1234567890"),
+      action: () => Linking.openURL("tel:+263777000000"), // Placeholder but formatted
     },
     {
-      title: "Visit Website",
-      description: "lunavo.app",
-      icon: "language" as const,
-      action: () => Linking.openURL("https://lunavo.app"),
+      title: "PEACE Hub",
+      description: "Visit us at the Student Affairs building",
+      icon: "location-on" as const,
+      action: () => Linking.openURL("https://maps.google.com/?q=Chinhoyi+University+Student+Affairs"),
     },
   ];
 
@@ -131,7 +112,7 @@ export default function HelpScreen() {
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
           title="Help & Support"
-          onMenuPress={() => {}}
+          onMenuPress={() => { }}
           rightAction={{
             icon: "close",
             onPress: () => router.back(),

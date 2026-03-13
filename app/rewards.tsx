@@ -2,13 +2,13 @@
  * Rewards & Leaderboard Screen - Full Gamification Experience
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
 import { getCurrentUser, getUsers } from '@/lib/database';
 import { BADGE_DEFINITIONS } from '@/lib/gamification';
-import { getPointsHistory, getUserPoints, POINTS_CONFIG } from '@/lib/points-system';
+import { POINTS_CONFIG, getPointsHistory, getUserPoints } from '@/lib/points-system';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -94,8 +94,13 @@ export default function RewardsScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <ThemedText type="h1">Rewards</ThemedText>
-          <View style={{ width: 40 }} />
+          <ThemedText type="h2" style={{ flex: 1, marginLeft: Spacing.md }}>Rewards</ThemedText>
+          <TouchableOpacity
+            onPress={() => router.push('/rewards-shop')}
+            style={[styles.shopButton, { backgroundColor: colors.primary + '15' }]}
+          >
+            <MaterialIcons name="shopping-bag" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Tabs */}
@@ -291,6 +296,13 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopButton: {
     width: 40,
     height: 40,
     borderRadius: 20,

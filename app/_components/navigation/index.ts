@@ -3,7 +3,7 @@
  * Easy imports for all navigation components
  * 
  * Usage:
- * import { SidebarNavigation, DrawerMenu, FAB } from '@/app/components/navigation';
+ * import { SidebarNavigation, DrawerMenu, FAB } from '@/app/_components/navigation';
  */
 
 export { DrawerHeader } from './drawer-header';

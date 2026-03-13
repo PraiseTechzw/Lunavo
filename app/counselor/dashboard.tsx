@@ -2,11 +2,11 @@
  * Life Coach/Counselor Dashboard - Premium Version
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Escalation, EscalationLevel } from '@/app/types';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Escalation, EscalationLevel } from '@/app/_types';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getEscalations } from '@/lib/database';
 import { RealtimeChannel, subscribeToEscalations, unsubscribe } from '@/lib/realtime';

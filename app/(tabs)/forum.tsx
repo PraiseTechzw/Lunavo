@@ -2,13 +2,13 @@
  * Peer Support Forum - Premium Topic Cards View
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORIES } from '@/app/constants/categories';
-import { Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { PostCategory } from '@/app/types';
-import { getTopicStats, TopicStats } from '@/lib/database';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { CATEGORIES } from '@/app/_constants/categories';
+import { Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { PostCategory } from '@/app/_types';
+import { TopicStats, getTopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -256,6 +256,15 @@ export default function ForumScreen() {
               </View>
             </View>
           }
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <Ionicons name="search-outline" size={64} color={colors.icon} />
+              <ThemedText type="h3" style={{ marginTop: 16 }}>No circles found</ThemedText>
+              <ThemedText style={{ color: colors.icon, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
+                {searchQuery ? "No categories match your search. Try a different term." : "Loading communities..."}
+              </ThemedText>
+            </View>
+          }
           ListFooterComponent={null}
           refreshControl={
             <RefreshControl
@@ -266,7 +275,7 @@ export default function ForumScreen() {
           }
         />
       </SafeAreaView>
-    </ThemedView>
+    </ThemedView >
   );
 }
 

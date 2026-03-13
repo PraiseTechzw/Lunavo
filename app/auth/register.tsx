@@ -3,17 +3,17 @@
  * Overhauled with PEACE branding, Glassmorphism, and Blobs
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { CUT_SCHOOLS } from "@/app/constants/programs";
+import { PEACELogo } from "@/app/_components/peace-logo";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { CUT_SCHOOLS } from "@/app/_constants/programs";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
+} from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
 import { signUp } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";

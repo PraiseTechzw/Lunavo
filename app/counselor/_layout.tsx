@@ -3,8 +3,8 @@
  */
 
 import { Stack } from 'expo-router';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors } from '@/app/constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Colors } from '@/app/_constants/theme';
 
 export default function CounselorLayout() {
   const colorScheme = useColorScheme() ?? 'light';

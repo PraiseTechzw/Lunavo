@@ -2,7 +2,7 @@
  * Category definitions for support posts
  */
 
-import { Category, PostCategory } from '@/app/types';
+import { Category, PostCategory } from '@/app/_types';
 import { Colors } from './theme';
 
 export const CATEGORIES: Record<PostCategory, Category> = {

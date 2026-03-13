@@ -2,13 +2,13 @@
  * Posts Needing Help - Peer Educator view
  */
 
-import { PostCard } from "@/app/components/post-card";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { Post, PostCategory } from "@/app/types";
-import { getCursorStyle } from "@/app/utils/platform-styles";
+import { PostCard } from "@/app/_components/post-card";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { Post, PostCategory } from "@/app/_types";
+import { getCursorStyle } from "@/app/_utils/platform-styles";
 import { useRoleGuard } from "@/hooks/use-auth-guard";
 import { getPosts, getReplies } from "@/lib/database";
 import { MaterialIcons } from "@expo/vector-icons";

@@ -2,8 +2,8 @@
  * Auth Flow Layout
  */
 
-import { Colors } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { Colors } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
 import { Stack } from "expo-router";
 
 export default function AuthLayout() {

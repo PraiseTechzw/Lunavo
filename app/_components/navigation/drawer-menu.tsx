@@ -3,16 +3,16 @@
  * Mobile secondary navigation with user profile and role-aware sections
  */
 
-import { PEACELogo } from "@/app/components/peace-logo";
-import { ThemedText } from "@/app/components/themed-text";
+import { PEACELogo } from "@/app/_components/peace-logo";
+import { ThemedText } from "@/app/_components/themed-text";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { UserRole } from "@/app/types";
+} from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { UserRole } from "@/app/_types";
 import { signOut } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/database";
 import { getRoleMetadata } from "@/lib/permissions";

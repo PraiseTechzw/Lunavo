@@ -2,12 +2,12 @@
  * About PEACE Screen
  */
 
-import { DrawerHeader } from "@/app/components/navigation/drawer-header";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { createShadow } from "@/app/utils/platform-styles";
+import { DrawerHeader } from "@/app/_components/navigation/drawer-header";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { createShadow } from "@/app/_utils/platform-styles";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";

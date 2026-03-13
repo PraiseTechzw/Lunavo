@@ -2,17 +2,17 @@
  * Profile Settings Screen - Premium Version
  */
 
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
 import {
   BorderRadius,
   Colors,
   PlatformStyles,
   Spacing,
-} from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { UserRole } from "@/app/types";
-import { getPseudonym } from "@/app/utils/storage";
+} from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { UserRole } from "@/app/_types";
+import { getPseudonym } from "@/app/_utils/storage";
 import { useCurrentUser } from "@/hooks/use-auth-guard";
 import { signOut } from "@/lib/auth";
 import { getRoleMetadata } from "@/lib/permissions";

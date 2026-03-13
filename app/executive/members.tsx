@@ -2,12 +2,12 @@
  * Member Management - Executive view of all peer educators
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { User } from '@/app/types';
-import { createInputStyle, createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { User } from '@/app/_types';
+import { createInputStyle, createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { getPosts, getReplies } from '@/lib/database';
 import { supabase } from '@/lib/supabase';

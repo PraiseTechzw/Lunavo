@@ -108,7 +108,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         .from('users')
         .update({
           profile_data: {
-            ...(user.profileData || {}),
+            ...(user.profile_data || {}),
             pushToken: token,
           },
         })

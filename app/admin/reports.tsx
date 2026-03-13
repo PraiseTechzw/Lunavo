@@ -2,13 +2,13 @@
  * Reports Management Screen - Review and handle reports
  */
 
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { Report } from "@/app/types";
-import { createShadow, getCursorStyle } from "@/app/utils/platform-styles";
-import { getReports, updateReport } from "@/app/utils/storage";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { Report } from "@/app/_types";
+import { createShadow, getCursorStyle } from "@/app/_utils/platform-styles";
+import { getReports, updateReport } from "@/app/_utils/storage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "expo-router";

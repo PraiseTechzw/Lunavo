@@ -2,13 +2,13 @@
  * Post detail screen - view a post and its replies (Thread View)
  */
 
-import { CategoryBadge } from "@/app/components/category-badge";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { Colors, PlatformStyles, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { Post, Reply } from "@/app/types";
-import { sanitizeContent } from "@/app/utils/anonymization";
+import { CategoryBadge } from "@/app/_components/category-badge";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { Colors, PlatformStyles, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { Post, Reply } from "@/app/_types";
+import { sanitizeContent } from "@/app/_utils/anonymization";
 import {
   createReply,
   createReport,

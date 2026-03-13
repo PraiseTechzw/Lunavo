@@ -3,8 +3,8 @@
  * Intelligent AI-based detection with context awareness
  */
 
-import { Post, EscalationLevel, PostCategory } from '@/app/types';
-import { ESCALATION_RULES } from '@/app/constants/escalation';
+import { Post, EscalationLevel, PostCategory } from '@/app/_types';
+import { ESCALATION_RULES } from '@/app/_constants/escalation';
 import { createEscalation } from './database';
 import { notifyEscalationAssigned } from './notification-triggers';
 

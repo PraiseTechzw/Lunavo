@@ -2,24 +2,24 @@
  * Leaderboard Screen - Rankings and statistics
  */
 
-import { useState, useEffect } from 'react';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
+import { getPosts, getReplies, getUserStreaks } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
-import { supabase } from '@/lib/supabase';
-import { getPosts, getReplies, getUserStreaks , getCurrentUser } from '@/lib/database';
 
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 
@@ -38,12 +38,12 @@ export default function LeaderboardScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const { user, loading: authLoading } = useRoleGuard(
     ['student', 'peer-educator', 'peer-educator-executive', 'moderator', 'counselor', 'life-coach', 'student-affairs', 'admin'],
     '/(tabs)'
   );
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>('helpful');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all-time');
@@ -59,27 +59,33 @@ export default function LeaderboardScreen() {
   const loadLeaderboard = async () => {
     try {
       let entries: LeaderboardEntry[] = [];
+      let startDate: Date | null = null;
+
+      if (timeFilter === 'weekly') {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+      } else if (timeFilter === 'monthly') {
+        startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
 
       switch (selectedCategory) {
         case 'helpful':
-          entries = await getHelpfulLeaderboard();
+          entries = await getHelpfulLeaderboard(startDate);
           break;
         case 'engaged':
-          entries = await getEngagedLeaderboard();
+          entries = await getEngagedLeaderboard(startDate);
           break;
         case 'streaks':
-          entries = await getStreaksLeaderboard();
+          entries = await getStreaksLeaderboard(); // Streaks are always all-time longest
           break;
         case 'badges':
-          entries = await getBadgesLeaderboard();
+          entries = await getBadgesLeaderboard(startDate);
           break;
         case 'category-expert':
-          entries = await getCategoryExpertLeaderboard();
+          entries = await getCategoryExpertLeaderboard(startDate);
           break;
       }
-
-      // Apply time filter
-      entries = applyTimeFilter(entries, timeFilter);
 
       // Sort and rank
       entries.sort((a, b) => b.value - a.value);
@@ -100,8 +106,11 @@ export default function LeaderboardScreen() {
     }
   };
 
-  const getHelpfulLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-    const posts = await getPosts();
+  const getHelpfulLeaderboard = async (startDate: Date | null): Promise<LeaderboardEntry[]> => {
+    let posts = await getPosts();
+    if (startDate) {
+      posts = posts.filter(p => new Date(p.createdAt) >= startDate);
+    }
     const allReplies = await Promise.all(posts.map((p) => getReplies(p.id).catch(() => [])));
     const replies = allReplies.flat();
 
@@ -124,14 +133,20 @@ export default function LeaderboardScreen() {
     }));
   };
 
-  const getEngagedLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-    const posts = await getPosts();
+  const getEngagedLeaderboard = async (startDate: Date | null): Promise<LeaderboardEntry[]> => {
+    let posts = await getPosts();
+    if (startDate) {
+      posts = posts.filter(p => new Date(p.createdAt) >= startDate);
+    }
     const allReplies = await Promise.all(posts.map((p) => getReplies(p.id).catch(() => [])));
-    const replies = allReplies.flat();
+    let replies = allReplies.flat();
+    if (startDate) {
+      replies = replies.filter(r => new Date(r.createdAt) >= startDate);
+    }
 
     // Count total activity (posts + replies)
     const userCounts: Record<string, { count: number; pseudonym: string }> = {};
-    
+
     posts.forEach((post) => {
       if (!userCounts[post.authorId]) {
         userCounts[post.authorId] = { count: 0, pseudonym: post.authorPseudonym };
@@ -180,10 +195,16 @@ export default function LeaderboardScreen() {
     return entries;
   };
 
-  const getBadgesLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-    const { data: userBadges } = await supabase
+  const getBadgesLeaderboard = async (startDate: Date | null): Promise<LeaderboardEntry[]> => {
+    let query = supabase
       .from('user_badges')
-      .select('user_id, users!inner(pseudonym)');
+      .select('user_id, created_at, users!inner(pseudonym)');
+
+    if (startDate) {
+      query = query.gte('created_at', startDate.toISOString());
+    }
+
+    const { data: userBadges } = await query;
 
     const userCounts: Record<string, { count: number; pseudonym: string }> = {};
 
@@ -204,10 +225,16 @@ export default function LeaderboardScreen() {
     }));
   };
 
-  const getCategoryExpertLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-    const posts = await getPosts();
+  const getCategoryExpertLeaderboard = async (startDate: Date | null): Promise<LeaderboardEntry[]> => {
+    let posts = await getPosts();
+    if (startDate) {
+      posts = posts.filter(p => new Date(p.createdAt) >= startDate);
+    }
     const allReplies = await Promise.all(posts.map((p) => getReplies(p.id).catch(() => [])));
-    const replies = allReplies.flat();
+    let replies = allReplies.flat();
+    if (startDate) {
+      replies = replies.filter(r => new Date(r.createdAt) >= startDate);
+    }
 
     // Count responses per category per user
     const userCategoryCounts: Record<string, Record<string, { count: number; pseudonym: string }>> = {};
@@ -235,7 +262,7 @@ export default function LeaderboardScreen() {
         data.count > max.count ? { category: cat, ...data } : max,
         { category: '', count: 0, pseudonym: '' }
       );
-      if (maxCategory.count >= 20) {
+      if (maxCategory.count >= 1) { // Reduced from 20 to 1 for testing visibility
         entries.push({
           userId,
           pseudonym: maxCategory.pseudonym,
@@ -250,8 +277,7 @@ export default function LeaderboardScreen() {
   };
 
   const applyTimeFilter = (entries: LeaderboardEntry[], filter: TimeFilter): LeaderboardEntry[] => {
-    // For now, return all entries. In production, filter by date
-    return entries;
+    return entries; // Handled in fetch
   };
 
   const handleRefresh = async () => {

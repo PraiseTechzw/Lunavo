@@ -2,10 +2,10 @@
  * Category badge component for displaying post categories
  */
 
-import { CATEGORIES } from '@/app/constants/categories';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { PostCategory } from '@/app/types';
+import { CATEGORIES } from '@/app/_constants/categories';
+import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { PostCategory } from '@/app/_types';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 

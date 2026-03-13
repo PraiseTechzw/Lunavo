@@ -2,14 +2,14 @@
  * Profile Tab - Premium Version
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { getPseudonym } from '@/app/utils/storage';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, PlatformStyles, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { getPseudonym } from '@/app/_utils/storage';
 import { getCurrentUser, getPosts, getUserBadges } from '@/lib/database';
 import { getStreakInfo } from '@/lib/gamification';
-import { getPointsHistory, getUserPoints, POINTS_CONFIG } from '@/lib/points-system';
+import { POINTS_CONFIG, getPointsHistory, getUserPoints } from '@/lib/points-system';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -362,6 +362,23 @@ export default function ProfileScreen() {
           {/* Quick Access Menu */}
           <View style={styles.section}>
             <ThemedText type="h2" style={styles.sectionTitle}>Settings & Help</ThemedText>
+
+            {user && ['admin', 'counselor', 'life-coach', 'student-affairs', 'peer-educator-executive'].includes(user.role) && (
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: colors.primary + '15', borderColor: colors.primary, borderWidth: 1 }]}
+                onPress={() => {
+                  const role = user.role;
+                  if (role === 'admin') router.push('/admin/dashboard');
+                  else if (role === 'student-affairs') router.push('/student-affairs/dashboard');
+                  else if (role === 'counselor' || role === 'life-coach' || role === 'peer-educator-executive') router.push('/counselor/dashboard');
+                }}
+              >
+                <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
+                <ThemedText style={[styles.menuText, { color: colors.primary }]}>Management Dashboard</ThemedText>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={[styles.menuItem, { backgroundColor: colors.card }]} onPress={() => router.push('/profile-settings')}>
               <Ionicons name="settings-outline" size={22} color={colors.primary} />
               <ThemedText style={styles.menuText}>Account Settings</ThemedText>

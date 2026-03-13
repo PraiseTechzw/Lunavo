@@ -2,7 +2,7 @@
  * Role-based permissions system
  */
 
-import { User, UserRole } from '@/app/types';
+import { User, UserRole } from '@/app/_types';
 
 /**
  * Check if user can view dashboard

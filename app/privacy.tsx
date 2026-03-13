@@ -2,11 +2,11 @@
  * Privacy Policy Screen
  */
 
-import { DrawerHeader } from "@/app/components/navigation/drawer-header";
-import { ThemedText } from "@/app/components/themed-text";
-import { ThemedView } from "@/app/components/themed-view";
-import { BorderRadius, Colors, Spacing } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
+import { DrawerHeader } from "@/app/_components/navigation/drawer-header";
+import { ThemedText } from "@/app/_components/themed-text";
+import { ThemedView } from "@/app/_components/themed-view";
+import { BorderRadius, Colors, Spacing } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -19,83 +19,50 @@ export default function PrivacyScreen() {
 
   const sections = [
     {
-      title: "Information We Collect",
-      content: `We collect information that you provide directly to us, including:
-• Account information (email, username, student number)
-• Profile information (pseudonym, preferences)
-• Content you post (posts, replies, messages)
-• Usage data (how you interact with the platform)
-
-We use this information to provide, maintain, and improve our services.`,
+      title: "PEACE Platform Commitment",
+      content: `The Lunavo (PEACE Platform) is designed as a safe harbor for Chinhoyi University of Technology (CUT) students. We operate under a strict "Confidentiality First" mandate. Our goal is to provide mental health support while ensuring your data remains your own.`,
     },
     {
-      title: "How We Use Your Information",
-      content: `Your information is used to:
-• Provide mental health support services
-• Facilitate peer-to-peer connections
-• Ensure platform safety and security
-• Improve user experience
-• Comply with legal obligations
-
-We never sell your personal information to third parties.`,
+      title: "Data and Information Collection",
+      content: `We collect minimal data to provide our services:
+• Identity Verification: Email and student number are used for authentication only and are stored separately from your social interactions.
+• Community Engagement: Posts, replies, and messages are stored to facilitate peer support.
+• Wellbeing Data: Mood check-ins and session bookings are treated as sensitive health data and are encrypted.
+• Technical Logs: IP addresses are logged for security and abuse prevention but are automatically purged after 30 days.`,
     },
     {
-      title: "Anonymous Posting",
-      content: `You can post anonymously on the platform. When posting anonymously:
-• Your identity is protected from other users
-• Your posts are not linked to your profile
-• You can still receive support and responses
-• Administrators may access your identity for safety purposes only
-
-Anonymous posts are still subject to community guidelines.`,
+      title: "The Pseudonym System",
+      content: `To ensure true privacy, Lunavo uses a pseudonym system for all public interactions. When you post or reply:
+• Your real name is never shown to other students.
+• Even if you are logged in, you can choose to be "Completely Anonymous" for specific high-sensitivity posts.
+• Counselors and Peer Educators only see your pseudonym unless you explicitly agree to share your identity during a private session.`,
     },
     {
-      title: "Data Security",
-      content: `We implement industry-standard security measures:
-• Encrypted data transmission (SSL/TLS)
-• Secure database storage
-• Regular security audits
-• Access controls and authentication
-
-However, no method of transmission over the internet is 100% secure.`,
+      title: "Counseling Confidentiality",
+      content: `Sessions booked through Lunavo are governed by the CUT Student Counseling Services ethics code. Counselors will maintain absolute confidentiality except in cases where:
+• There is a clear and immediate danger to yourself or others.
+• Disclosure is required by a court order.
+• You have provided written consent for information sharing.`,
     },
     {
-      title: "Your Rights",
-      content: `You have the right to:
-• Access your personal data
-• Correct inaccurate information
-• Request deletion of your account
-• Export your data
-• Opt-out of certain data processing
-
-Contact us at privacy@peaceclub.cut.ac.zw to exercise these rights.`,
+      title: "Data Protection & Security",
+      content: `We employ multiple layers of security to protect your wellbeing:
+• End-to-End Encryption: Sensitive messages and health check-ins are encrypted.
+• Database Isolation: User identity data is kept in a separate secure schema from community content.
+• Access Control: Only authorized staff with specific roles (Admin, Head Counselor) can view non-anonymized reports.`,
     },
     {
-      title: "Third-Party Services",
-      content: `We may use third-party services for:
-• Analytics and performance monitoring
-• Cloud storage and hosting
-• Authentication services
+      title: "Your Rights & Control",
+      content: `As a CUT student, you remain in control:
+• Right to Delete: You can delete your account and all associated data at any time.
+• Right to Export: You can request a copy of your session history and check-in logs.
+• Right to Correction: You can update your pseudonym and interests whenever you wish.
 
-These services are bound by their own privacy policies and data protection agreements.`,
+For inquiries regarding your data, contact the PEACE Club Privacy Officer at peace-privacy@cut.ac.zw.`,
     },
     {
-      title: "Children's Privacy",
-      content: `Our platform is designed for students aged 13 and above. We comply with:
-• COPPA (Children's Online Privacy Protection Act)
-• FERPA (Family Educational Rights and Privacy Act)
-• Local data protection regulations
-
-We do not knowingly collect information from children under 13.`,
-    },
-    {
-      title: "Changes to This Policy",
-      content: `We may update this privacy policy from time to time. We will:
-• Notify you of significant changes
-• Post the updated policy on this page
-• Update the "Last Updated" date
-
-Continued use of the platform after changes constitutes acceptance.`,
+      title: "Compliance & Governance",
+      content: `Lunavo complies with the Data Protection Act of Zimbabwe and the university's internal IT and Student Affairs policies. We regularly review our practices with the CUT ICT department to ensure the highest standards of digital safety.`,
     },
   ];
 
@@ -105,7 +72,7 @@ Continued use of the platform after changes constitutes acceptance.`,
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
           title="Privacy Policy"
-          onMenuPress={() => {}}
+          onMenuPress={() => { }}
           rightAction={{
             icon: "close",
             onPress: () => router.back(),

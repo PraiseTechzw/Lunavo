@@ -3,7 +3,7 @@
  * All database operations go through these functions
  */
 
-import { CATEGORIES } from "@/app/constants/categories";
+import { CATEGORIES } from "@/app/_constants/categories";
 import {
   ActivityLog,
   Announcement,
@@ -24,7 +24,7 @@ import {
   SupportMessage,
   SupportSession,
   User,
-} from "@/app/types";
+} from "@/app/_types";
 import { sendEmailWithResend } from "./email";
 import { checkAllBadges } from "./gamification";
 import { sendPushNotification } from "./notifications";

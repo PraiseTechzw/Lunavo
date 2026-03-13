@@ -3,9 +3,9 @@
  * Fixed: Only major tabs are visible to prevent overcrowding
  */
 
-import { Colors, PlatformStyles } from "@/app/constants/theme";
-import { useColorScheme } from "@/app/hooks/use-color-scheme";
-import { UserRole } from "@/app/types";
+import { Colors, PlatformStyles } from "@/app/_constants/theme";
+import { useColorScheme } from "@/app/_hooks/use-color-scheme";
+import { UserRole } from "@/app/_types";
 import { getCurrentUser } from "@/lib/database";
 import { getRoleAccentColor } from "@/lib/permissions";
 import { MaterialCommunityIcons } from "@expo/vector-icons";

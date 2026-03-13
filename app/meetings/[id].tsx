@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThemedView } from '@/app/components/themed-view';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { ThemedText } from '@/app/_components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { createShadow, getCursorStyle, createInputStyle } from '@/app/utils/platform-styles';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
+import { createShadow, getCursorStyle, createInputStyle } from '@/app/_utils/platform-styles';
 import {
   getMeeting,
   getMeetingAttendance,
@@ -26,7 +26,7 @@ import {
   getCurrentUser,
   getUser,
 } from '@/lib/database';
-import { Meeting, MeetingAttendance } from '@/app/types';
+import { Meeting, MeetingAttendance } from '@/app/_types';
 import { format, isPast } from 'date-fns';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { scheduleRemindersForNewRSVP } from '@/lib/meeting-reminders';

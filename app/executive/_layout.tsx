@@ -1,5 +1,5 @@
-import { Colors } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Colors } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
 import { useRoleGuard } from '@/hooks/use-auth-guard';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';

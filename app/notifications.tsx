@@ -2,12 +2,12 @@
  * Notifications Center Screen
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Notification, NotificationType } from '@/app/types';
-import { createShadow, getCursorStyle } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Notification, NotificationType } from '@/app/_types';
+import { createShadow, getCursorStyle } from '@/app/_utils/platform-styles';
 import { getCurrentUser } from '@/lib/auth';
 import { getNotifications, markNotificationAsRead } from '@/lib/database';
 import { RealtimeChannel, subscribeToNotifications, subscribeToSystemNotifications, unsubscribe } from '@/lib/realtime';

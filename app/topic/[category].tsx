@@ -3,13 +3,13 @@
  * Displays posts for a selected category
  */
 
-import { PostCard } from '@/app/components/post-card';
-import { ThemedText } from '@/app/components/themed-text';
-import { ThemedView } from '@/app/components/themed-view';
-import { CATEGORIES } from '@/app/constants/categories';
-import { Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { Post, PostCategory } from '@/app/types';
+import { PostCard } from '@/app/_components/post-card';
+import { ThemedText } from '@/app/_components/themed-text';
+import { ThemedView } from '@/app/_components/themed-view';
+import { CATEGORIES } from '@/app/_constants/categories';
+import { Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { Post, PostCategory } from '@/app/_types';
 import { getPosts, getTopicStats } from '@/lib/database';
 import { RealtimeChannel, subscribeToPosts, unsubscribe } from '@/lib/realtime';
 import { Ionicons } from '@expo/vector-icons';

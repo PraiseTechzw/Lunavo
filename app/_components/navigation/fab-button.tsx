@@ -3,10 +3,10 @@
  * Primary action button for mobile
  */
 
-import { ThemedText } from '@/app/components/themed-text';
-import { BorderRadius, Colors, Spacing } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
-import { createShadow } from '@/app/utils/platform-styles';
+import { ThemedText } from '@/app/_components/themed-text';
+import { BorderRadius, Colors, Spacing } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
+import { createShadow } from '@/app/_utils/platform-styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

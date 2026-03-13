@@ -3,10 +3,10 @@
  */
 
 import { View, StyleSheet } from 'react-native';
-import { ThemedText } from '@/app/components/themed-text';
+import { ThemedText } from '@/app/_components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from '@/app/constants/theme';
-import { useColorScheme } from '@/app/hooks/use-color-scheme';
+import { Colors, Spacing, BorderRadius } from '@/app/_constants/theme';
+import { useColorScheme } from '@/app/_hooks/use-color-scheme';
 
 interface StreakDisplayProps {
   current: number;
