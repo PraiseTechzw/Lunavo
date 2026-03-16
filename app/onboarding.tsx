@@ -14,8 +14,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { BlurView } from 'expo-blur';
+import { useEffect, useRef, useState } from "react";
 import { Dimensions, StyleSheet, TouchableOpacity, View, Image, Platform } from "react-native";
 import Animated, {
   Easing,
@@ -142,7 +141,11 @@ export default function OnboardingScreen() {
         <Blob style={b2} color="rgba(255,255,255,0.1)" size={350} />
         <Blob style={b3} color="rgba(255,255,255,0.12)" size={450} />
         <Blob style={b4} color="rgba(255,255,255,0.08)" size={300} />
-        <BlurView intensity={Platform.OS === 'ios' ? 80 : 40} style={StyleSheet.absoluteFill} tint="dark" />
+        {Platform.OS === 'ios' ? (
+          (() => { const { BlurView } = require('expo-blur'); return <BlurView intensity={80} style={StyleSheet.absoluteFill} tint="dark" />; })()
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
+        )}
       </View>
 
       <SafeAreaView style={styles.safeArea}>

@@ -2,7 +2,6 @@
  * Home Dashboard Screen - Enhanced Premium Version with Crafted Icons
  */
 
-import { DrawerHeader } from "@/components/navigation/drawer-header";
 import { DrawerMenu } from "@/components/navigation/drawer-menu";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -33,6 +32,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DrawerHeader } from "@/components/navigation/drawer-header";
 
 // Extended Motivational quotes
 const motivationalQuotes = [

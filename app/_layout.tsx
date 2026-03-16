@@ -554,7 +554,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-        {!isAuthRoute && !isTabsRoute && Platform.OS !== "web" && (
+        {!isAuthRoute && !isOnboardingRoute && !isTabsRoute && Platform.OS !== "web" && (
           <FAB
             icon="smart-toy"
             onPress={() => setAssistantOpen(true)}
@@ -562,7 +562,7 @@ export default function RootLayout() {
             color={colors.primary}
           />
         )}
-        {!isAuthRoute && !isTabsRoute && Platform.OS === "web" && (
+        {!isAuthRoute && !isOnboardingRoute && !isTabsRoute && Platform.OS === "web" && (
           <TouchableOpacity
             style={[
               styles.webAssistantButton,
