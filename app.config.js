@@ -30,7 +30,7 @@ module.exports = ({ config }) => {
       android: {
         ...(expo.android || {}),
         package: (expo.android && expo.android.package) || "com.peaceclub.app",
-        edgeToEdgeEnabled: true,
+
         predictiveBackGestureEnabled: false,
         permissions: [
           "CAMERA",

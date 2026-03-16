@@ -2,7 +2,7 @@
  * Smart Notifications System - Priority-based, quiet hours, grouping, smart timing
  */
 
-import * as Notifications from 'expo-notifications';
+
 import { scheduleNotification, cancelNotification } from './notifications';
 import { createNotification } from './database';
 import { NotificationType } from '@/types';
