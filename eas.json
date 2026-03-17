@@ -29,7 +29,9 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_ENV": "preview"
+        "EXPO_PUBLIC_ENV": "preview",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://orookyfcnegtjbyewcjh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yb29reWZjbmVndGpieWV3Y2poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMjc1ODksImV4cCI6MjA4MzYwMzU4OX0.Z9knPyL28XdqJt7QyKff9MLbVK129cebpQK0UKbH28g"
       }
     },
     "preview-internal": {
@@ -51,7 +53,9 @@
       },
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_ENV": "production"
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://orookyfcnegtjbyewcjh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yb29reWZjbmVndGpieWV3Y2poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMjc1ODksImV4cCI6MjA4MzYwMzU4OX0.Z9knPyL28XdqJt7QyKff9MLbVK129cebpQK0UKbH28g"
       }
     },
     "production-apk": {
