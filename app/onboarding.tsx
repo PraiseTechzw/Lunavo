@@ -36,7 +36,7 @@ const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
 const onboardingData = [
   {
-    title: "Welcome to Lunavo",
+    title: "Welcome to PEACE",
     subtitle: "REDEFINING WELLNESS",
     description: "Your digital sanctuary for health, mental wellness, and global student community.",
     image: require("@/assets/images/onboarding/wellness_3d.png"),
@@ -46,7 +46,7 @@ const onboardingData = [
   {
     title: "The Student Pulse",
     subtitle: "VOICE & SUPPORT",
-    description: "The heart of Lunavo. Access anonymous sharing, peer guidance, and instant help.",
+    description: "The heart of PEACE. Access anonymous sharing, peer guidance, and instant help.",
     image: require("@/assets/images/onboarding/student_3d.png"),
     colors: ["#10B981", "#059669", "#065F46"],
     accent: "#A7F3D0",
@@ -179,7 +179,7 @@ export default function OnboardingScreen() {
           <TouchableOpacity onPress={handleNext} activeOpacity={0.9} style={styles.buttonContainer}>
             <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.05)']} style={styles.button}>
               <ThemedText style={styles.buttonText}>
-                {activeIndex === onboardingData.length - 1 ? "ENTER LUNAVO" : "CONTINUE"}
+                {activeIndex === onboardingData.length - 1 ? "ENTER PEACE" : "CONTINUE"}
               </ThemedText>
               <Ionicons name={activeIndex === onboardingData.length - 1 ? "planet" : "arrow-forward"} size={20} color="#FFF" />
             </LinearGradient>

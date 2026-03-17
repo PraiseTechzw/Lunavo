@@ -30,7 +30,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function FeedbackScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme as 'light' | 'dark'] || Colors.light;
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [feedbackType, setFeedbackType] = useState<
     "bug" | "feature" | "general" | null
@@ -140,7 +140,7 @@ export default function FeedbackScreen() {
               type="body"
               style={[styles.subtitle, { color: colors.icon }]}
             >
-              Help us improve Lunavo by sharing your thoughts, reporting bugs,
+              Help us improve PEACE by sharing your thoughts, reporting bugs,
               or suggesting features
             </ThemedText>
           </View>

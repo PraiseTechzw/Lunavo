@@ -34,7 +34,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 export default function ProfileSettingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme as 'light' | 'dark'] || Colors.light;
   const { user } = useCurrentUser();
   const [userName, setUserName] = useState("Alex");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -57,7 +57,7 @@ export default function ProfileSettingsScreen() {
   const roleMetadata = getRoleMetadata((user?.role as UserRole) || "student");
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out of Lunavo?", [
+    Alert.alert("Log Out", "Are you sure you want to log out of PEACE?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
@@ -65,7 +65,7 @@ export default function ProfileSettingsScreen() {
         onPress: async () => {
           try {
             await signOut();
-            await AsyncStorage.removeItem("@lunavo:pseudonym");
+            await AsyncStorage.removeItem("@peaceclub:pseudonym");
             // Ensure auth stack is shown after sign out
             router.replace("/auth/login");
           } catch (e) {
@@ -216,7 +216,7 @@ export default function ProfileSettingsScreen() {
         </View>
 
         <View style={styles.footer}>
-          <ThemedText style={styles.versionText}>Lunavo v1.0.0</ThemedText>
+          <ThemedText style={styles.versionText}>PEACE v1.0.0</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>

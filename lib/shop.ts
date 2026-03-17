@@ -50,7 +50,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     {
         id: 'tree-planting',
         name: 'Plant a Peace Tree',
-        description: 'Redeem points to have a tree planted on campus in the Lunavo Peace Garden.',
+        description: 'Redeem points to have a tree planted on campus in the PEACE Garden.',
         price: 1200,
         icon: 'park',
         category: 'charity'

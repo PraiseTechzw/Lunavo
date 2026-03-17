@@ -42,6 +42,33 @@ export default function AnalyticsScreen() {
   const [customEndDate] = useState<Date>(new Date());
   // removed unused showDatePicker state
 
+  const getDateRangeDates = useCallback(() => {
+    const now = new Date();
+    let start: Date;
+    let end: Date = endOfDay(now);
+
+    switch (dateRange) {
+      case "7d":
+        start = startOfDay(subDays(now, 7));
+        break;
+      case "30d":
+        start = startOfDay(subDays(now, 30));
+        break;
+      case "90d":
+        start = startOfDay(subDays(now, 90));
+        break;
+      case "custom":
+        start = startOfDay(customStartDate);
+        end = endOfDay(customEndDate);
+        break;
+      default: // 'all'
+        start = new Date(0);
+        end = endOfDay(now);
+    }
+
+    return { start, end };
+  }, [dateRange, customStartDate, customEndDate]);
+
   const loadAnalytics = useCallback(async () => {
     try {
       const { start, end } = getDateRangeDates();
@@ -57,7 +84,7 @@ export default function AnalyticsScreen() {
       });
 
       const filteredEscalations = escalations.filter((e) => {
-        const escDate = new Date(e.createdAt);
+        const escDate = new Date(e.detectedAt);
         return escDate >= start && escDate <= end;
       });
 
@@ -113,32 +140,6 @@ export default function AnalyticsScreen() {
     loadAnalytics();
   }, [loadAnalytics]);
 
-  const getDateRangeDates = () => {
-    const now = new Date();
-    let start: Date;
-    let end: Date = endOfDay(now);
-
-    switch (dateRange) {
-      case "7d":
-        start = startOfDay(subDays(now, 7));
-        break;
-      case "30d":
-        start = startOfDay(subDays(now, 30));
-        break;
-      case "90d":
-        start = startOfDay(subDays(now, 90));
-        break;
-      case "custom":
-        start = startOfDay(customStartDate);
-        end = endOfDay(customEndDate);
-        break;
-      default: // 'all'
-        start = new Date(0);
-        end = endOfDay(now);
-    }
-
-    return { start, end };
-  };
 
   // duplicate removed
 

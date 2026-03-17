@@ -15,12 +15,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function PrivacyScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme as 'light' | 'dark'] || Colors.light;
 
   const sections = [
     {
       title: "PEACE Platform Commitment",
-      content: `The Lunavo (PEACE Platform) is designed as a safe harbor for Chinhoyi University of Technology (CUT) students. We operate under a strict "Confidentiality First" mandate. Our goal is to provide mental health support while ensuring your data remains your own.`,
+      content: `The PEACE Platform is designed as a safe harbor for Chinhoyi University of Technology (CUT) students. We operate under a strict "Confidentiality First" mandate. Our goal is to provide mental health support while ensuring your data remains your own.`,
     },
     {
       title: "Data and Information Collection",
@@ -32,14 +32,14 @@ export default function PrivacyScreen() {
     },
     {
       title: "The Pseudonym System",
-      content: `To ensure true privacy, Lunavo uses a pseudonym system for all public interactions. When you post or reply:
+      content: `To ensure true privacy, PEACE uses a pseudonym system for all public interactions. When you post or reply:
 • Your real name is never shown to other students.
 • Even if you are logged in, you can choose to be "Completely Anonymous" for specific high-sensitivity posts.
 • Counselors and Peer Educators only see your pseudonym unless you explicitly agree to share your identity during a private session.`,
     },
     {
       title: "Counseling Confidentiality",
-      content: `Sessions booked through Lunavo are governed by the CUT Student Counseling Services ethics code. Counselors will maintain absolute confidentiality except in cases where:
+      content: `Sessions booked through PEACE are governed by the CUT Student Counseling Services ethics code. Counselors will maintain absolute confidentiality except in cases where:
 • There is a clear and immediate danger to yourself or others.
 • Disclosure is required by a court order.
 • You have provided written consent for information sharing.`,
@@ -62,7 +62,7 @@ For inquiries regarding your data, contact the PEACE Club Privacy Officer at pea
     },
     {
       title: "Compliance & Governance",
-      content: `Lunavo complies with the Data Protection Act of Zimbabwe and the university's internal IT and Student Affairs policies. We regularly review our practices with the CUT ICT department to ensure the highest standards of digital safety.`,
+      content: `PEACE complies with the Data Protection Act of Zimbabwe and the university's internal IT and Student Affairs policies. We regularly review our practices with the CUT ICT department to ensure the highest standards of digital safety.`,
     },
   ];
 
@@ -118,7 +118,7 @@ For inquiries regarding your data, contact the PEACE Club Privacy Officer at pea
               type="body"
               style={[styles.introText, { color: colors.text }]}
             >
-              Lunavo is committed to protecting your privacy and ensuring the
+              PEACE is committed to protecting your privacy and ensuring the
               security of your personal information. As a student-centric
               support ecosystem for CUT, this policy explains how we collect,
               use, and safeguard your data when you use our platform.
@@ -152,7 +152,7 @@ For inquiries regarding your data, contact the PEACE Club Privacy Officer at pea
             >
               Questions about privacy? Contact us at{" "}
               <ThemedText style={{ color: colors.primary, fontWeight: "600" }}>
-                privacy@lunavo.app
+                privacy@peace.praisetech.tech
               </ThemedText>
             </ThemedText>
           </View>

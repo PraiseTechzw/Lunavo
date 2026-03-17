@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function AboutScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme as 'light' | 'dark'] || Colors.light;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const headerTranslate = useRef(new Animated.Value(12)).current;
   const sectionOpacity = useRef(new Animated.Value(0)).current;
@@ -109,7 +109,7 @@ export default function AboutScreen() {
       <ThemedView style={styles.container}>
         {/* Drawer Header - Mobile Only */}
         <DrawerHeader
-          title="About Lunavo"
+          title="About PEACE"
           onMenuPress={() => {}}
           rightAction={{
             icon: "close",
@@ -147,7 +147,7 @@ export default function AboutScreen() {
               type="h1"
               style={[styles.title, { color: colors.text }]}
             >
-              Lunavo
+              PEACE
             </ThemedText>
             <ThemedText
               type="body"
@@ -175,7 +175,7 @@ export default function AboutScreen() {
               type="body"
               style={[styles.missionText, { color: colors.icon }]}
             >
-              Lunavo is a state-of-the-art, student-centric support ecosystem
+              PEACE is a state-of-the-art, student-centric support ecosystem
               engineered specifically for Chinhoyi University of Technology
               (CUT). It bridges the gap between students, peer educators, and
               professional counselors, providing a safe, intelligent, and
@@ -340,7 +340,7 @@ export default function AboutScreen() {
               type="small"
               style={[styles.footerText, { color: colors.icon }]}
             >
-              © {new Date().getFullYear()} Lunavo. All rights reserved.
+              © {new Date().getFullYear()} PEACE. All rights reserved.
             </ThemedText>
             <ThemedText
               type="small"
