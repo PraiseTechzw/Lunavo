@@ -249,9 +249,16 @@ export default function ProfileScreen() {
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgeScroll}>
                 {badges.map((badge, idx) => (
-                  <Animated.View key={badge.id} entering={FadeInRight.delay(400 + idx * 100)} style={[styles.badgeItem, { backgroundColor: colors.card }]}>
-                    <MaterialIcons name={badge.icon || 'stars'} size={32} color={badge.color || colors.primary} />
-                    <ThemedText style={styles.badgeName} numberOfLines={1}>{badge.name}</ThemedText>
+                  <Animated.View key={badge.id} entering={FadeInRight.delay(400 + idx * 100)} style={styles.badgeItemWrapper}>
+                    <TouchableOpacity 
+                      style={styles.badgeItem}
+                      onPress={() => router.push('/badges')}
+                    >
+                      <View style={[styles.badgeIconContainer, { backgroundColor: badge.color + '20', borderColor: badge.color, borderWidth: 1 }]}>
+                        <MaterialIcons name={badge.icon || 'stars'} size={32} color={badge.color || colors.primary} />
+                      </View>
+                      <ThemedText style={styles.badgeName} numberOfLines={1}>{badge.name}</ThemedText>
+                    </TouchableOpacity>
                   </Animated.View>
                 ))}
               </ScrollView>
@@ -575,13 +582,20 @@ const styles = StyleSheet.create({
   badgeScroll: {
     gap: Spacing.md,
   },
-  badgeItem: {
+  badgeItemWrapper: {
     width: 100,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
+  },
+  badgeItem: {
     alignItems: 'center',
     gap: Spacing.xs,
-    ...PlatformStyles.shadow,
+  },
+  badgeIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
   badgeName: {
     fontSize: 10,

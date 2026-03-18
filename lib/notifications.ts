@@ -111,11 +111,22 @@ export async function registerForPushNotifications(): Promise<string | null> {
     if (!Notifications) return null;
 
     // Get the Expo push token
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.expoConfig?.extra?.eas?.projectId,
-    });
+    let token = null;
+    try {
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      });
+      token = tokenData.data;
+    } catch (tokenError: any) {
+      if (tokenError.message.includes('FirebaseApp is not initialized')) {
+        console.warn('❌ Push Notifications: Firebase is not initialized. Make sure you are using a Development Build and have google-services.json correctly configured.');
+      } else {
+        console.error('❌ Failed to get push token:', tokenError);
+      }
+      return null;
+    }
 
-    const token = tokenData.data;
+    if (!token) return null;
     console.log('🚀 Push Notification Token:', token);
 
     // Save token to Supabase

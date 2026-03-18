@@ -2,61 +2,42 @@
  * Expo App Configuration (Production-ready)
  * This file dynamically merges with app.json to inject environment variables
  */
-
 require("dotenv").config();
 
 module.exports = ({ config }) => {
-  const baseConfig = config.expo || {};
-
+  // In Expo, 'config' passed here is already the parsed content from app.json
+  // specifically the contents of the "expo" object.
   return {
     ...config,
-    expo: {
-      ...baseConfig,
-      // Force the professional brand name
-      name: "PEACE",
-      slug: "peace",
-      owner: "camusmarketzw",
-      
-      // Explicitly ensure icons and splash are picked up
-      icon: baseConfig.icon || "./assets/images/icon.png",
+    name: "PEACE",
+    slug: "peace",
+    owner: "camusmarketzw",
+    
+    // Ensure critical native links are preserved from app.json
+    // Specifically googleServicesFile for Android push notifications
+    android: {
+      ...config.android,
+      package: "com.peaceclub.app",
+      googleServicesFile: config.android?.googleServicesFile || "./google-services.json",
+    },
 
-      extra: {
-        ...(baseConfig.extra || {}),
-        router: {},
-        eas: {
-          projectId: "62ecdcb4-ade7-419b-a404-b15b1e70446f"
-        },
-        // Environment variables
-        supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-        supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-      },
+    ios: {
+      ...config.ios,
+      bundleIdentifier: "com.peaceclub.app",
+      supportsTablet: true,
+    },
 
-      ios: {
-        ...(baseConfig.ios || {}),
-        bundleIdentifier: "com.peaceclub.app",
-        infoPlist: {
-          ...((baseConfig.ios && baseConfig.ios.infoPlist) || {}),
-          ITSAppUsesNonExemptEncryption: false
-        }
-      },
+    extra: {
+      ...config.extra,
+      // Environment variables for Supabase
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      eas: {
+        projectId: "62ecdcb4-ade7-419b-a404-b15b1e70446f"
+      }
+    },
 
-      android: {
-        ...(baseConfig.android || {}),
-        package: "com.peaceclub.app",
-        adaptiveIcon: {
-          ...(baseConfig.android?.adaptiveIcon || {}),
-          backgroundColor: "#F8FAFC",
-          foregroundImage: "./assets/images/adaptive-icon.png"
-        },
-        permissions: [
-          ...(baseConfig.android?.permissions || []),
-          "CAMERA",
-          "RECORD_AUDIO"
-        ]
-      },
-
-      // Ensure plugins (like expo-splash-screen) are preserved
-      plugins: baseConfig.plugins || []
-    }
+    // Ensure all plugins from app.json are preserved
+    plugins: config.plugins || []
   };
-};
+};

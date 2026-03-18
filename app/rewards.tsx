@@ -255,16 +255,15 @@ export default function RewardsScreen() {
                 <View style={styles.badgesGrid}>
                   {BADGE_DEFINITIONS.map((badge, idx) => (
                     <Animated.View key={badge.id} entering={FadeInDown.delay(idx * 50)} style={styles.badgeCardWrapper}>
-                      <View style={[styles.badgeCard, { backgroundColor: colors.card }]}>
-                        <View style={[styles.badgeIconContainer, { backgroundColor: badge.color + '20' }]}>
-                          <MaterialIcons name={badge.icon as any} size={32} color={badge.color} />
+                      <TouchableOpacity 
+                        style={styles.badgeItem}
+                        onPress={() => router.push('/badges')}
+                      >
+                        <View style={[styles.badgeIconContainer, { backgroundColor: badge.color + '20', borderColor: badge.color, borderWidth: 1 }]}>
+                          <MaterialIcons name={badge.icon as any} size={28} color={badge.color} />
                         </View>
-                        <ThemedText style={styles.badgeName}>{badge.name}</ThemedText>
-                        <ThemedText style={styles.badgeDesc}>{badge.description}</ThemedText>
-                        <View style={[styles.badgeCategory, { backgroundColor: colors.surface }]}>
-                          <ThemedText style={styles.badgeCategoryText}>{badge.category}</ThemedText>
-                        </View>
-                      </View>
+                        <ThemedText numberOfLines={1} style={styles.badgeName}>{badge.name}</ThemedText>
+                      </TouchableOpacity>
                     </Animated.View>
                   ))}
                 </View>
@@ -467,14 +466,13 @@ const styles = StyleSheet.create({
     marginHorizontal: -Spacing.xs,
   },
   badgeCardWrapper: {
-    width: '50%',
+    width: '33.33%',
     padding: Spacing.xs,
   },
-  badgeCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
+  badgeItem: {
     alignItems: 'center',
-    ...PlatformStyles.shadow,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
   },
   badgeIconContainer: {
     width: 64,
@@ -482,19 +480,12 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  badgeName: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
     marginBottom: Spacing.xs,
   },
-  badgeDesc: {
+  badgeName: {
     fontSize: 11,
-    color: '#64748B',
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: Spacing.sm,
   },
   badgeCategory: {
     paddingHorizontal: Spacing.sm,

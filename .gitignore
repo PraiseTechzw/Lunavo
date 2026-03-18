@@ -2,7 +2,7 @@
 
 # dependencies
 node_modules/
-web-reset/node_modules/
+web-reset/node_modules/        
 
 # Expo
 .expo/
@@ -45,7 +45,7 @@ web-reset/.vercel/
 
 app-example
 
-# generated native folders
+# generated native folders     
 /ios
 /android
 
@@ -53,14 +53,14 @@ app-example
 .eas/
 eas-build-*.tar.gz
 
-# Credentials & Secrets
-google-service-account.json
+# Credentials & Secrets        
+google-service-account.json    
 google-services.json
 *.keystore
 *.jks
 credentials.json
 service-account*.json
-*-firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json     
 
 # Build artifacts
 *.apk

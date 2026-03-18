@@ -12,7 +12,8 @@
     "test:db": "node scripts/validate-db.js",
     "test:gamification": "node scripts/test-gamification.js",
     "preflight": "node scripts/preflight-check.js",
-    "validate": "npm run preflight && npm run test:db"
+    "validate": "npm run preflight && npm run test:db",
+    "eas-build-pre-install": "node scripts/eas-build-pre-install.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
