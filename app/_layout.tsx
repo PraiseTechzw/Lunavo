@@ -494,6 +494,21 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="security-settings"
+            options={{
+              headerShown: false,
+              presentation: "card",
+            }}
+          />
+          <Stack.Screen
+            name="notification-settings"
+            options={{
+              headerShown: false,
+              presentation: "card",
+            }}
+          />
+
+          <Stack.Screen
             name="counselor"
             options={{
               headerShown: false,

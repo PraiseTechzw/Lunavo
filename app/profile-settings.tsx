@@ -244,13 +244,13 @@ export default function ProfileSettingsScreen() {
             icon="notifications-outline"
             title="Push Notifications"
             desc="Mention alerts and replies"
-            action={() => {}}
+            action={() => router.push("/notification-settings")}
           />
           <SettingRow
             icon="lock-closed-outline"
             title="Password & Security"
             desc="Update your authentication"
-            action={() => {}}
+            action={() => router.push("/security-settings")}
           />
         </View>
 
