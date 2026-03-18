@@ -27,7 +27,7 @@ export default function ConfirmSignup() {
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
+            scrollEnabled={true}
             showsVerticalScrollIndicator={false}
           >
             <Animated.View entering={FadeInDown.delay(100).duration(800)} style={styles.logoSection}>

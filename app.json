@@ -2,13 +2,14 @@
   "expo": {
     "name": "PEACE",
     "slug": "peace",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "owner": "camusmarketzw",
     "version": "1.0.0",
+    "orientation": "portrait",
     "scheme": "peace",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0F172A",
-
+    "backgroundColor": "#F8FAFC",
+    "newArchEnabled": true,
+    "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.peaceclub.app",
@@ -20,16 +21,15 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/adaptive-icon.png"
-      },
-
-      "predictiveBackGestureEnabled": false,
       "package": "com.peaceclub.app",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "pan",
+      "predictiveBackGestureEnabled": false,
       "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#F8FAFC",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
+      },
       "intentFilters": [
         {
           "action": "VIEW",
@@ -37,45 +37,26 @@
             "BROWSABLE",
             "DEFAULT"
           ],
-          "data": {
-            "scheme": "peace",
-            "host": "auth",
-            "pathPrefix": "/reset-password"
-          }
-        },
-        {
-          "action": "VIEW",
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
-          "data": {
-            "scheme": "peace"
-          }
-        },
-        {
-          "action": "VIEW",
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
-          "data": {
-            "scheme": "https",
-            "host": "peace.praisetech.tech",
-            "pathPrefix": "/auth/reset-password"
-          }
+          "data": [
+            {
+              "scheme": "peace"
+            },
+            {
+              "scheme": "https",
+              "host": "peace.praisetech.tech",
+              "pathPrefix": "/auth"
+            }
+          ]
         }
       ],
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "RECORD_AUDIO"
       ]
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/adaptive-icon.png"
     },
     "plugins": [
       "expo-router",
@@ -85,8 +66,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
-          "color": "#0F172A"
+          "icon": "./assets/images/adaptive-icon.png",
+          "color": "#6366F1"
         }
       ],
       [
@@ -95,21 +76,22 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#F8FAFC",
           "dark": {
+            "image": "./assets/images/splash-icon.png",
             "backgroundColor": "#0F172A"
           }
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "extra": {
+      "router": {},
       "eas": {
         "projectId": "62ecdcb4-ade7-419b-a404-b15b1e70446f"
       }

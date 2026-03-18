@@ -150,10 +150,11 @@ export default function RewardsScreen() {
                       meetingAttended: 'people',
                       badgeEarned: 'stars',
                     };
+                    const iconName = (icons[key] || 'star') as any;
                     return (
                       <Animated.View key={key} entering={FadeInRight.delay(idx * 50)}>
                         <View style={[styles.pointsGuideItem, { backgroundColor: colors.card }]}>
-                          <MaterialIcons name={icons[key] || 'star'} size={24} color={colors.primary} />
+                          <MaterialIcons name={iconName} size={24} color={colors.primary} />
                           <View style={styles.pointsGuideContent}>
                             <ThemedText style={styles.pointsGuideName}>
                               {key.replace(/([A-Z])/g, ' $1').trim()}

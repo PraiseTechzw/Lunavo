@@ -80,7 +80,7 @@ export default function ForgotPasswordScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
+            scrollEnabled={true}
           >
             <TouchableOpacity
               onPress={() => router.back()}

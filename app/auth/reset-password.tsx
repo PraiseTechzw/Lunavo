@@ -98,7 +98,7 @@ export default function ResetPasswordScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
+            scrollEnabled={true}
           >
             <View style={styles.header}>
               <PEACELogo size={80} />
@@ -160,7 +160,7 @@ export default function ResetPasswordScreen() {
 
               <TouchableOpacity
                 onPress={handleReset}
-                disabled={loading || !password || !code}
+                disabled={loading || !password}
                 style={styles.btnWrapper}
               >
                 <LinearGradient

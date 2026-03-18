@@ -339,7 +339,7 @@ export default function RegisterScreen() {
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
+            scrollEnabled={true}
           >
             <View
               style={[

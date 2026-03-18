@@ -121,15 +121,7 @@ export default function LoginScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              isSmall ? { padding: Spacing.lg } : null,
-            ]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
-          >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={true}>
             <Animated.View
               entering={FadeInDown.delay(200).duration(800)}
               style={[
