@@ -25,6 +25,8 @@ import {
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getUserPurchases } from '@/lib/shop';
+
 export default function ProfileScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
@@ -32,6 +34,7 @@ export default function ProfileScreen() {
   const [userName, setUserName] = useState('Alex');
   const [badges, setBadges] = useState<any[]>([]);
   const [badgeCount, setBadgeCount] = useState(0);
+  const [hasCustomFrame, setHasCustomFrame] = useState(false);
   const [stats, setStats] = useState({
     posts: 0,
     replies: 0,
@@ -60,13 +63,16 @@ export default function ProfileScreen() {
       setUserName(savedPseudonym ? savedPseudonym.split(/(?=[A-Z])/)[0] : currentUser.pseudonym || 'Student');
 
       if (currentUser.id) {
-        const [userBadges, allPosts, points, checkIn, history] = await Promise.all([
+        const [userBadges, allPosts, points, checkIn, history, purchases] = await Promise.all([
           getUserBadges(currentUser.id),
           getPosts(),
           getUserPoints(currentUser.id),
           getStreakInfo(currentUser.id, 'check-in'),
           getPointsHistory(currentUser.id, 10),
+          getUserPurchases(currentUser.id),
         ]);
+        
+        setHasCustomFrame(purchases.some(p => p.item_id === 'custom-frame'));
 
         // Calculate level (100 points per level)
         const calculatedLevel = Math.floor(points / 100) + 1;
@@ -121,10 +127,21 @@ export default function ProfileScreen() {
               colors={colors.gradients.primary as any}
               style={styles.profileHero}
             >
-              <View style={styles.avatarCircle}>
-                <ThemedText style={styles.avatarText}>{userName[0]?.toUpperCase()}</ThemedText>
+              <View style={[styles.avatarWrapper, hasCustomFrame && styles.avatarFrame]}>
+                <View style={styles.avatarCircle}>
+                  <ThemedText style={styles.avatarText}>{userName[0]?.toUpperCase()}</ThemedText>
+                </View>
+                {hasCustomFrame && (
+                  <LinearGradient
+                    colors={['#F59E0B', '#FBBF24', '#F59E0B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.frameBorder}
+                  />
+                )}
               </View>
               <ThemedText type="h1" style={styles.heroName}>{user?.fullName || userName}</ThemedText>
+
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: Spacing.xl }}>
                 <View style={[styles.roleBadge, { marginBottom: 0 }]}>
                   <ThemedText style={styles.roleText}>
@@ -458,16 +475,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...PlatformStyles.premiumShadow,
   },
-  avatarCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.4)',
+  avatarWrapper: {
+    width: 90,
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  avatarFrame: {
+    // Optional: add some glow here
+  },
+  frameBorder: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 50,
+    zIndex: -1,
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     color: '#FFF',

@@ -100,7 +100,40 @@ export const Colors = {
       glass: ['rgba(30, 41, 59, 0.8)', 'rgba(30, 41, 59, 0.4)'],
     },
   },
+  gold: {
+    text: '#FEF3C7',
+    background: '#78350F',
+    surface: '#92400E',
+    tint: '#FBBF24',
+    icon: '#F59E0B',
+    tabIconDefault: '#92400E',
+    tabIconSelected: '#FBBF24',
+    primary: '#F59E0B',
+    secondary: '#D97706',
+    success: Brand.emerald[500],
+    warning: '#FBBF24',
+    danger: '#EF4444',
+    info: '#06B6D4',
+    border: '#B45309',
+    card: '#92400E',
+    shadow: 'rgba(0, 0, 0, 0.4)',
+    glass: {
+      background: 'rgba(120, 53, 15, 0.7)',
+      border: 'rgba(251, 191, 36, 0.2)',
+      indicator: 'rgba(251, 191, 36, 0.1)',
+    },
+    gradients: {
+      primary: ['#F59E0B', '#B45309'],
+      secondary: ['#D97706', '#92400E'],
+      success: ['#34D399', '#2DD4BF'],
+      danger: ['#F87171', '#FB7185'],
+      warm: ['#FBBF24', '#FB923C'],
+      cool: ['#60A5FA', '#22D3EE'],
+      glass: ['rgba(120, 53, 15, 0.8)', 'rgba(120, 53, 15, 0.4)'],
+    },
+  },
 };
+
 
 export const Spacing = {
   xs: 4,

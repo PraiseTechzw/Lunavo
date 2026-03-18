@@ -33,9 +33,15 @@ import {
 
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
+import { usePremiumTheme } from "@/hooks/use-premium-theme";
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const systemColorScheme = useColorScheme() ?? "light";
+  const { isGoldThemeUnlocked, loading: themeLoading } = usePremiumTheme();
+  
+  const activeColorScheme = isGoldThemeUnlocked ? "gold" : systemColorScheme;
+  const colors = Colors[activeColorScheme as keyof typeof Colors] || Colors.light;
+
   const router = useRouter();
   const segments = useSegments();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<
@@ -369,7 +375,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={activeColorScheme === "dark" || activeColorScheme === "gold" ? "light" : "dark"} />
       <View style={{ flex: 1 }}>
         <OfflineIndicator />
         <Stack

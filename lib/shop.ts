@@ -74,13 +74,13 @@ export async function buyItem(userId: string, itemId: string): Promise<{ success
     }
 
     // Reward the item based on its category
-    if (item.category === 'badge') { // Corrected 'badges' to 'badge' to match ShopItem interface
+    if (item.category === 'badge') {
       const { awardBadge } = await import('./gamification');
       await awardBadge(userId, item.id);
     }
 
     // Record the purchase in the database
-    await supabase.from('user_purchases').insert({
+    const { error } = await supabase.from('user_purchases').insert({
       user_id: userId,
       item_id: item.id,
       item_name: item.name,
@@ -89,5 +89,24 @@ export async function buyItem(userId: string, itemId: string): Promise<{ success
       metadata: { icon: item.icon }
     });
 
+    if (error) {
+        console.error('Error recording purchase:', error);
+        return { success: true, message: `Successfully purchased ${item.name}, but failed to record it. Please contact support.` };
+    }
+
     return { success: true, message: `Successfully purchased ${item.name}!` };
+}
+
+export async function getUserPurchases(userId: string) {
+    const { data, error } = await supabase
+        .from('user_purchases')
+        .select('*')
+        .eq('user_id', userId);
+    
+    if (error) {
+        console.error('Error fetching user purchases:', error);
+        return [];
+    }
+    
+    return data || [];
 }
