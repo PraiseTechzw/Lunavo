@@ -94,10 +94,17 @@ export default function EditProfileScreen() {
         }
     };
 
-    const InputField = ({ label, value, onChangeText, placeholder, icon, multiline = false, keyboardType = 'default' }: any) => (
+    const InputField = ({ label, value, onChangeText, placeholder, icon, multiline = false, keyboardType = 'default', editable = true }: any) => (
         <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>{label}</ThemedText>
-            <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[
+                styles.inputContainer, 
+                { 
+                    backgroundColor: colors.card, 
+                    borderColor: colors.border,
+                    opacity: editable ? 1 : 0.6
+                }
+            ]}>
                 <Ionicons name={icon} size={20} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
                     style={[styles.input, { color: colors.text, height: multiline ? 100 : 50 }]}
@@ -106,6 +113,7 @@ export default function EditProfileScreen() {
                     placeholder={placeholder}
                     placeholderTextColor={colors.icon}
                     multiline={multiline}
+                    editable={editable}
                     keyboardType={keyboardType}
                     textAlignVertical={multiline ? 'top' : 'center'}
                 />
@@ -174,6 +182,7 @@ export default function EditProfileScreen() {
                             onChangeText={(txt: string) => setFormData({ ...formData, program: txt })}
                             placeholder="e.g. BSc Computer Science"
                             icon="school-outline"
+                            editable={false}
                         />
                         <InputField
                             label="Student Number"
@@ -181,6 +190,7 @@ export default function EditProfileScreen() {
                             onChangeText={(txt: string) => setFormData({ ...formData, studentNumber: txt })}
                             placeholder="e.g. C231...O"
                             icon="id-card-outline"
+                            editable={false}
                         />
                         <View style={{ flexDirection: 'row', gap: 16 }}>
                             <View style={{ flex: 1 }}>
@@ -263,6 +273,7 @@ export default function EditProfileScreen() {
                                 onChangeText={(txt: string) => setFormData({ ...formData, specialization: txt })}
                                 placeholder="e.g. Mental Health Advocate"
                                 icon="medal-outline"
+                                editable={false}
                             />
                         </View>
                     )}

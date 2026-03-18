@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51293647709",
+    "project_id": "peace-b9007",
+    "storage_bucket": "peace-b9007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51293647709:android:3b6d8fd7e2696faffcaeb4",
+        "android_client_info": {
+          "package_name": "com.peaceclub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh88ibd7fFnT5kK6rW77_nwl2V3Ir8zNg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

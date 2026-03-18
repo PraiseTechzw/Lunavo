@@ -55,7 +55,7 @@ eas-build-*.tar.gz
 
 # Credentials & Secrets        
 google-service-account.json    
-google-services.json
+# google-services.json
 *.keystore
 *.jks
 credentials.json
