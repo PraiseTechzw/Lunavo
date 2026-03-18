@@ -13,6 +13,21 @@ export const isTablet = width >= 768;
 export const isDesktop = isWeb && width >= 1024;
 
 /**
+ * Universal Settings Routes - Should be accessible by everyone
+ */
+const COMMON_SETTINGS = [
+  "/profile-settings",
+  "/edit-profile",
+  "/security-settings",
+  "/notification-settings",
+  "/accessibility-settings",
+  "/verification",
+  "/help",
+  "/privacy",
+  "/about",
+];
+
+/**
  * Route access matrix - defines what routes each role can access
  */
 export const ROUTE_ACCESS: Record<
@@ -31,7 +46,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -40,12 +55,11 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
       "/create-channel",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/(tabs)",
@@ -54,7 +68,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -63,12 +77,11 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
       "/create-channel",
+      ...COMMON_SETTINGS
     ],
     blocked: [
       "/admin",
@@ -86,7 +99,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -95,14 +108,13 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
       "/create-channel",
       "/peer-educator",
       "/meetings",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/(tabs)",
@@ -111,7 +123,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -120,14 +132,13 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
       "/create-channel",
       "/peer-educator",
       "/meetings",
+      ...COMMON_SETTINGS
     ],
     blocked: ["/admin", "/counselor", "/student-affairs"],
   },
@@ -139,7 +150,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -148,8 +159,6 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
@@ -158,6 +167,7 @@ export const ROUTE_ACCESS: Record<
       "/peer-educator",
       "/meetings",
       "/counselor",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/(tabs)",
@@ -166,7 +176,7 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
@@ -175,8 +185,6 @@ export const ROUTE_ACCESS: Record<
       "/book-counsellor",
       "/academic-help",
       "/mentorship",
-      "/profile-settings",
-      "/accessibility-settings",
       "/chat",
       "/resource",
       "/gallery",
@@ -185,12 +193,13 @@ export const ROUTE_ACCESS: Record<
       "/peer-educator",
       "/meetings",
       "/counselor",
+      ...COMMON_SETTINGS
     ],
     blocked: ["/admin", "/student-affairs"],
   },
   moderator: {
-    mobile: ["/admin/moderation", "/admin/reports", "/resource", "/gallery"],
-    web: ["/admin/moderation", "/admin/reports", "/resource", "/gallery"],
+    mobile: ["/admin/moderation", "/admin/reports", "/resource", "/gallery", ...COMMON_SETTINGS],
+    web: ["/admin/moderation", "/admin/reports", "/resource", "/gallery", ...COMMON_SETTINGS],
     blocked: [
       "/admin/dashboard",
       "/admin/analytics",
@@ -202,28 +211,26 @@ export const ROUTE_ACCESS: Record<
   counselor: {
     mobile: [
       "/counselor",
-      "/post", // Only escalated posts
+      "/post",
       "/check-in",
       "/notifications",
       "/chat",
-      "/profile-settings",
-      "/accessibility-settings",
       "/resource",
       "/gallery",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/counselor",
-      "/post", // Only escalated posts
+      "/post",
       "/check-in",
       "/notifications",
       "/chat",
-      "/profile-settings",
-      "/accessibility-settings",
       "/resource",
       "/gallery",
+      ...COMMON_SETTINGS
     ],
     blocked: [
-      "/(tabs)/forum", // No general forum
+      "/(tabs)/forum",
       "/create-post",
       "/topic",
       "/admin",
@@ -234,28 +241,26 @@ export const ROUTE_ACCESS: Record<
   "life-coach": {
     mobile: [
       "/counselor",
-      "/post", // Only escalated posts
+      "/post",
       "/check-in",
       "/notifications",
       "/chat",
-      "/profile-settings",
-      "/accessibility-settings",
       "/resource",
       "/gallery",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/counselor",
-      "/post", // Only escalated posts
+      "/post",
       "/check-in",
       "/notifications",
       "/chat",
-      "/profile-settings",
-      "/accessibility-settings",
       "/resource",
       "/gallery",
+      ...COMMON_SETTINGS
     ],
     blocked: [
-      "/(tabs)/forum", // No general forum
+      "/(tabs)/forum",
       "/create-post",
       "/topic",
       "/admin",
@@ -264,15 +269,14 @@ export const ROUTE_ACCESS: Record<
     ],
   },
   "student-affairs": {
-    mobile: [], // STRICTLY BLOCKED ON MOBILE
+    mobile: [],
     web: [
       "/student-affairs",
       "/(tabs)/resources",
       "/(tabs)/profile",
       "/resource",
       "/gallery",
-      "/profile-settings",
-      "/accessibility-settings",
+      ...COMMON_SETTINGS
     ],
     blocked: [
       "/(tabs)/forum",
@@ -296,16 +300,15 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
       "/chat",
       "/resource",
       "/gallery",
-      "/profile-settings",
-      "/accessibility-settings",
       "/create-channel",
+      ...COMMON_SETTINGS
     ],
     web: [
       "/admin",
@@ -318,18 +321,17 @@ export const ROUTE_ACCESS: Record<
       "/topic",
       "/check-in",
       "/badges",
-      "/rewards",
+      "/rewards-shop",
       "/leaderboard",
       "/search",
       "/notifications",
       "/chat",
       "/resource",
       "/gallery",
-      "/profile-settings",
-      "/accessibility-settings",
       "/create-channel",
+      ...COMMON_SETTINGS
     ],
-    blocked: [], // Admin has full access
+    blocked: [],
   },
 };
 

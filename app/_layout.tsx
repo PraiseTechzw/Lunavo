@@ -34,15 +34,27 @@ import {
 const ONBOARDING_KEY = "@peaceclub:onboarding_complete";
 
 import { usePremiumTheme } from "@/hooks/use-premium-theme";
+import { SettingsProvider, useSettings } from "@/context/settings-context";
 
-export default function RootLayout() {
+function RootContent() {
   const systemColorScheme = useColorScheme() ?? "light";
-  const { isGoldThemeUnlocked, loading: themeLoading } = usePremiumTheme();
+  const { isGoldThemeUnlocked } = usePremiumTheme();
+  const { settings } = useSettings();
   
-  const activeColorScheme = isGoldThemeUnlocked ? "gold" : systemColorScheme;
+  // Refined Theme Engine
+  // 1. Check user override in Settings
+  // 2. If Auto, use System
+  // 3. If Gold, verify unlock
+  let activeColorScheme: string = settings.theme === 'auto' ? systemColorScheme : settings.theme;
+  
+  if (activeColorScheme === 'gold' && !isGoldThemeUnlocked) {
+    activeColorScheme = systemColorScheme;
+  }
+
   const colors = Colors[activeColorScheme as keyof typeof Colors] || Colors.light;
 
   const router = useRouter();
+
   const segments = useSegments();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<
     boolean | null
@@ -494,6 +506,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="verification"
+            options={{
+              headerShown: false,
+              presentation: "card",
+            }}
+          />
+          <Stack.Screen
             name="security-settings"
             options={{
               headerShown: false,
@@ -695,6 +714,14 @@ export default function RootLayout() {
         </Modal>
       </View>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SettingsProvider>
+      <RootContent />
+    </SettingsProvider>
   );
 }
 

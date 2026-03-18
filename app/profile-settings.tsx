@@ -1,6 +1,24 @@
 /**
- * Profile Settings Screen - Premium Glassmorphic Version
+ * PEACE Profile Settings - Production Level
+ * Implements global settings synchronization and reactive UI
  */
+
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  Platform
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInUp, Layout } from "react-native-reanimated";
+import Constants from 'expo-constants';
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -10,98 +28,38 @@ import {
   PlatformStyles,
   Spacing,
 } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { UserRole } from "@/types";
-import { getPseudonym } from "@/utils/storage";
+import { useSettings } from "@/context/settings-context";
 import { useCurrentUser } from "@/hooks/use-auth-guard";
 import { signOut } from "@/lib/auth";
 import { getRoleMetadata } from "@/lib/permissions";
-import { updateUser } from "@/lib/database";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  View,
-  ActivityIndicator
-} from "react-native";
-import Animated, { FadeInDown, FadeInUp, Layout } from "react-native-reanimated";
 import { usePremiumTheme } from "@/hooks/use-premium-theme";
-import { getUserPurchases } from "@/lib/shop";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
   const systemColorScheme = useColorScheme() ?? "light";
   const { isGoldThemeUnlocked } = usePremiumTheme();
+  const { settings, updateNotification, updatePrivacy, updateSettings } = useSettings();
   
-  const activeColorScheme = isGoldThemeUnlocked ? "gold" : systemColorScheme;
+  // Theme calculation matching Root (Dynamic)
+  const activeColorScheme = settings.theme === 'auto' ? systemColorScheme : settings.theme;
   const colors = Colors[activeColorScheme as keyof typeof Colors] || Colors.light;
-  const isDark = activeColorScheme === "dark" || activeColorScheme === "gold";
 
   const { user, loading: userLoading } = useCurrentUser();
-  const [userName, setUserName] = useState("Student");
-
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [purchases, setPurchases] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (user) {
-      setUserName(user.pseudonym || user.fullName || "Student");
-      setIsAnonymous(user.isAnonymous ?? false);
-      loadPurchases(user.id);
-    } else {
-      loadUserInfo();
-    }
-  }, [user]);
-
-  const loadUserInfo = async () => {
-    const pseudonym = await getPseudonym();
-    if (pseudonym) {
-      setUserName(pseudonym.split(/(?=[A-Z])/)[0] || "Student");
-    }
-  };
-
-  const loadPurchases = async (uid: string) => {
-    const p = await getUserPurchases(uid);
-    setPurchases(p);
-  };
-
-  const roleMetadata = getRoleMetadata((user?.role as UserRole) || "student");
-
-  const toggleAnonymous = async (value: boolean) => {
-    if (!user) return;
-    setIsAnonymous(value);
-    setSaving(true);
-    try {
-      await updateUser(user.id, { isAnonymous: value });
-    } catch (e) {
-      Alert.alert("Error", "Failed to update privacy settings.");
-      setIsAnonymous(!value);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const appVersion = Constants.expoConfig?.version || "1.0.0";
+  const appName = "PEACE CLUB";
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out of Lunavo?", [
+    Alert.alert("Sign Out", `Are you sure you want to sign out of ${appName}?`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Log Out",
+        text: "Sign Out",
         style: "destructive",
         onPress: async () => {
           try {
             await signOut();
-            await AsyncStorage.removeItem("@peaceclub:pseudonym");
             router.replace("/auth/login");
           } catch (e) {
-            console.error("Logout failed:", e);
             router.replace("/auth/login");
           }
         },
@@ -109,7 +67,7 @@ export default function ProfileSettingsScreen() {
     ]);
   };
 
-  const SettingRow = ({ icon, title, desc, action, type = "chevron", value, onValueChange, iconLib = "Ionicons" }: any) => {
+  const SettingRow = ({ icon, title, desc, action, type = "chevron", value, onValueChange, iconLib = "Ionicons", colorOverride }: any) => {
     const IconComponent = iconLib === "MaterialIcons" ? MaterialIcons : Ionicons;
     
     return (
@@ -119,14 +77,14 @@ export default function ProfileSettingsScreen() {
         activeOpacity={0.7}
       >
         <View
-          style={[styles.settingIcon, { backgroundColor: colors.primary + "15" }]}
+          style={[styles.settingIcon, { backgroundColor: (colorOverride || colors.primary) + "15" }]}
         >
-          <IconComponent name={icon as any} size={20} color={colors.primary} />
+          <IconComponent name={icon as any} size={20} color={colorOverride || colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText style={styles.settingTitle}>{title}</ThemedText>
           {desc && (
-            <ThemedText style={styles.settingDesc}>
+            <ThemedText style={[styles.settingDesc, { color: colors.icon }]}>
               {desc}
             </ThemedText>
           )}
@@ -138,14 +96,14 @@ export default function ProfileSettingsScreen() {
             value={value}
             onValueChange={onValueChange}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#FFF"
+            thumbColor={Platform.OS === 'ios' ? undefined : (value ? colors.primary : '#f4f3f4')}
           />
         )}
       </TouchableOpacity>
     );
   };
 
-  if (userLoading && !user) {
+  if (userLoading) {
     return (
       <View style={[styles.container, styles.centering, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -159,7 +117,7 @@ export default function ProfileSettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <ThemedText type="h2" style={styles.headerTitle}>Settings</ThemedText>
+        <ThemedText type="h2" style={styles.headerTitle}>Account Settings</ThemedText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -167,109 +125,95 @@ export default function ProfileSettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* User Identity Highlight */}
+        {/* Profile Card */}
         <Animated.View entering={FadeInUp.springify()} layout={Layout.springify()}>
           <LinearGradient
-            colors={isGoldThemeUnlocked ? ['#78350F', '#92400E'] : [colors.primary, colors.secondary]}
+            colors={activeColorScheme === 'gold' ? ['#78350F', '#92400E'] : [colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.identityCard}
           >
             <View style={styles.identityMain}>
-              <View style={[styles.avatarLarge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <View style={styles.avatarLarge}>
                 <ThemedText style={styles.avatarText}>
-                  {userName[0]?.toUpperCase()}
+                   {(user?.pseudonym || user?.fullName || "S")[0].toUpperCase()}
                 </ThemedText>
               </View>
               <View>
-                <ThemedText style={styles.identityName}>{userName}</ThemedText>
-                <View style={styles.roleBadge}>
-                  <MaterialIcons name="verified" size={10} color="#FFF" />
-                  <ThemedText style={styles.roleText}>
-                    VERIFIED {user?.role?.toUpperCase() || "STUDENT"}
-                  </ThemedText>
-                </View>
+                <ThemedText style={styles.identityName}>{user?.pseudonym || user?.fullName || "Student"}</ThemedText>
+                <ThemedText style={styles.identitySub}>{user?.email}</ThemedText>
               </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
-        {/* Rewards & Premium Section */}
-        {purchases.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-               <MaterialIcons name="auto-awesome" size={16} color={colors.primary} />
-               <ThemedText style={styles.sectionLabel}>Active Rewards</ThemedText>
-            </View>
-            <View style={styles.rewardGrid}>
-              {purchases.map((p, i) => (
-                <View key={i} style={[styles.rewardChip, { backgroundColor: colors.primary + '10' }]}>
-                  <MaterialIcons name={p.metadata?.icon || 'star'} size={14} color={colors.primary} />
-                  <ThemedText style={[styles.rewardChipText, { color: colors.primary }]}>{p.item_name}</ThemedText>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+        <View style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionLabel, { color: colors.icon }]}>Customization</ThemedText>
+          <SettingRow
+            icon="palette"
+            iconLib="MaterialIcons"
+            title="App Theme"
+            desc={`Current: ${settings.theme.toUpperCase()}`}
+            action={() => {
+              Alert.alert("Select Theme", "Choose your visual preference", [
+                { text: "System Default", onPress: () => updateSettings({ theme: 'auto' }) },
+                { text: "Light", onPress: () => updateSettings({ theme: 'light' }) },
+                { text: "Dark", onPress: () => updateSettings({ theme: 'dark' }) },
+                ...(isGoldThemeUnlocked ? [{ text: "Premium Gold", onPress: () => updateSettings({ theme: 'gold' }) }] : []),
+                { text: "Cancel", style: "cancel" }
+              ]);
+            }}
+          />
+        </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionLabel}>Privacy & Appearance</ThemedText>
+          <ThemedText type="h3" style={[styles.sectionLabel, { color: colors.icon }]}>Privacy & Safety</ThemedText>
           <SettingRow
             icon="visibility-off"
             iconLib="MaterialIcons"
             title="Anonymous Mode"
-            desc="Hide your real name in the forum"
+            desc="Use pseudonym in community discussions"
             type="switch"
-            value={isAnonymous}
-            onValueChange={toggleAnonymous}
+            value={settings.privacy.isAnonymous}
+            onValueChange={(val) => updatePrivacy('isAnonymous', val)}
           />
           <SettingRow
-            icon="palette"
-            iconLib="MaterialIcons"
-            title="Theme Aesthetics"
-            desc={isGoldThemeUnlocked ? "Golden Premium Active" : "Default Blue Theme"}
-            action={() => router.push("/rewards-shop")}
+             icon="shield-outline"
+             title="Verified Status"
+             desc={user?.verified ? "Institution Verified" : "Verification Pending"}
+             colorOverride={user?.verified ? colors.success : colors.warning}
+             action={() => !user?.verified && router.push('/verification')}
           />
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionLabel}>Account Security</ThemedText>
-          <SettingRow
-            icon="person-outline"
-            title="Edit Profile"
-            desc="Username, bio, and interests"
-            action={() => router.push("/edit-profile")}
-          />
+          <ThemedText type="h3" style={[styles.sectionLabel, { color: colors.icon }]}>Notifications</ThemedText>
           <SettingRow
             icon="notifications-outline"
             title="Push Notifications"
-            desc="Mention alerts and replies"
-            action={() => router.push("/notification-settings")}
+            desc="Global alert preference"
+            type="switch"
+            value={settings.notifications.mentions}
+            onValueChange={(val) => updateNotification('mentions', val)}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionLabel, { color: colors.icon }]}>Account</ThemedText>
+          <SettingRow
+            icon="person-outline"
+            title="Edit Identity"
+            action={() => router.push("/edit-profile")}
           />
           <SettingRow
             icon="lock-closed-outline"
-            title="Password & Security"
-            desc="Update your authentication"
+            title="Security"
             action={() => router.push("/security-settings")}
           />
         </View>
 
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionLabel}>Support</ThemedText>
-          <SettingRow
-            icon="help-circle-outline"
-            title="Help Center"
-            action={() => router.push("/help")}
-          />
-           <SettingRow
-            icon="shield-checkmark-outline"
-            title="Privacy Policy"
-            action={() => router.push("/privacy")}
-          />
-        </View>
-
         <TouchableOpacity
-          style={[styles.logoutBtn, { borderColor: colors.danger + '30' }]}
+          style={[styles.logoutBtn, { borderColor: colors.danger + '40' }]}
           onPress={handleLogout}
         >
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
@@ -279,12 +223,12 @@ export default function ProfileSettingsScreen() {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <ThemedText style={[styles.versionText, { color: colors.icon }]}>LUNAVO v1.2.0 (Build 55)</ThemedText>
-          <View style={styles.footerDots}>
-             <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-             <View style={[styles.dot, { backgroundColor: colors.secondary }]} />
-             <View style={styles.dot} />
-          </View>
+          <ThemedText style={[styles.versionText, { color: colors.icon }]}>
+             {appName} v{appVersion}
+          </ThemedText>
+          <ThemedText style={{ fontSize: 10, color: colors.icon, marginTop: 4 }}>
+             Handcrafted for Student Wellness
+          </ThemedText>
         </View>
       </ScrollView>
     </ThemedView>
@@ -304,7 +248,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
   },
   backBtn: {
@@ -330,55 +274,39 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   avatarLarge: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.4)',
   },
   avatarText: {
     color: "#FFF",
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
   },
   identityName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#FFF',
   },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  roleText: {
-    color: "#FFF",
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+  identitySub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
   },
   section: {
     marginBottom: Spacing.xl,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: Spacing.md,
-  },
   sectionLabel: {
     fontSize: 12,
     fontWeight: "900",
-    color: "#64748B",
     textTransform: "uppercase",
     letterSpacing: 1.2,
+    marginBottom: Spacing.md,
+    marginLeft: 4,
   },
   settingCard: {
     flexDirection: "row",
@@ -397,31 +325,12 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
   },
   settingDesc: {
     fontSize: 12,
-    color: "#64748B",
     marginTop: 2,
-  },
-  rewardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: Spacing.sm,
-  },
-  rewardChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  rewardChipText: {
-    fontSize: 11,
-    fontWeight: '800',
   },
   logoutBtn: {
     flexDirection: "row",
@@ -441,19 +350,8 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 2,
-  },
-  footerDots: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 12,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CBD5E1',
   },
   centering: {
     justifyContent: 'center',

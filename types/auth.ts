@@ -15,6 +15,7 @@ export type UserRole =
 export interface User {
     id: string;
     email: string;
+    verified: boolean;
     pseudonym: string;
     fullName?: string;
     username?: string; // Anonymous username (unique)
